@@ -37,6 +37,15 @@ paf: function [
 		|	skip
 		]
 	]
+	scan-file: func [
+		path
+	] [
+		unless error? try [file: read path] [
+			repend matches [path make block! 100]
+			parse file pattern
+			if empty? last matches [remove/part skip tail matches -2 2]
+		]
+	]
 	scan-dir: func [
 		path
 	] [
@@ -48,12 +57,7 @@ paf: function [
 				take/last dirs
 			] [
 				found?: false
-				filepath: append to file! dirs file
-				unless error? try [file: read filepath] [
-					repend matches [filepath make block! 100]
-					parse file pattern
-					if empty? last matches [remove/part skip tail matches -2 2]
-				]
+				scan-file append to file! dirs file
 			]
 		]
 	]
