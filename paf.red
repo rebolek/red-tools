@@ -6,6 +6,7 @@ paf: function [
 	path
 	pattern
 ] [
+	matches: make block! 100
 	lines: 1
 	found?: false
 	line-start: none
@@ -26,7 +27,10 @@ paf: function [
 		some [
 			(either block? pattern [append/only copy [] pattern] [pattern]) 
 			mark:
-			(quote (print rejoin [filepath ": " copy/part line-start find-line-end mark])) 
+			(quote (
+				append last matches mark
+				print rejoin [filepath #"@" lines ": " copy/part line-start find-line-end mark]
+			)) 
 		;	to end
 		|	#"^/" line-start: (quote (lines: lines + 1))
 		|	skip
@@ -45,10 +49,13 @@ paf: function [
 				found?: false
 				filepath: append to file! dirs file
 				unless error? try [file: read filepath] [
+					repend matches [filepath make block! 100]
 					parse file pattern
+					if empty? last matches [remove/part skip tail matches -2 2]
 				]
 			]
 		]
 	]
 	scan-dir path
+	matches
 ]
