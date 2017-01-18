@@ -5,6 +5,7 @@ Red [
 paf: function [
 	path
 	pattern
+	/quiet
 ] [
 	matches: make block! 100
 	lines: 1
@@ -22,14 +23,14 @@ paf: function [
 		unless mark: find text newline [mark: tail text]
 		mark
 	]
-	pattern: probe compose/deep [
+	pattern: compose/deep [
 		(quote (lines: 1))
 		some [
 			(either block? pattern [append/only copy [] pattern] [pattern]) 
 			mark:
 			(quote (
 				append last matches mark
-				print rejoin [filepath #"@" lines ": " copy/part line-start find-line-end mark]
+				unless quiet [print rejoin [filepath #"@" lines ": " copy/part line-start find-line-end mark]]
 			)) 
 		;	to end
 		|	#"^/" line-start: (quote (lines: lines + 1))
