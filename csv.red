@@ -21,7 +21,6 @@ load-csv: function [
 	stop: charset [#"^/" #"^M" #","]
 	valchars: charset [not "^/^M,"]
 	quotchars: charset reduce ['not quot]
-	value: make string! 20
 	; parse rules
 	quoted-value: [
 		quot (clear value)
