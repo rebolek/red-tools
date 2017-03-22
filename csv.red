@@ -29,7 +29,7 @@ load-csv: function [
 	]
 	normal-value: [s: any valchars e: (value: copy/part s e)]
 	single-value: [quoted-value | normal-value]
-	values: [some [single-value comma add-value]]
+	values: [some [single-value delimiter add-value]]
 	add-value: [(append line copy value)]
 	add-line: [
 		add-value ; add last value on line
