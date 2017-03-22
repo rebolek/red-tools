@@ -18,8 +18,7 @@ load-csv: function [
 	line: make block! 20
 	value: make string! 200
 	quot: #"^""
-	stop: charset [#"^/" #"^M" #","]
-	valchars: charset [not "^/^M,"]
+	valchars: charset reduce ['not append copy "^/^M" delimiter]
 	quotchars: charset reduce ['not quot]
 	; parse rules
 	quoted-value: [
