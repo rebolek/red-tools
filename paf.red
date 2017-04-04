@@ -1,5 +1,6 @@
 Red [
 	Title: "PAF - parse files"
+	Author: "Boleslav Březovský"
 ] 
 
 paf: function [
@@ -30,7 +31,12 @@ paf: function [
 			(quote (
 				found?: true
 				unless only [append last matches mark]
-				unless quiet [print rejoin [filepath #"@" lines ": " copy/part line-start find-line-end mark]]
+				unless quiet [
+					print rejoin [
+						filepath #"@" lines ": " 
+						copy/part line-start find-line-end mark
+					]
+				]
 			)) 
 		;	to end
 		|	#"^/" line-start: (quote (lines: lines + 1))
