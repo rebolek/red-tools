@@ -56,7 +56,7 @@ send-request: function [
 	if auth [
 		switch auth-type [
 			Basic [
-				; TODO: Add basic authentization (see GitHub API)
+				Authorization: (rejoin [auth-type space enbase rejoin [first auth-data #":" second auth-data]])
 			]
 			OAuth [
 				; TODO: Add OAuth (see Twitter API)
