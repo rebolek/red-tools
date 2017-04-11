@@ -3,10 +3,25 @@ Red [
 	File: %http-tools.red
 	Author: "Boleslav Březovský"
 	Description: "Collection of tools to make using HTTP easier"
-	Date: 10-4-2017
+	Date: "10-4-2017"
 ]
 
 do %json.red
+
+map: function [
+	"Make map with reduce/no-set emulation"
+	data
+] [
+	value: none
+	parse data [
+		some [
+			change set value set-word! (reduce ['quote value])
+		|	skip	
+		]
+	]
+	make map! reduce data
+]
+
 
 make-url: function [
 	"Make URL from simple dialect"
