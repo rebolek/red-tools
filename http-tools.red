@@ -8,6 +8,8 @@ Red [
 
 do %json.red
 
+; --- support tools
+
 map: function [
 	"Make map with reduce/no-set emulation"
 	data
@@ -22,11 +24,25 @@ map: function [
 	make map! reduce data
 ]
 
+cut-tail: function [
+	"Remove value(s) from end of series"
+	series
+	/part
+		length
+] [
+	unless part [length: 1]
+	head remove/part skip tail series negate length length
+]
+
+; ---
 
 make-url: function [
 	"Make URL from simple dialect"
 	data
 ] [
+	; this is basically like to-url, with some exceptions:
+	; WORD! - gets value
+	; BLOCK! - treated as key/value storage of after "?" parameters
 	value: none
 	args: clear []
 	link: make url! 80
@@ -102,12 +118,10 @@ www-form: object [
 	encode: function [
 		data
 		/only "Ignore NONE values"
-		/with 
-			pattern
 	] [
 		if any [map? data object? data] [data: body-of data]
 		print mold data
-		unless with [pattern: [key {="} value {", }]]
+		pattern: [key #"=" value #"&"]
 		output: collect/into [
 			foreach [key value] data [
 				if any [not only all [only value]] [
