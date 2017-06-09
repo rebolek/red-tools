@@ -8,7 +8,7 @@ Red [
 
 do %json.red
 
-; --- support tools
+; --- support tools ----------------------------------------------------------
 
 map: function [
 	"Make map with reduce/no-set emulation"
@@ -34,7 +34,71 @@ cut-tail: function [
 	head remove/part skip tail series negate length length
 ]
 
-; ---
+; --- server side tools ------------------------------------------------------
+
+headers!: context [
+	server-software: none
+	server-name: none
+	gateway-interface: none
+	server-protocol: none
+	server-port: none
+	request-method: none
+	path-info: none
+	path-translated: none
+	script-name: none
+	query-string: none
+	remote-host: none
+	remote-addr: none
+	auth-type: none
+	remote-user: none
+	remote-ident: none
+	Content-Type: none
+	content-length: none
+	user-agent: none
+	other-headers: none
+]
+
+parse-headers: func [query] [
+	headers: make headers! []
+	raw: make map! 50
+	key: value: none
+	parse query [
+		some [
+			copy key to #"=" 
+			skip
+			copy value to newline
+			skip
+			(raw/:key: value)
+		]
+	]
+	foreach [cgi-key red-key] [
+		"HTTP_HOST" remote-host
+		"HTTP_USER_AGENT" user-agent
+		"SERVER_SOFTWARE" server-software
+		"SERVER_NAME" server-name
+		"SERVER_PORT" server-port
+		"REMOTE_ADDR" remote-addr
+		"SCRIPT_FILENAME" script-name
+		"GATEWAY_INTERFACE" gateway-interface
+		"SERVER_PROTOCOL" server-protocol
+		"REQUEST_METHOD" request-method
+		"QUERY_STRING" query-string
+	] [
+		headers/:red-key: raw/:cgi-key
+		raw/:cgi-key: none
+	]
+	headers/other-headers: raw
+	headers
+]
+
+get-headers: func [/local o] [
+	call/wait/output "printenv" o: ""
+	http-headers: parse-headers o	
+]
+
+get-headers
+
+; --- client side tools ------------------------------------------------------
 
 make-url: function [
 	"Make URL from simple dialect"
