@@ -83,6 +83,7 @@ parse-headers: func [query] [
 		"SERVER_PROTOCOL" server-protocol
 		"REQUEST_METHOD" request-method
 		"QUERY_STRING" query-string
+		"CONTENT_TYPE" Content-Type
 	] [
 		headers/:red-key: raw/:cgi-key
 		raw/:cgi-key: none
