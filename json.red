@@ -17,6 +17,8 @@ json: context [
 	dbl-quote:	 #"^""
 	s: e:		 none
 
+	null-value:	none ; NOTE: Change this, if you prefer someting else than NONE
+
 	load-str: func [
 		"Return word if possible, leave untouched when not" 
 		str
@@ -70,7 +72,7 @@ json: context [
 		| number  keep (load copy/part s e)
 		| "true"  keep (true)
 		| "false" keep (false)
-		| "null"  keep (none)
+		| "null"  keep (null-value)
 		| object-rule
 		| array
 	]
