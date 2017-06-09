@@ -197,21 +197,25 @@ www-form: object [
 	]
 	decode: function [
 		text
-		type
 	] [
-		; TODO: just www-form decoder should be here
-		;		there should be another function on top of this (MIME-DECODER)
-		switch type [
-			"application/json" [text]
-			"application/x-www-form-urlencoded" [
-				text: make map! split text charset "=&"
-			]
-			"text/html" [
-				text: make map! split text charset "=&"
-			]
-		]
-		text
+		make map! split text charset "=&"
 	]
+]
+
+mime-decoder: function [
+	text
+	type
+] [
+	switch type [
+		"application/json" [text] ; NOTE: really?
+		"application/x-www-form-urlencoded" [
+			text: www-form/decode text
+		]
+		"text/html" [
+			text: www-form/decode text
+		]
+	]
+	text	
 ]
 
 make-nonce: function [] [
