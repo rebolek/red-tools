@@ -4,6 +4,48 @@ Red [
 	Author: "Boleslav Březovský"
 	Description: "Collection of tools to make using HTTP easier"
 	Date: "10-4-2017"
+	Problems: [
+{
+	Rebol system/options/cgi problems:
+
+	1) Capitalized `Content-Type`
+
+	The only capitalized key. Should be changed to `content-type`.
+
+	2) Everything is `string!`
+
+	At least ports and IPs should be converted.
+
+	3) Query decoding
+
+	`query-string` for GET or `input` for POST provide raw data,
+	but it would nice to have Red form of the data available, 
+	regardless of the request method.
+}
+	]
+	To-Do: [
+{
+	("wtf is this: ¨í¨")
+
+	ENCODE and DECODE functions.
+
+	ENCODE data type
+	DECODE data type
+
+	Definition:
+
+	<name> CODEC <definition> ; (infix func ;)
+
+	example:
+
+	'JSON codec [
+		some: vars
+		encode: ...
+		decode: ...
+	]
+
+}
+	]
 ]
 
 do %json.red
@@ -52,7 +94,7 @@ headers!: context [
 	auth-type: none
 	remote-user: none
 	remote-ident: none
-	Content-Type: none
+	content-type: none
 	content-length: none
 	user-agent: none
 	other-headers: none
@@ -83,6 +125,7 @@ parse-headers: func [query] [
 		"SERVER_PROTOCOL" server-protocol
 		"REQUEST_METHOD" request-method
 		"QUERY_STRING" query-string
+		"CONTENT_TYPE" Content-Type
 	] [
 		headers/:red-key: raw/:cgi-key
 		raw/:cgi-key: none
@@ -184,7 +227,6 @@ www-form: object [
 		/only "Ignore NONE values"
 	] [
 		if any [map? data object? data] [data: body-of data]
-		print mold data
 		pattern: [key #"=" value #"&"]
 		output: collect/into [
 			foreach [key value] data [
@@ -196,26 +238,29 @@ www-form: object [
 		cut-tail/part output either with [length? form last pattern] [2]
 	]
 	decode: function [
-		text
+		string
 	] [
-		make map! split text charset "=&"
+		if empty? string [return none]
+		data: split string charset "=&"
+		forall data [data/1: percent/decode data/1]
+		make map! data
 	]
 ]
 
 mime-decoder: function [
-	text
+	string
 	type
 ] [
 	switch type [
-		"application/json" [text] ; NOTE: really?
+		"application/json" [string] ; NOTE: really?
 		"application/x-www-form-urlencoded" [
-			text: www-form/decode text
+			string: www-form/decode string
 		]
 		"text/html" [
-			text: www-form/decode text
+			string: www-form/decode string
 		]
 	]
-	text	
+	string	
 ]
 
 make-nonce: function [] [
@@ -237,18 +282,68 @@ get-unix-timestamp: function [
 	to integer! date
 ]
 
-url-encode: function [
-	text [any-string!]
-] [
-	value: none
-	chars: charset ["!'*,-.~_" #"0" - #"9" #"A" - #"Z" #"a" - #"z"]
-	rejoin head insert parse text [
-		collect [
-			some [
-				keep some chars
-			|	space keep #"+"	
-			|	set value skip keep (head insert enbase/base form value 16 %"%")
+; --- percent encoding -------------------------------------------------------
+
+
+percent: context [
+	; RFC 3986 characters
+	reserved-chars: union charset "!*'();:@&=+$,/?#[]" charset "%" ; RFCs are stupid
+	unreserved-chars: charset [#"A" - #"Z" #"a" - #"z" #"0" - #"9" "-_.~"]
+	encode: function [
+		string [string!]
+	] [
+		value: none
+		chars: unreserved-chars
+		rejoin head insert parse string [
+			collect [
+				some [
+					keep some chars
+				|	space keep #"+"	
+				|	set value skip keep (head insert for %"%")
+				]
+			]
+		] ""
+	]
+
+	decode: function [
+		string [string!]
+	] [
+		to string! collect/into [
+			parse string [
+				some [
+					#"+" (keep space) ; should be here? or add some switch?
+				|	#"%" 
+					copy value 2 skip (
+						keep to integer! append value #"h"
+					)
+				|	set value skip (
+						keep to integer! value
+					)
+				]
+			]
+		] make binary! 100
+	]
+
+	; Temporary function
+	ansi-decode: function [
+		string [string!]
+	] [
+		rejoin parse string [
+			collect [
+				some [
+					#"+" keep space ; should be here?
+				|	"%26%23" ; &#nnnn; encoding TODO: hexadecimal form
+					copy value to "%3B" 3 skip keep (
+						to char! to integer! value
+					)
+				|	#"%" 
+					copy value 2 skip keep (
+						to char! to integer! append value #"h"
+					) 
+				| 	keep skip
+				]
 			]
 		]
-	] ""
+	]
 ]
+
