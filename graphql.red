@@ -10,7 +10,6 @@ Red [
 ; check GraphQL validity
 
 ; source text
-
 source-char: charset reduce [tab cr lf #" " '- #"^(FFFF)"]
 unicode-bom: #"^(FEFF)"
 whitespace: charset reduce [space tab]
@@ -28,9 +27,6 @@ start-name-char: charset [#"_" #"A" - #"Z" #"a" - #"z"]
 name-char: union start-name-char charset [#"0" - #"9"]
 
 ; query document
-
-; TODO: add whitespaces
-
 document: [some definition]
 definition: [
 	operation-definition 
@@ -343,3 +339,92 @@ query inlineFragmentNoType($expandedInfo: Boolean) {
 }
 	}
 ]
+
+make-graphql: function [
+	dialect
+] [
+{
+DIALECT DESCRIPTION
+===================
+
+name - word!
+selection set - block!
+arguments - map!
+}
+
+	output: make string! 1000
+	value: none
+
+	append output #"{"
+
+	name-rule: [set value word! (append output rejoin [form value space])]
+	sel-set-rule: [
+		some [
+			[
+				ahead block! 
+				(append output rejoin [#"{"]) 
+				into sel-set-rule 
+				(append output rejoin [#"}"])
+			]
+		|	field-rule
+		]
+	]
+	field-rule: [name-rule]
+	arguments-rule: [
+		set value map! (
+			append output rejoin [#"(" form value #")" space]
+		)
+	]
+
+	parse dialect [
+		some [
+			name-rule
+		|	sel-set-rule
+		|	arguments-rule
+		]
+	]
+
+	append output #"}"
+
+	output
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
