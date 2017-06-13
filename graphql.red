@@ -376,12 +376,13 @@ arguments - map!
 				(append output rejoin [#"}"])
 			]
 		|	field-rule
+		|	arguments-rule
 		]
 	]
 	field-rule: [name-rule]
 	arguments-rule: [
 		set value map! (
-			append output rejoin [#"(" form value #")" space]
+			append output rejoin [#"(" trim/lines form value #")" space]
 		)
 	]
 
@@ -398,7 +399,47 @@ arguments - map!
 	output
 ]
 
+test-query.graphql: {
+query {
+  repository(owner:"octocat", name:"Hello-World") {
+    issues(last:20, states:CLOSED) {
+      edges {
+        node {
+          title
+          url
+          labels(first:5) {
+            edges {
+              node {
+                name
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+}
 
+test-query: [
+	repository #(owner: "octocat" name: "Hello-World") [
+		issues #(last: 20 states: CLOSED) [
+			edges [
+				node [
+					title
+					url
+					labels #(first: 5) [
+						edges [
+							node [
+								name
+							]
+						]
+					]
+				]
+			]
+		]
+	]
+]
 
 
 
