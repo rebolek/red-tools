@@ -380,20 +380,22 @@ get variable - 	get-word!
 			]
 		|	field-rule
 		|	arguments-rule
+		|	vals-rule
 		]
 	]
 	field-rule: [name-rule]
 	arguments-rule: [
 		ahead paren! into [
 			(append output #"(")
-			some [
-				set value set-word! (keep [value #":"])
-			|	set value lit-word! (keep [#"$" value #":"])
-			|	set value get-word! (keep [#"$" value])
-			|	set value skip (keep [mold value])
-			]
+			some vals-rule
 			(keep [#")"])
 		]
+	]
+	vals-rule: [
+		set value set-word! (keep [value #":"])
+	|	set value lit-word! (keep [#"$" value #":"])
+	|	set value get-word! (keep [#"$" value])
+	|	set value skip (keep [mold value])
 	]
 	parse dialect [
 		some [
