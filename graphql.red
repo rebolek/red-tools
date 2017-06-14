@@ -356,10 +356,13 @@ make-graphql: function [
 DIALECT DESCRIPTION
 ===================
 
-name - word!
+name - 			word!
 selection set - block!
-arguments - map!
+arguments - 	paren!
+set variable - 	lit-word!
+get variable - 	get-word!
 }
+	keep: func [value] [append output rejoin append copy value space]
 
 	output: make string! 1000
 	value: none
@@ -381,8 +384,25 @@ arguments - map!
 	]
 	field-rule: [name-rule]
 	arguments-rule: [
-		set value map! (
-			append output rejoin [#"(" trim/lines form value #")" space]
+		ahead paren! into [
+			(append output #"(")
+			some [
+				set value set-word! (append output rejoin [value #":" space])
+			|	set value lit-word! (append output rejoin [#"$" value #":" space])
+			|	set value get-word! (append output rejoin [#"$" value space])
+			|	set value skip (append output rejoin [mold value space])
+			]
+			(append output rejoin [#")" space])
+		]
+	]
+	set-var-rule: [
+		set value lit-word! (
+			append output rejoin [#"$" form value space]
+		)
+	]
+	get-var-rule: [
+		set value lit-word! (
+			append output rejoin [#"$" form value space]
 		)
 	]
 
@@ -422,13 +442,13 @@ query {
 }
 
 test-query: [
-	repository #(owner: "octocat" name: "Hello-World") [
-		issues #(last: 20 states: CLOSED) [
+	repository (owner: "octocat" name: "Hello-World") [
+		issues (last: 20 states: CLOSED) [
 			edges [
 				node [
 					title
 					url
-					labels #(first: 5) [
+					labels (first: 5) [
 						edges [
 							node [
 								name
