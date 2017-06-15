@@ -87,7 +87,7 @@ github: func [
 	if block? vars [vars: json/encode vars]
 	query: copy query
 	replace/all query newline "" ; removes newlines, probably should escape them somehow
-	replace/all query #"^"" {\"} ; escape quotes - TODO: move to make-graphql ?
+;	replace/all query #"^"" {\"} ; escape quotes - TODO: move to make-graphql ?
 	parse query [some [change #"^"" {\"} | skip]]
 	query: rejoin [
 		{^{"query": "} query {"^}}
@@ -97,7 +97,7 @@ github: func [
 		;replace/all vars #"^"" {\"} ; escape quotes
 		insert back tail query rejoin [{, "variables": } vars]
 	]
-	send-request/data/auth https://api.github.com/graphql 'POST query 'Bearer token
+	send-request/data/auth https://api.github.com/graphql 'POST probe query 'Bearer token
 ]
 
 
