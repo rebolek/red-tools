@@ -370,14 +370,15 @@ get variable - 	get-word!
 ;	append output #"{"
 
 	name-rule: [set value word! (keep [form value])]
+	into-sel-set-rule: [
+		ahead block! 
+		(append output rejoin [#"{"]) 
+		into sel-set-rule 
+		(append output rejoin [#"}"])
+	]
 	sel-set-rule: [
 		some [
-			[
-				ahead block! 
-				(append output rejoin [#"{"]) 
-				into sel-set-rule 
-				(append output rejoin [#"}"])
-			]
+			into-sel-set-rule
 		|	field-rule
 		|	arguments-rule
 		|	vals-rule
@@ -395,6 +396,7 @@ get variable - 	get-word!
 		set value set-word! (keep [value #":"])
 	|	set value lit-word! (keep [#"$" value #":"])
 	|	set value get-word! (keep [#"$" value])
+	|	into-sel-set-rule
 	|	set value skip (keep [mold value])
 	]
 	parse dialect [
