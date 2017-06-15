@@ -2,6 +2,7 @@ Red [
 	Title: "GraphQL tests"
 ]
 
+tests: [
 ; ---[1]	
 {
 mutation {
@@ -204,3 +205,46 @@ query inlineFragmentNoType($expandedInfo: Boolean) {
   phoneNumber
 }
 }
+]
+
+test-query.graphql: {
+query {
+  repository(owner:"octocat", name:"Hello-World") {
+    issues(last:20, states:CLOSED) {
+      edges {
+        node {
+          title
+          url
+          labels(first:5) {
+            edges {
+              node {
+                name
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+}
+
+test-query: [
+	repository (owner: "octocat" name: "Hello-World") [
+		issues (last: 20 states: CLOSED) [
+			edges [
+				node [
+					title
+					url
+					labels (first: 5) [
+						edges [
+							node [
+								name
+							]
+						]
+					]
+				]
+			]
+		]
+	]
+]
