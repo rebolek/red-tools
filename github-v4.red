@@ -83,6 +83,8 @@ github: func [
 	/var
 		vars
 ] [
+	if block? query [query: make-graphql query]
+	if block? vars [vars: json/encode vars]
 	query: copy query
 	replace/all query newline "" ; removes newlines, probably should escape them somehow
 	replace/all query #"^"" {\"} ; escape quotes - TODO: move to make-graphql ?
@@ -90,7 +92,7 @@ github: func [
 	query: rejoin [
 		{^{"query": "} query {"^}}
 	]
-	if variables [
+	if vars [
 		replace/all vars newline "" ; removes newlines, probably should escape them somehow
 		;replace/all vars #"^"" {\"} ; escape quotes
 		insert back tail query rejoin [{, "variables": } vars]
