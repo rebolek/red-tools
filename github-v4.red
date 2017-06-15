@@ -83,11 +83,11 @@ github: func [
 	/var
 		vars
 ] [
-	if block? query [query: make-graphql query]
+	if block? query [query: graphql/encode query]
 	if block? vars [vars: json/encode vars]
 	query: copy query
 	replace/all query newline "" ; removes newlines, probably should escape them somehow
-;	replace/all query #"^"" {\"} ; escape quotes - TODO: move to make-graphql ?
+;	replace/all query #"^"" {\"} ; escape quotes - TODO: move to graphql/encode ?
 	parse query [some [change #"^"" {\"} | skip]]
 	query: rejoin [
 		{^{"query": "} query {"^}}
@@ -105,7 +105,7 @@ github: func [
 ;
 ; (set TOKEN in global context (temporary))
 ;
-; ret: github make-graphql test-query
+; ret: github graphql/encode test-query
 ;
 ; var example:
 ;

@@ -4,16 +4,10 @@ Red [
 	Link: https://facebook.github.io/graphql/
 ]
 
+graphql: context [
 
-; === GraphQL parser =========================================================
-;
-; checks GraphQL validity
+	; === Rules  =============================================================
 
-
-parse-graphql: function [
-	data
-] [
-	; --- rules
 	; source text
 	source-char: charset reduce [tab cr lf #" " '- #"^(FFFF)"]
 	unicode-bom: #"^(FEFF)"
@@ -137,69 +131,81 @@ parse-graphql: function [
 	directives: [some directive]
 	directive: [#"@" name ws opt arguments]
 
-	; --- code
-	parse data document
-]
+	; === GraphQL parser =====================================================
 
-make-graphql: function [
-	dialect
-] [
-{
-DIALECT DESCRIPTION
-===================
-
-name - 			word!
-selection set - block!
-arguments - 	paren!
-set variable - 	lit-word!
-get variable - 	get-word!
-}
-	keep: func [value] [append output rejoin append copy value space]
-
-	output: make string! 1000
-	value: none
-
-;	append output #"{"
-
-	name-rule: [set value word! (keep [form value])]
-	into-sel-set-rule: [
-		ahead block! 
-		(append output rejoin [#"{"]) 
-		into sel-set-rule 
-		(append output rejoin [#"}"])
+	validate: func [
+		"checks GraphQL validity"
+		data
+	] [
+		parse data document
 	]
-	sel-set-rule: [
-		some [
-			into-sel-set-rule
-		|	field-rule
-		|	arguments-rule
-		|	vals-rule
+
+	; === Decoder ============================================================
+
+	decode: function [
+		data
+	] [
+		; TODO
+		none
+	]
+
+	; === Encoder ============================================================
+
+	encode: function [
+		dialect [block!]
+	] [
+	{
+	DIALECT DESCRIPTION
+	===================
+
+	name - 			word!
+	selection set - block!
+	arguments - 	paren!
+	set variable - 	lit-word!
+	get variable - 	get-word!
+	}
+		keep: func [value] [append output rejoin append copy value space]
+
+		output: make string! 1000
+		value: none
+
+		name-rule: [set value word! (keep [form value])]
+		into-sel-set-rule: [
+			ahead block! 
+			(append output rejoin [#"{"]) 
+			into sel-set-rule 
+			(append output rejoin [#"}"])
 		]
-	]
-	field-rule: [name-rule]
-	arguments-rule: [
-		ahead paren! into [
-			(append output #"(")
-			some vals-rule
-			(keep [#")"])
+		sel-set-rule: [
+			some [
+				into-sel-set-rule
+			|	field-rule
+			|	arguments-rule
+			|	vals-rule
+			]
 		]
-	]
-	vals-rule: [
-		set value set-word! (keep [value #":"])
-	|	set value lit-word! (keep [#"$" value #":"])
-	|	set value get-word! (keep [#"$" value])
-	|	into-sel-set-rule
-	|	set value skip (keep [mold value])
-	]
-	parse dialect [
-		some [
-			name-rule
-		|	sel-set-rule
-		|	arguments-rule
+		field-rule: [name-rule]
+		arguments-rule: [
+			ahead paren! into [
+				(append output #"(")
+				some vals-rule
+				(keep [#")"])
+			]
 		]
-	]
-
-;	append output #"}"
-
-	output
+		vals-rule: [
+			set value set-word! (keep [value #":"])
+		|	set value lit-word! (keep [#"$" value #":"])
+		|	set value get-word! (keep [#"$" value])
+		|	into-sel-set-rule
+		|	set value skip (keep [mold value])
+		]
+		parse dialect [
+			some [
+				name-rule
+			|	sel-set-rule
+			|	arguments-rule
+			]
+		]
+		output
+	]	
 ]
