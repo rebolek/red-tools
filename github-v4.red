@@ -7,46 +7,6 @@ do %json.red
 do %graphql.red
 do %http-tools.red
 
-
-; Patched replace to get rid of #2808 and #2809
-
-replace: func [
-    series [series!] 
-    pattern 
-    value 
-    /all 
-    /local many? len pos
-][
-	if system/words/all [char? :pattern any-string? series] [
-		pattern: form pattern
-	]
-    many?: any [
-    	system/words/all [series? :pattern any-string? series] 
-        binary? series 
-        system/words/all [any-list? series any-list? :pattern]
-    ] 
-    len: either many? [length? pattern] [1] 
-    either all [
-        pos: series 
-        either many? [
-            while [pos: find pos pattern] [
-            	remove/part pos len 
-                pos: insert pos value
-            ]
-        ] [
-            while [pos: find pos :pattern] [
-                pos: change pos value
-            ]
-        ]
-    ] [
-        if pos: find series :pattern [
-            remove/part pos len 
-            insert pos value
-        ]
-    ] 
-    series
-]
-
 ; === Query ==================================================================
 
 ; type description (taken from https://developer.github.com/v4/reference/query/)
@@ -120,7 +80,7 @@ fields: [
 
 github: func [
 	query
-	/variables
+	/var
 		vars
 ] [
 	query: copy query
@@ -144,4 +104,7 @@ github: func [
 ; (set TOKEN in global context (temporary))
 ;
 ; ret: github make-graphql test-query
-
+;
+; var example:
+;
+; ret: github/var make-graphql [query ('number_of_repos Int!) [viewer [name repositories (last: :number_of_repos) [nodes [name]]]]] json/encode #(number_of_repos 3)
