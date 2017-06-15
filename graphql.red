@@ -367,7 +367,7 @@ get variable - 	get-word!
 	output: make string! 1000
 	value: none
 
-	append output #"{"
+;	append output #"{"
 
 	name-rule: [set value word! (keep [form value])]
 	sel-set-rule: [
@@ -405,7 +405,7 @@ get variable - 	get-word!
 		]
 	]
 
-	append output #"}"
+;	append output #"}"
 
 	output
 ]
