@@ -72,11 +72,19 @@ fields: [
 	]
 ]
 
-; NOTE: this works:
-;
-; d: {{"query":"query { viewer { login}}"}}
-; r: send-request/data/auth https://api.github.com/graphql 'POST d 'Bearer token
-
+sanitize: func [
+	"Perform some escaping and optimization"
+	string [string!]
+] [
+	parse trim string [
+		some [
+			change #"^"" {\"} 
+		|	change #"^/" {} 	; TODO: change to escaping?
+		| 	skip
+		]
+	]
+	string
+]
 
 github: func [
 	query
@@ -84,20 +92,12 @@ github: func [
 		vars
 ] [
 	if block? query [query: graphql/encode query]
-	if block? vars [vars: json/encode vars]
-	query: copy query
-	replace/all query newline "" ; removes newlines, probably should escape them somehow
-;	replace/all query #"^"" {\"} ; escape quotes - TODO: move to graphql/encode ?
-	parse query [some [change #"^"" {\"} | skip]]
-	query: rejoin [
-		{^{"query": "} query {"^}}
-	]
+	unless string? vars [vars: json/encode vars]
+	query: rejoin [{^{"query": "} sanitize query {"^}}]
 	if vars [
-		replace/all vars newline "" ; removes newlines, probably should escape them somehow
-		;replace/all vars #"^"" {\"} ; escape quotes
-		insert back tail query rejoin [{, "variables": } vars]
+		insert back tail query rejoin [{, "variables": } trim/lines vars]
 	]
-	send-request/data/auth https://api.github.com/graphql 'POST probe query 'Bearer token
+	send-request/data/auth https://api.github.com/graphql 'POST query 'Bearer token
 ]
 
 
@@ -109,4 +109,10 @@ github: func [
 ;
 ; var example:
 ;
-; ret: github/var make-graphql [query ('number_of_repos Int!) [viewer [name repositories (last: :number_of_repos) [nodes [name]]]]] json/encode #(number_of_repos 3)
+; ret: github/var graphql/encode [query ('number_of_repos Int!) [viewer [name repositories (last: :number_of_repos) [nodes [name]]]]] json/encode #(number_of_repos 3)
+;
+;
+; ---
+;
+; d: {{"query":"query { viewer { login}}"}}
+; r: send-request/data/auth https://api.github.com/graphql 'POST d 'Bearer token

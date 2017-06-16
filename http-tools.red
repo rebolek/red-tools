@@ -25,8 +25,6 @@ Red [
 	]
 	To-Do: [
 {
-	("wtf is this: ¨í¨")
-
 	ENCODE and DECODE functions.
 
 	ENCODE data type
