@@ -68,6 +68,8 @@ graphql: context [
 		opt directives
 		selection-set
 	]
+
+	; values and types
 	value: [ ; wtf is const and ~const ?
 		variable
 	|	int-value
@@ -117,6 +119,8 @@ graphql: context [
 	|	ws #"{" ws object-field ws #"}" ws
 	]
 	object-field: [ws name #":" ws value any [ws name #":" ws value] ws]
+
+	; variables
 	variable: [#"$" name]
 	variable-definitions: [#"(" ws some variable-definition ws #")"]
 	variable-definition: [variable #":" ws type opt default-value ws]
@@ -130,6 +134,46 @@ graphql: context [
 	]
 	directives: [some directive]
 	directive: [#"@" name ws opt arguments]
+
+	; active rules
+
+	op-type=: name=: value=:
+		none
+
+	name*: [copy name= name]
+
+	document*: [some definition*]
+	definition*: [
+		operation-definition* 
+	|	fragment-definition*
+	]
+	operation-definition*: [
+		[
+			ws operation-type* ws 
+			opt name*
+			opt variable-definitions 
+			opt directives selection-set*
+			(print ["that was operation-definition*" mold op-type= mold name=])
+		]
+	|	selection-set*
+	]
+	operation-type*: [copy op-type= ["query" | "mutation" | "subscription"]]
+	selection-set*: [ws #"{" (print "selection set") ws some selection* ws #"}" ws]
+	selection*: [
+		ws field* ws
+	|	ws fragment-spread ws
+	|	ws inline-fragment ws
+	]
+	field*: [
+		opt [alias ws]
+		name* ws (print ["field name: " name=])
+		opt [arguments* ws]
+		opt [directives ws]
+		opt selection-set*
+	]
+	arguments*: [#"(" ws argument* ws any [ws argument* ws] ws #")" ws]
+	argument*: [name* #":" ws value* ws (print ["argument" mold name= mold value=])]
+	value*: [copy value= value]
 
 	; === GraphQL parser =====================================================
 
@@ -146,7 +190,11 @@ graphql: context [
 		data
 	] [
 		; TODO
-		none
+		output: clear []
+
+		parse data document*
+
+		copy output
 	]
 
 	; === Encoder ============================================================
