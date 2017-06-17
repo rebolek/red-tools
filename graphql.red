@@ -9,6 +9,7 @@ graphql: context [
 	output: []
 	mark: none
 	stack: []
+	type!: none
 
 	; === Rules  =============================================================
 
@@ -83,14 +84,14 @@ graphql: context [
 	; values and types
 	value: [ ; wtf is const and ~const ?
 		variable
-	|	int-value
-	|	float-value
-	|	string-value
-	|	boolean-value
-	|	null-value
-	|	enum-value
-	|	list-value
-	|	object-value
+	|	int-value (type!: integer!)
+	|	float-value (type!: float!)
+	|	string-value (type!: string!)
+	|	boolean-value (type!: logic!)
+	|	null-value (type!: none!)
+	|	enum-value (type!: enum!)
+	|	list-value (type!: list!)
+	|	object-value (type!: object!)
 	]
 	int-value: [integer-part]
 	integer-part: [
@@ -151,7 +152,7 @@ graphql: context [
 	op-type=: name=: value=:
 		none
 
-	name*: [copy name= name]
+	name*: [copy name= name (name=: to word! name=)]
 
 	document*: [some definition*]
 	definition*: [
@@ -206,8 +207,16 @@ graphql: context [
 		(print ["stack" mold stack])
 		(mark: probe take/last stack)
 	]
-	argument*: [name* #":" ws value* ws (print ["argument" mold name= mold value=] repend mark [name= value=])]
-	value*: [copy value= value]
+	argument*: [name* #":" ws value* ws (print ["argument" mold name= mold value=] repend mark [name= load-value])]
+	value*: [copy value= value (print ["value:" mold value= type! type? type!])]
+
+	; === Support ============================================================
+
+	load-value: does [
+		switch/default to word! type! [
+			integer! [load value=]
+		] [value=]
+	]
 
 	; === GraphQL parser =====================================================
 
