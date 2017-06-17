@@ -134,7 +134,7 @@ graphql: context [
 
 	; variables
 	variable: [#"$" name]
-	variable-definitions: [#"(" ws some variable-definition ws #")"]
+	variable-definitions: [paren-start some variable-definition paren-end]
 	variable-definition: [variable #":" ws type opt default-value ws]
 	default-value: [ws #"=" ws value ws]
 	type: [named-type | list-type | non-null-type]
@@ -149,7 +149,7 @@ graphql: context [
 
 	; active rules
 
-	op-type=: name=: value=:
+	op-type=: name=: value=: alias=:
 		none
 
 	name*: [copy name= name (name=: to word! name=)]
@@ -183,7 +183,7 @@ graphql: context [
 	|	ws inline-fragment ws
 	]
 	field*: [
-		opt [alias ws]
+		opt [copy alias= alias ws (append mark to set-word! alias=)]
 		name* ws (print ["field name: " name=] append mark name=)
 		p: (print mold/part p 20)
 		opt [(print "args") arguments* ws]
