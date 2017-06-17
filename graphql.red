@@ -226,7 +226,7 @@ graphql: context [
 	argument*: [
 		name* #":" ws 
 		(append stack name=)
-		value* ws (print ["**VAL" mold value=])
+		value* ws
 		(name=: take/last stack)
 		(repend mark [to set-word! name= load-value])
 	]
@@ -278,7 +278,7 @@ graphql: context [
 		(repend mark [name= load-type])
 		(if value= [append mark value=])
 	]
-	default-value*: [ws #"=" ws value* ws]
+	default-value*: [(value=: none) ws #"=" ws value* ws]
 	type*: [ws copy type= [named-type | list-type | non-null-type]]
 	named-type: [name]
 	list-type: [bracket-start type bracket-end]
@@ -424,4 +424,34 @@ graphql: context [
 		]
 		output
 	]	
+]
+
+
+prity: function [
+	string
+] [
+	ws: charset " ^-^/"
+	delimiter: charset "[](){}"
+	string: copy string
+	parse string [
+		opt [mark: some ws end: (remove/part mark end)]
+		some [
+			mark:
+			some ws
+			delimiter
+			end:
+			(remove/part mark back end)
+			:mark
+		|	delimiter
+			mark:
+			some ws
+			end:
+			(remove/part mark end)
+			:mark
+		|	"..." change ws ""
+		|	mark: change ws space change ws "" :mark
+		|	skip
+		]
+	]
+	string
 ]
