@@ -165,7 +165,7 @@ graphql: context [
 	value*: [
 		ws
 		copy value= [
-			variable*
+			variable* (type!: 'variable!)
 		|	int-value (type!: 'integer!)
 		|	float-value (type!: 'float!)
 		|	string-value (type!: 'string!)
@@ -225,7 +225,9 @@ graphql: context [
 	]
 	argument*: [
 		name* #":" ws 
-		value* ws 
+		(append stack name=)
+		value* ws (print ["**VAL" mold value=])
+		(name=: take/last stack)
 		(repend mark [to set-word! name= load-value])
 	]
 	dots*: [
@@ -285,7 +287,7 @@ graphql: context [
 	|	list-type #"!"
 	]
 	directives*: [some directive*]
-	directive*: [#"@" name* (append mark rejoin [#"@" name=]) ws opt arguments]
+	directive*: [#"@" name* (append mark rejoin [@ name=]) ws opt arguments*]
 
 	; === Support ============================================================
 
@@ -301,6 +303,7 @@ graphql: context [
 		switch/default type! [
 			integer! [load value=]
 			string! [load value=]
+			variable! [to get-word! head remove value=]
 			list!  [list=]
 		] [value=]
 	]
@@ -387,9 +390,26 @@ graphql: context [
 				(keep #")")
 			]
 		]
+		variable-rule: [
+			; name
+			set value lit-word!
+			(keep [#"$" value #":" space])
+			; type
+			set value [
+				'integer! | 'float! | 'string! | 'logic! | 'none! | 'enum! | 'list! | 'object!
+			]
+			(keep [select [
+				integer! "Int" float! "Float" string! "String" logic! "Boolean" 
+				none! "Null" enum! "Enum" list! "List" object! "Object"
+			] value space])
+			; default value
+			(value: none)
+			opt set value
+			(if value [keep [#"=" space value]])
+		]
 		vals-rule: [
 			set value set-word! (keep [value #":"])
-		|	set value lit-word! (keep [#"$" value #":"])
+		|	variable-rule
 		|	set value get-word! (keep [#"$" value])
 		|	set value block! (list: copy {} foreach val value [append list rejoin [mold val #","]] keep [#"[" list #"]"])
 		|	into-sel-set-rule
