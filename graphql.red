@@ -191,7 +191,7 @@ graphql: context [
 			ws operation-type* ws 
 			opt keep-name*
 			opt variable-definitions*
-			opt directives selection-set*
+			opt directives* selection-set*
 		]
 	|	selection-set*
 	]
@@ -235,14 +235,14 @@ graphql: context [
 	fragment-spread*: [
 		dots*
 		fragment-name* ws 
-		opt directives
+		opt directives*
 	]
 	fragment-definition*: [
 		"fragment" ws
 		(append mark 'fragment)
 		fragment-name* ws
 		type-condition* ws
-		opt directives ws
+		opt directives* ws
 		selection-set*
 	]
 	fragment-name*: [
@@ -253,7 +253,7 @@ graphql: context [
 	inline-fragment*: [
 		dots*
 		opt type-condition*
-		opt directives
+		opt directives*
 		selection-set*
 	]
 	type-condition*: [
@@ -284,8 +284,8 @@ graphql: context [
 		named-type #"!"
 	|	list-type #"!"
 	]
-	directives: [some directive]
-	directive: [#"@" name ws opt arguments]
+	directives*: [some directive*]
+	directive*: [#"@" name* (append mark rejoin [#"@" name=]) ws opt arguments]
 
 	; === Support ============================================================
 
