@@ -64,7 +64,7 @@ graphql: context [
 	arguments: [paren-start argument ws any [ws argument ws] paren-end]
 	argument: [name #":" ws value ws]
 	alias: [name #":"]
-	fragment-spread: ["..." ws fragment-name ws opt directives] ; starts with ..., wtf is it
+	fragment-spread: ["..." ws fragment-name ws opt directives]
 	fragment-definition: [
 		"fragment" ws
 		fragment-name ws
@@ -157,7 +157,7 @@ graphql: context [
 	document*: [some definition*]
 	definition*: [
 		operation-definition* 
-	|	fragment-definition
+	|	fragment-definition*
 	]
 	operation-definition*: [
 		[
@@ -165,7 +165,6 @@ graphql: context [
 			opt name*
 			opt variable-definitions 
 			opt directives selection-set*
-			(print ["that was operation-definition*" mold op-type= mold name=])
 		]
 	|	selection-set*
 	]
@@ -179,8 +178,8 @@ graphql: context [
 	]
 	selection*: [
 		ws field* ws
-	|	ws fragment-spread ws
-	|	ws inline-fragment ws
+	|	ws fragment-spread* ws
+	|	ws inline-fragment* ws
 	]
 	field*: [
 		opt [copy alias= alias ws (append mark to set-word! alias=)]
@@ -200,6 +199,34 @@ graphql: context [
 		(mark: probe take/last stack)
 	]
 	argument*: [name* #":" ws value* ws (repend mark [to set-word! name= load-value])]
+	dots*: [
+		"..." ws
+		(append mark '...)
+	]
+	fragment-spread*: [
+		dots*
+		fragment-name* ws 
+		opt directives
+	]
+	fragment-definition*: [
+		"fragment" ws
+		(append mark 'fragment)
+		fragment-name* ws
+		type-condition ws
+		opt directives ws
+		selection-set*
+	]
+	fragment-name*: [
+		ahead not "on" 
+		copy name= name 
+		(append mark load name=)
+	]
+	inline-fragment*: [
+		dots*
+		opt type-condition
+		opt directives
+		selection-set*
+	]
 	value*: [copy value= value]
 
 	; === Support ============================================================
