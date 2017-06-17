@@ -84,14 +84,14 @@ graphql: context [
 	; values and types
 	value: [ ; wtf is const and ~const ?
 		variable
-	|	int-value (type!: integer!)
-	|	float-value (type!: float!)
-	|	string-value (type!: string!)
-	|	boolean-value (type!: logic!)
-	|	null-value (type!: none!)
-	|	enum-value (type!: enum!)
-	|	list-value (type!: list!)
-	|	object-value (type!: object!)
+	|	int-value (type!: 'integer!)
+	|	float-value (type!: 'float!)
+	|	string-value (type!: 'string!)
+	|	boolean-value (type!: 'logic!)
+	|	null-value (type!: 'none!)
+	|	enum-value (type!: 'enum!)
+	|	list-value (type!: 'list!)
+	|	object-value (type!: 'object!)
 	]
 	int-value: [integer-part]
 	integer-part: [
@@ -153,6 +153,7 @@ graphql: context [
 		none
 
 	name*: [copy name= name (name=: to word! name=)]
+	keep-name*: [name* ws (append mark name=)]
 
 	document*: [some definition*]
 	definition*: [
@@ -162,7 +163,7 @@ graphql: context [
 	operation-definition*: [
 		[
 			ws operation-type* ws 
-			opt name*
+			opt keep-name*
 			opt variable-definitions 
 			opt directives selection-set*
 		]
@@ -183,9 +184,8 @@ graphql: context [
 	]
 	field*: [
 		opt [copy alias= alias ws (append mark to set-word! alias=)]
-		name* ws (print ["field name: " name=] append mark name=)
-		p: (print mold/part p 20)
-		opt [(print "args") arguments* ws]
+		keep-name*
+		opt [arguments* ws]
 		opt [directives ws]
 		opt selection-set*
 	]
@@ -195,10 +195,13 @@ graphql: context [
 		ws argument* ws 
 		any [ws argument* ws] 
 		paren-end
-		(print ["stack" mold stack])
-		(mark: probe take/last stack)
+		(mark: take/last stack)
 	]
-	argument*: [name* #":" ws value* ws (repend mark [to set-word! name= load-value])]
+	argument*: [
+		name* #":" ws 
+		value* ws 
+		(repend mark [to set-word! name= load-value])
+	]
 	dots*: [
 		"..." ws
 		(append mark '...)
@@ -212,7 +215,7 @@ graphql: context [
 		"fragment" ws
 		(append mark 'fragment)
 		fragment-name* ws
-		type-condition ws
+		type-condition* ws
 		opt directives ws
 		selection-set*
 	]
@@ -223,9 +226,13 @@ graphql: context [
 	]
 	inline-fragment*: [
 		dots*
-		opt type-condition
+		opt type-condition*
 		opt directives
 		selection-set*
+	]
+	type-condition*: [
+		"on" ws (append mark 'on)
+		keep-name*
 	]
 	value*: [copy value= value]
 
@@ -240,8 +247,9 @@ graphql: context [
 	]
 
 	load-value: does [
-		switch/default to word! type! [
+		switch/default type! [
 			integer! [load value=]
+			list! [print "*** LIST"]
 		] [value=]
 	]
 
@@ -285,7 +293,17 @@ graphql: context [
 	set variable - 	lit-word!
 	get variable - 	get-word!
 	}
-		keep: func [value] [append output rejoin append copy value space]
+		keep: func [value /tight] [
+			value: either block? value [copy value] [reduce [value]]
+			either tight [
+				if equal? space last output [
+					remove back tail output
+				]
+			] [
+				append value space
+			]
+			append output rejoin value
+		]
 
 		output: make string! 1000
 		value: none
@@ -293,9 +311,9 @@ graphql: context [
 		name-rule: [set value word! (keep [form value])]
 		into-sel-set-rule: [
 			ahead block! 
-			(append output rejoin [#"{"]) 
+			(keep #"{") 
 			into sel-set-rule 
-			(append output rejoin [#"}"])
+			(keep #"}")
 		]
 		sel-set-rule: [
 			some [
@@ -308,9 +326,9 @@ graphql: context [
 		field-rule: [name-rule]
 		arguments-rule: [
 			ahead paren! into [
-				(append output #"(")
+				(keep #"(")
 				some vals-rule
-				(keep [#")"])
+				(keep #")")
 			]
 		]
 		vals-rule: [
