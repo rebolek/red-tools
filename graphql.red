@@ -147,7 +147,7 @@ graphql: context [
 	default-value: [ws #"=" ws value ws]
 	type: [named-type | list-type | non-null-type]
 	named-type: [name]
-	list-type: [#"[" ws type ws #"]"]
+	list-type: [bracket-start type bracket-end]
 	non-null-type: [
 		named-type #"!"
 	|	list-type #"!"
@@ -157,9 +157,26 @@ graphql: context [
 
 	; active rules
 
-	op-type=: name=: value=: alias=:
+	op-type=: name=: value=: alias=: type=:
 		none
 	list=: []
+
+	; values and types
+	value*: [
+		ws
+		copy value= [
+			variable*
+		|	int-value (type!: 'integer!)
+		|	float-value (type!: 'float!)
+		|	string-value (type!: 'string!)
+		|	boolean-value (type!: 'logic!)
+		|	null-value (type!: 'none!)
+		|	enum-value (type!: 'enum!)
+		|	list-value (type!: 'list!)
+		|	object-value (type!: 'object!)
+		]
+		ws
+	]
 
 	name*: [copy name= name (name=: to word! name=)]
 	keep-name*: [name* ws (append mark name=)]
@@ -173,7 +190,7 @@ graphql: context [
 		[
 			ws operation-type* ws 
 			opt keep-name*
-			opt variable-definitions 
+			opt variable-definitions*
 			opt directives selection-set*
 		]
 	|	selection-set*
@@ -243,7 +260,32 @@ graphql: context [
 		"on" ws (append mark 'on)
 		keep-name*
 	]
-	value*: [ws copy value= value ws]
+	; variables
+	variable*: [ws #"$" name* (name=: to lit-word! name=)]
+	variable-definitions*: [
+		paren-start
+		(push-stack quote ()) 
+		some variable-definition* 
+		paren-end
+		(mark: take/last stack)
+	]
+	variable-definition*: [
+		variable* #":" 
+		type* 
+		opt default-value*
+		(repend mark [name= load-type])
+		(if value= [append mark value=])
+	]
+	default-value*: [ws #"=" ws value* ws]
+	type*: [ws copy type= [named-type | list-type | non-null-type]]
+	named-type: [name]
+	list-type: [bracket-start type bracket-end]
+	non-null-type: [
+		named-type #"!"
+	|	list-type #"!"
+	]
+	directives: [some directive]
+	directive: [#"@" name ws opt arguments]
 
 	; === Support ============================================================
 
@@ -261,6 +303,10 @@ graphql: context [
 			string! [load value=]
 			list!  [list=]
 		] [value=]
+	]
+
+	load-type: does [
+		select ["Boolean" logic!] type=
 	]
 
 	; === GraphQL parser =====================================================
