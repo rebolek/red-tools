@@ -6,7 +6,18 @@ Red [
 
 graphql: context [
 
+	output: []
+	mark: none
+	stack: []
+
 	; === Rules  =============================================================
+
+	bracket-start: [ws #"[" ws]
+	bracket-end: [ws #"]" ws] 
+	brace-start: [ws #"{" ws]
+	brace-end: [ws #"}" ws]
+	paren-start: [ws #"(" ws]
+	paren-end: [ws #")" ws]
 
 	; source text
 	source-char: charset reduce [tab cr lf #" " '- #"^(FFFF)"]
@@ -36,7 +47,7 @@ graphql: context [
 	|	selection-set
 	]
 	operation-type: ["query" | "mutation" | "subscription"]
-	selection-set: [ws #"{" ws some selection ws #"}" ws]
+	selection-set: [brace-start some selection brace-end]
 	selection: [
 		ws field ws
 	|	ws fragment-spread ws
@@ -49,7 +60,7 @@ graphql: context [
 		opt [directives ws]
 		opt selection-set
 	]
-	arguments: [#"(" ws argument ws any [ws argument ws] ws #")" ws]
+	arguments: [paren-start argument ws any [ws argument ws] paren-end]
 	argument: [name #":" ws value ws]
 	alias: [name #":"]
 	fragment-spread: ["..." ws fragment-name ws opt directives] ; starts with ..., wtf is it
@@ -115,8 +126,8 @@ graphql: context [
 	|	#"[" ws value any [ws value] ws #"]"	
 	]
 	object-value: [
-		"{}"
-	|	ws #"{" ws object-field ws #"}" ws
+		brace-start brace-end
+	|	brace-start object-field brace-end
 	]
 	object-field: [ws name #":" ws value any [ws name #":" ws value] ws]
 
@@ -145,7 +156,7 @@ graphql: context [
 	document*: [some definition*]
 	definition*: [
 		operation-definition* 
-	|	fragment-definition*
+	|	fragment-definition
 	]
 	operation-definition*: [
 		[
@@ -157,8 +168,20 @@ graphql: context [
 		]
 	|	selection-set*
 	]
-	operation-type*: [copy op-type= ["query" | "mutation" | "subscription"]]
-	selection-set*: [ws #"{" (print "selection set") ws some selection* ws #"}" ws]
+	operation-type*: [copy op-type= ["query" | "mutation" | "subscription"] (append mark op-type=)]
+	selection-set*: [
+		brace-start 
+		(
+			print "selection set" 
+			print mold mark
+			append/only mark copy []
+			append/only stack tail mark
+			mark: last mark
+		) 
+		some selection* 
+		brace-end
+		(mark: take/last stack)
+	]
 	selection*: [
 		ws field* ws
 	|	ws fragment-spread ws
@@ -166,13 +189,24 @@ graphql: context [
 	]
 	field*: [
 		opt [alias ws]
-		name* ws (print ["field name: " name=])
-		opt [arguments* ws]
+		name* ws (print ["field name: " name=] append mark name=)
+		p: (print mold/part p 20)
+		opt [(print "args") arguments* ws]
 		opt [directives ws]
 		opt selection-set*
 	]
-	arguments*: [#"(" ws argument* ws any [ws argument* ws] ws #")" ws]
-	argument*: [name* #":" ws value* ws (print ["argument" mold name= mold value=])]
+	arguments*: [
+		paren-start 
+		(append/only mark copy quote ())
+		(append/only stack tail mark)
+		(mark: last mark)
+		ws argument* ws 
+		any [ws argument* ws] 
+		paren-end
+		(print ["stack" mold stack])
+		(mark: probe take/last stack)
+	]
+	argument*: [name* #":" ws value* ws (print ["argument" mold name= mold value=] repend mark [name= value=])]
 	value*: [copy value= value]
 
 	; === GraphQL parser =====================================================
@@ -186,14 +220,12 @@ graphql: context [
 
 	; === Decoder ============================================================
 
-	decode: function [
+	decode: func [
 		data
 	] [
-		; TODO
-		output: clear []
-
+		clear output
+		mark: output
 		parse data document*
-
 		copy output
 	]
 
