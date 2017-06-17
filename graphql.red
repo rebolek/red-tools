@@ -168,7 +168,7 @@ graphql: context [
 		]
 	|	selection-set*
 	]
-	operation-type*: [copy op-type= ["query" | "mutation" | "subscription"] (append mark op-type=)]
+	operation-type*: [copy op-type= ["query" | "mutation" | "subscription"] (append mark to word! op-type=)]
 	selection-set*: [
 		brace-start 
 		(
