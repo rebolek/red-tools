@@ -188,8 +188,8 @@ graphql: context [
 	]
 	selection*: [
 		ws field* ws
-	|	ws fragment-spread* ws
 	|	ws inline-fragment* ws
+	|	ws fragment-spread* ws
 	]
 	field*: [
 		opt [copy alias= alias ws (append mark to set-word! alias=)]
