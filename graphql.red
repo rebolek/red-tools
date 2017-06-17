@@ -172,13 +172,7 @@ graphql: context [
 	operation-type*: [copy op-type= ["query" | "mutation" | "subscription"] (append mark to word! op-type=)]
 	selection-set*: [
 		brace-start 
-		(
-			print "selection set" 
-			print mold mark
-			append/only mark copy []
-			append/only stack tail mark
-			mark: last mark
-		) 
+		(push-stack []) 
 		some selection* 
 		brace-end
 		(mark: take/last stack)
@@ -198,19 +192,25 @@ graphql: context [
 	]
 	arguments*: [
 		paren-start 
-		(append/only mark copy quote ())
-		(append/only stack tail mark)
-		(mark: last mark)
+		(push-stack quote ())
 		ws argument* ws 
 		any [ws argument* ws] 
 		paren-end
 		(print ["stack" mold stack])
 		(mark: probe take/last stack)
 	]
-	argument*: [name* #":" ws value* ws (print ["argument" mold name= mold value=] repend mark [name= load-value])]
-	value*: [copy value= value (print ["value:" mold value= type! type? type!])]
+	argument*: [name* #":" ws value* ws (repend mark [to set-word! name= load-value])]
+	value*: [copy value= value]
 
 	; === Support ============================================================
+
+	push-stack: func [
+		value
+	] [
+		append/only mark copy value
+		append/only stack tail mark
+		mark: last mark
+	]
 
 	load-value: does [
 		switch/default to word! type! [
@@ -235,6 +235,11 @@ graphql: context [
 		clear output
 		mark: output
 		parse data document*
+		all [
+			1 = length? output
+			block? first output
+			output: first output
+		]
 		copy output
 	]
 
