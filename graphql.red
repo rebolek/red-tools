@@ -122,9 +122,17 @@ graphql: context [
 	escaped-char: charset "^"\/bfnrt"
 	null-value: "null"
 	enum-value: [ahead not ["true" | "false" | "null"] name]
-	list-value: [
-		"[]"
-	|	#"[" ws value any [ws value] ws #"]"	
+	list-value: [ ; NOTE: This is * rule
+		; TODO: list= must be recursive
+		"[]" (append mark [])
+	|	[
+			bracket-start
+			(clear list=) 
+			value* 
+			(append list= load-value) 
+			any [value* (append list= load-value)] 
+			bracket-end
+		]	
 	]
 	object-value: [
 		brace-start brace-end
@@ -151,6 +159,7 @@ graphql: context [
 
 	op-type=: name=: value=: alias=:
 		none
+	list=: []
 
 	name*: [copy name= name (name=: to word! name=)]
 	keep-name*: [name* ws (append mark name=)]
@@ -234,7 +243,7 @@ graphql: context [
 		"on" ws (append mark 'on)
 		keep-name*
 	]
-	value*: [copy value= value]
+	value*: [ws copy value= value ws]
 
 	; === Support ============================================================
 
@@ -249,7 +258,8 @@ graphql: context [
 	load-value: does [
 		switch/default type! [
 			integer! [load value=]
-			list! [print "*** LIST"]
+			string! [load value=]
+			list!  [list=]
 		] [value=]
 	]
 
@@ -335,6 +345,7 @@ graphql: context [
 			set value set-word! (keep [value #":"])
 		|	set value lit-word! (keep [#"$" value #":"])
 		|	set value get-word! (keep [#"$" value])
+		|	set value block! (list: copy {} foreach val value [append list rejoin [mold val #","]] keep [#"[" list #"]"])
 		|	into-sel-set-rule
 		|	set value skip (keep [mold value])
 		]
