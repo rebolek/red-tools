@@ -208,6 +208,7 @@ send-request: function [
 	data: reduce [method body-of header]
 	if content [append data content]
 	reply: write/info link data
+	set 'raw-reply reply
 	type: first split reply/2/Content-Type #";"
 	map [
 		code: reply/1
@@ -215,7 +216,7 @@ send-request: function [
 		raw: reply/3
 ; TODO: decode data based on reply/2/Content-Type		
 ;		data: (www-form/decode reply/3 type)
-		data: json/decode reply/3
+		data: mime-decoder reply/3
 	]
 ]
 
@@ -249,8 +250,10 @@ mime-decoder: function [
 	string
 	type
 ] [
+	; convert i.e.: "application/json; charset=utf-8" to "application/json"
+	type: first split type #";" ; NOTE: is the order guaranteed?
 	switch type [
-		"application/json" [string] ; NOTE: really?
+		"application/json" [json/decode string]
 		"application/x-www-form-urlencoded" [
 			string: www-form/decode string
 		]
