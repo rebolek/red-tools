@@ -9,10 +9,16 @@ Red [
 
 graphql: context [
 
+	; various values
+
 	output: []
 	mark: none
 	stack: []
 	type!: none
+
+	op-type=: name=: value=: alias=: type=:
+		none
+	list=: []
 
 	graphql-types: [
 		integer! "Int" float! "Float" string! "String" logic! "Boolean" 
@@ -165,10 +171,6 @@ graphql: context [
 	directive: [#"@" name ws opt arguments]
 
 	; active rules
-
-	op-type=: name=: value=: alias=: type=:
-		none
-	list=: []
 
 	; values and types
 	value*: [
@@ -328,7 +330,7 @@ graphql: context [
 	] [
 		ws: charset " ^-^/"
 		delimiter: charset "[](){}"
-		string: copy string
+		string: copy string ; NOTE: copy or not to copy
 		parse string [
 			opt [mark: some ws end: (remove/part mark end)]
 			some [
@@ -358,7 +360,7 @@ graphql: context [
 		"checks GraphQL validity"
 		data
 	] [
-		parse data document
+		parse data document*
 	]
 
 	; === Decoder ============================================================
