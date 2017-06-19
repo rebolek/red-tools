@@ -11,6 +11,8 @@ graphql: context [
 
 	; various values
 
+	null-value: none ; change this, if you do not want NONE in place of NULL
+
 	output: []
 	mark: none
 	stack: []
@@ -186,6 +188,10 @@ graphql: context [
 		|	list-value (type!: 'list!)
 		|	object-value (type!: 'object!)
 		]
+		(value=: switch/default type! [
+			none! [null-value: none]
+			logic! [load value=]
+		] [value=])
 		ws
 	]
 
