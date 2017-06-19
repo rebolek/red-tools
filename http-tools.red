@@ -55,13 +55,13 @@ map: function [
 	data
 ] [
 	value: none
-	parse data [
+	parse data: copy data [
 		some [
 			change set value set-word! (reduce ['quote value])
 		|	skip	
 		]
 	]
-	make map! reduce data
+	make map! reduce probe data
 ]
 
 cut-tail: function [
@@ -216,7 +216,7 @@ send-request: function [
 		raw: reply/3
 ; TODO: decode data based on reply/2/Content-Type
 ;		data: (www-form/decode reply/3 type)
-		data: mime-decoder reply/3 reply/2/Content-Type
+		data: mime-decoder reply/3 type
 	]
 ]
 
@@ -250,8 +250,6 @@ mime-decoder: function [
 	string
 	type
 ] [
-	; convert i.e.: "application/json; charset=utf-8" to "application/json"
-	type: first split type #";" ; NOTE: is the order guaranteed?
 	switch type [
 		"application/json" [json/decode string]
 		"application/x-www-form-urlencoded" [
