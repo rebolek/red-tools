@@ -10,6 +10,7 @@ do %http-tools.red
 github: context [
 
 	token: none
+	result: none
 
 	; === Query ==================================================================
 
@@ -98,12 +99,12 @@ github: context [
 			vars
 	] [
 		if block? query [query: graphql/encode query]
-		unless string? vars [vars: json/encode vars]
+		if all [var not string? vars] [vars: json/encode vars]
 		query: rejoin [{^{"query": "} sanitize query {"^}}]
 		if vars [
 			insert back tail query rejoin [{, "variables": } trim/lines vars]
 		]
-		send-request/data/auth https://api.github.com/graphql 'POST query 'Bearer token
+		result: send-request/data/auth https://api.github.com/graphql 'POST probe query 'Bearer token
 	]
 ]
 
