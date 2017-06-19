@@ -286,7 +286,7 @@ graphql: context [
 		variable* #":" 
 		type* 
 		opt default-value*
-		(repend mark [name= load-type])
+		(repend mark [name= select red-types type=])
 		(if value= [append mark value=])
 	]
 	default-value*: [(value=: none) ws #"=" ws value* ws]
@@ -319,8 +319,14 @@ graphql: context [
 		] [value=]
 	]
 
-	load-type: does [
-		select red-types type=
+	block-to-list: function [
+		block
+	] [
+		list: copy {} 
+		foreach val value [
+			append list rejoin [mold val #","]
+		] 
+		rejoin [#"[" list #"]"]
 	]
 
 	; === GraphQL minimizer ==================================================
