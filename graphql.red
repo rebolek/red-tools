@@ -2,6 +2,9 @@ Red [
 	Title: "GraphQL"
 	Author: "Boleslav Březovský"
 	Link: https://facebook.github.io/graphql/
+	To-Do: [
+		"List! rule is not recursive"
+	]
 ]
 
 graphql: context [
@@ -10,6 +13,12 @@ graphql: context [
 	mark: none
 	stack: []
 	type!: none
+
+	graphql-types: [
+		integer! "Int" float! "Float" string! "String" logic! "Boolean" 
+		none! "Null" enum! "Enum" list! "List" object! "Object"
+	]
+	red-types: reverse copy graphql-types
 
 	; === Rules  =============================================================
 
@@ -309,7 +318,38 @@ graphql: context [
 	]
 
 	load-type: does [
-		select ["Boolean" logic!] type=
+		select red-types type=
+	]
+
+	; === GraphQL minimizer ==================================================
+
+	minimize: function [
+		string
+	] [
+		ws: charset " ^-^/"
+		delimiter: charset "[](){}"
+		string: copy string
+		parse string [
+			opt [mark: some ws end: (remove/part mark end)]
+			some [
+				mark:
+				some ws
+				delimiter
+				end:
+				(remove/part mark back end)
+				:mark
+			|	delimiter
+				mark:
+				some ws
+				end:
+				(remove/part mark end)
+				:mark
+			|	"..." change ws ""
+			|	mark: change ws space change ws "" :mark
+			|	skip
+			]
+		]
+		string
 	]
 
 	; === GraphQL parser =====================================================
@@ -398,10 +438,7 @@ graphql: context [
 			set value [
 				'integer! | 'float! | 'string! | 'logic! | 'none! | 'enum! | 'list! | 'object!
 			]
-			(keep [select [
-				integer! "Int" float! "Float" string! "String" logic! "Boolean" 
-				none! "Null" enum! "Enum" list! "List" object! "Object"
-			] value space])
+			(keep [select graphql-types value space])
 			; default value
 			(value: none)
 			opt set value
@@ -424,34 +461,4 @@ graphql: context [
 		]
 		output
 	]	
-]
-
-
-prity: function [
-	string
-] [
-	ws: charset " ^-^/"
-	delimiter: charset "[](){}"
-	string: copy string
-	parse string [
-		opt [mark: some ws end: (remove/part mark end)]
-		some [
-			mark:
-			some ws
-			delimiter
-			end:
-			(remove/part mark back end)
-			:mark
-		|	delimiter
-			mark:
-			some ws
-			end:
-			(remove/part mark end)
-			:mark
-		|	"..." change ws ""
-		|	mark: change ws space change ws "" :mark
-		|	skip
-		]
-	]
-	string
 ]
