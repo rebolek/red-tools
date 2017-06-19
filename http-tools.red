@@ -61,7 +61,7 @@ map: function [
 		|	skip	
 		]
 	]
-	make map! reduce probe data
+	make map! reduce data
 ]
 
 cut-tail: function [
@@ -252,14 +252,9 @@ mime-decoder: function [
 ] [
 	switch type [
 		"application/json" [json/decode string]
-		"application/x-www-form-urlencoded" [
-			string: www-form/decode string
-		]
-		"text/html" [
-			string: www-form/decode string
-		]
+		"application/x-www-form-urlencoded" [www-form/decode string]
+		"text/html" [www-form/decode string]
 	]
-	string	
 ]
 
 make-nonce: function [] [
