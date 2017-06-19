@@ -323,9 +323,10 @@ graphql: context [
 		block
 	] [
 		list: copy {} 
-		foreach val value [
-			append list rejoin [mold val #","]
+		foreach value block [
+			append list rejoin [mold value #","]
 		] 
+		remove back tail list
 		rejoin [#"[" list #"]"]
 	]
 
@@ -374,8 +375,7 @@ graphql: context [
 	decode: func [
 		data
 	] [
-		clear output
-		mark: output
+		mark: clear output
 		parse data document*
 		all [
 			1 = length? output
@@ -456,7 +456,7 @@ graphql: context [
 			set value set-word! (keep [value #":"])
 		|	variable-rule
 		|	set value get-word! (keep [#"$" value])
-		|	set value block! (list: copy {} foreach val value [append list rejoin [mold val #","]] keep [#"[" list #"]"])
+		|	set value block! (keep block-to-list value)
 		|	into-sel-set-rule
 		|	set value skip (keep [mold value])
 		]
