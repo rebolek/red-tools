@@ -48,7 +48,7 @@ graphql: context [
 	ignored: [unicode-bom | whitespace | line-terminator | comment | comma]
 	punctuator-chars: charset "!$():=@[]{|}"
 	punctuator: [punctuator-chars | "..."]
-	name: [start-name-char some name-char]
+	name: [start-name-char any name-char]
 	start-name-char: charset [#"_" #"A" - #"Z" #"a" - #"z"] 
 	name-char: union start-name-char charset [#"0" - #"9"]
 
@@ -235,7 +235,7 @@ graphql: context [
 		(mark: take/last stack)
 	]
 	argument*: [
-		name* #":" ws 
+		name* #":" ws
 		(append stack name=)
 		value* ws
 		(name=: take/last stack)
@@ -449,7 +449,7 @@ graphql: context [
 			; default value
 			opt set value
 			(keep [#"$" name #":" space])
-			(keep [probe select graphql-types probe type space])
+			(keep [select graphql-types type space])
 			(if value [keep [#"=" space value]])
 		]
 		vals-rule: [
