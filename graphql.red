@@ -330,7 +330,7 @@ graphql: context [
 	] [
 		ws: charset " ^-^/"
 		delimiter: charset "[](){}"
-		string: copy string ; NOTE: copy or not to copy
+	;	string: copy string ; NOTE: copy or not to copy
 		parse string [
 			opt [mark: some ws end: (remove/part mark end)]
 			some [
@@ -407,7 +407,11 @@ graphql: context [
 		]
 
 		output: make string! 1000
-		value: none
+		value: name: type: none
+		stack: clear []
+
+		push: [(append stack value)]
+		pop: [(take/last value)]
 
 		name-rule: [set value word! (keep [form value])]
 		into-sel-set-rule: [
@@ -433,17 +437,13 @@ graphql: context [
 			]
 		]
 		variable-rule: [
-			; name
-			set value lit-word!
-			(keep [#"$" value #":" space])
-			; type
-			set value [
-				'integer! | 'float! | 'string! | 'logic! | 'none! | 'enum! | 'list! | 'object!
-			]
-			(keep [select graphql-types value space])
-			; default value
 			(value: none)
+			set name lit-word!
+			set type skip
+			; default value
 			opt set value
+			(keep [#"$" name #":" space])
+			(keep [probe select graphql-types probe type space])
 			(if value [keep [#"=" space value]])
 		]
 		vals-rule: [
@@ -461,6 +461,6 @@ graphql: context [
 			|	arguments-rule
 			]
 		]
-		output
+		minimize output
 	]	
 ]
