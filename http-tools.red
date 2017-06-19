@@ -214,9 +214,9 @@ send-request: function [
 		code: reply/1
 		headers: reply/2
 		raw: reply/3
-; TODO: decode data based on reply/2/Content-Type		
+; TODO: decode data based on reply/2/Content-Type
 ;		data: (www-form/decode reply/3 type)
-		data: mime-decoder reply/3
+		data: mime-decoder reply/3 reply/2/Content-Type
 	]
 ]
 
