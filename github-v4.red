@@ -105,6 +105,7 @@ github: context [
 			insert back tail query rejoin [{, "variables": } trim/lines vars]
 		]
 		result: send-request/data/auth https://api.github.com/graphql 'POST probe query 'Bearer token
+		result/data
 	]
 ]
 
@@ -124,3 +125,20 @@ github: context [
 ;
 ; d: {{"query":"query { viewer { login}}"}}
 ; r: send-request/data/auth https://api.github.com/graphql 'POST d 'Bearer token
+
+
+; Usage
+;
+; get repository: 
+;
+;query {
+;  organization(login: "rails") {
+;    name
+;    url
+;    repository(name: "rails") {
+;      name
+;    }
+;  }
+;}
+;
+; query [organization (login: "red") [name url repository (name: "red") [name]]]
