@@ -19,9 +19,8 @@ graphql: context [
 	type!: none
 	s: e: none
 
-	op-type=: name=: value=: alias=: type=: selection=: object=:
+	op-type=: value=: type=: selection=: object=: list=:
 		none
-	list=: []
 
 	graphql-types: [
 		integer! "Int" float! "Float" string! "String" logic! "Boolean" 
@@ -54,124 +53,6 @@ graphql: context [
 	name: [start-name-char any name-char]
 	start-name-char: charset [#"_" #"A" - #"Z" #"a" - #"z"] 
 	name-char: union start-name-char charset [#"0" - #"9"]
-
-	; query document
-	document: [some definition]
-	definition: [
-		operation-definition 
-	|	fragment-definition
-	]
-	operation-definition: [
-		ws operation-type ws opt name opt variable-definitions opt directives selection-set
-	|	selection-set
-	]
-	operation-type: ["query" | "mutation" | "subscription"]
-	selection-set: [brace-start some selection brace-end]
-	selection: [
-		ws field ws
-	|	ws fragment-spread ws
-	|	ws inline-fragment ws
-	]
-	field: [
-		opt [alias ws]
-		name ws
-		opt [arguments ws]
-		opt [directives ws]
-		opt selection-set
-	]
-	arguments: [paren-start argument ws any [ws argument ws] paren-end]
-	argument: [name #":" ws value ws]
-	alias: [name #":"]
-	fragment-spread: ["..." ws fragment-name ws opt directives]
-	fragment-definition: [
-		"fragment" ws
-		fragment-name ws
-		type-condition ws
-		opt directives ws
-		selection-set
-	]
-	fragment-name: [ahead not "on" name]
-	type-condition: ["on" ws named-type]
-	inline-fragment: [
-		"..." ws
-		opt type-condition
-		opt directives
-		selection-set
-	]
-
-	; values and types
-	value: [ ; wtf is const and ~const ?
-		variable
-	|	int-value (type!: 'integer!)
-	|	float-value (type!: 'float!)
-	|	string-value (type!: 'string!)
-	|	boolean-value (type!: 'logic!)
-	|	_null-value (type!: 'none!)
-	|	enum-value (type!: 'enum!)
-	|	list-value (type!: 'list!)
-	|	object-value (type!: 'object!)
-	]
-	int-value: [integer-part]
-	integer-part: [
-		opt negative-sign #"0"
-	|	opt negative-sign non-zero-digit any digit
-	]
-	negative-sign: #"-"
-	digit: charset [#"0" - #"9"]
-	non-zero-digit: difference digit charset #"0"
-	float-value: [
-		integer-part fractional-part exponent-part
-	|	integer-part fractional-part
-	|	integer-part exponent-part
-	]
-	fractional-part: [#"." some digit]
-	exponent-part: [exponent-indicator opt sign some digit]
-	exponent-indicator: charset "eE"
-	sign: charset "+-"
-	boolean-value: ["true" | "false"]
-	string-value: [{""} | #"^"" some string-char #"^""]
-	string-char: [
-		ahead not [#"^"" | #"\" | line-terminator] source-char
-	|	{\u} escaped-unicode
-	|	#"\" escaped-char
-	]
-	hex-char: charset [#"0" - #"9" #"a" - #"f" #"A" - #"F"]
-	escaped-unicode: [4 hex-char]
-	escaped-char: charset "^"\/bfnrt"
-	_null-value: "null"
-	enum-value: [ahead not ["true" | "false" | "null"] name]
-	list-value: [ ; NOTE: This is * rule
-		; TODO: list= must be recursive
-		"[]"
-	|	[
-			bracket-start
-			value* 
-			any [value*]
-			bracket-end
-		]	
-	]
-	object-value: [
-		brace-start brace-end
-	|	brace-start object-field brace-end
-	]
-	object-field: [ws name #":" ws value any [ws name #":" ws value] ws]
-
-	; variables
-	variable: [#"$" name]
-	variable-definitions: [paren-start some variable-definition paren-end]
-	variable-definition: [variable #":" ws type opt default-value ws]
-	default-value: [ws #"=" ws value ws]
-	type: [named-type | list-type | non-null-type]
-	named-type: [name]
-	list-type: [bracket-start type bracket-end]
-	non-null-type: [
-		named-type #"!"
-	|	list-type #"!"
-	]
-	directives: [some directive]
-	directive: [#"@" name ws opt arguments]
-
-	; active rules
 
 	; values and types
 	value*: [
@@ -256,7 +137,7 @@ graphql: context [
 	]
 
 	name*: [start-name-char any name-char]
-	
+	; query document
 	document*: [some definition*]
 	definition*: [
 		operation-definition* 
@@ -292,6 +173,7 @@ graphql: context [
 		opt [directives ws]
 		opt selection-set*
 	]
+	; arguments
 	arguments*: [
 		paren-start
 		collect set list= [
