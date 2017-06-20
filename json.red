@@ -16,6 +16,7 @@ json: context [
 	ws:			 [any blank]
 	dbl-quote:	 #"^""
 	s: e:		 none
+	list:		 none
 
 	null-value:	none ; NOTE: Change this, if you prefer someting else than NONE
 
