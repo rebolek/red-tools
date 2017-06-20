@@ -19,7 +19,7 @@ graphql: context [
 	type!: none
 	s: e: none
 
-	op-type=: name=: value=: alias=: type=:
+	op-type=: name=: value=: alias=: type=: selection=:
 		none
 	list=: []
 
@@ -184,7 +184,7 @@ graphql: context [
 		|	string-value* (type!: 'string!) keep (copy/part s e)
 		|	null-value* (type!: 'none!) keep (null-value)
 		|	enum-value* (type!: 'enum!) (print "--type enum")
-		|	list-value* (type!: 'list!) (print "--type list")
+		|	list-value* (type!: 'list!) ; handled in list-value*
 		|	object-value* (print "--type object" type!: 'object!)
 		]
 		ws
@@ -227,12 +227,16 @@ graphql: context [
 	enum-value*: [ahead not ["true" | "false" | "null"] name]
 	list-value*: [ ; NOTE: This is * rule
 		; TODO: list= must be recursive
-		"[]"
+		"[]" keep ([])
 	|	[
 			bracket-start
-			value* 
-			any [value*] 
+			collect set list=
+			[
+				value* 
+				any value*
+			]
 			bracket-end
+			keep (list=)
 		]	
 	]
 	object-value*: [
@@ -253,7 +257,7 @@ graphql: context [
 	operation-definition*: [
 		[
 			ws operation-type* ws 
-			opt name*
+			opt [s: name* e: keep (to word! copy/part s e)]
 			opt variable-definitions*
 			opt directives* selection-set*
 		]
@@ -317,7 +321,11 @@ graphql: context [
 		name
 	]
 	inline-fragment*: [
-		dots* ; TODO: keep dots, but not from here
+		; NOTE: This rue is tested after fragment-spread*
+		;		so keeping dots before checking rest of rule
+		;		should probably won't calse troubles
+		dots*
+		keep ('...)
 		opt type-condition*
 		opt directives*
 		selection-set*
@@ -329,13 +337,17 @@ graphql: context [
 		keep (to word! copy/part s e)
 	]
 	; variables
-	variable*: [ws #"$" s: name* e: keep (to set word! copy/part s e)]
+	variable*: [
+		ws #"$" 
+		s: name* e: 
+		keep (to lit-word! copy/part s e)
+	]
 	variable-definitions*: [
 		paren-start
 		collect set list=
 		some variable-definition*
 		paren-end
-		keep (to paren! list)
+		keep (to paren! list=)
 	]
 	variable-definition*: [
 		variable* #":" 
