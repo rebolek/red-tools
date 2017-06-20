@@ -185,3 +185,34 @@ github: context [
 ;	  clientMutationId	
 ;	]
 ; ]
+
+comment-issue: function [
+	repo
+	issue-id
+	text
+] [
+	reply: probe github/send reduce [
+		'query 'FindIssueId reduce [
+			'repository to paren! compose [
+				owner: (form repo/1) name: (form repo/2)
+			]
+			reduce ['id 'issue to paren! compose [number: (issue-id)] [id]]
+		]
+	]
+	if equal? "Bad credentials" reply/message [
+		; TODO: Use `cause-error` here, once I understand it
+		return make error! "Bad credentials"
+	]
+	input: make map! compose [
+		subjectId: (reply/data/repository/issue/id) 
+		clientMutationId: (reply/data/repository/id)
+		body: (text)
+	]
+	reply: github/send reduce [
+		'mutation 'AddCommentToIssue reduce [
+			'addComment to paren! compose/deep [input: (input)] [clientMutationId]
+		]
+	]
+	; return mutation-id (or something else? who knows...)
+	reply/data/addComment/clientMutationId
+]
