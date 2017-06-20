@@ -177,7 +177,7 @@ graphql: context [
 	value*: [
 		ws
 		[
-			variable* (type!: 'variable!)
+			variable* (type!: 'variable!) keep (to get-word! copy/part s e)
 		|	int-value* (type!: 'integer!) keep (load copy/part s e)
 		|	float-value* (type!: 'float!) keep (load copy/part s e)
 		|	boolean-value* (type!: 'logic!) keep (copy/part s e)
@@ -339,8 +339,7 @@ graphql: context [
 	; variables
 	variable*: [
 		ws #"$" 
-		s: name* e: 
-		keep (to lit-word! copy/part s e)
+		s: name* e:
 	]
 	variable-definitions*: [
 		paren-start
@@ -351,6 +350,7 @@ graphql: context [
 	]
 	variable-definition*: [
 		variable* #":" 
+		keep (to lit-word! copy/part s e)
 		type* 
 		opt default-value*
 	]
@@ -363,7 +363,11 @@ graphql: context [
 	|	list-type #"!"
 	]
 	directives*: [some directive*]
-	directive*: [#"@" name* ws opt arguments*]
+	directive*: [
+		ws s: #"@" name* e: ws 
+		keep (to email! copy/part s e)
+		opt arguments*
+	]
 
 	; === Support ============================================================
 
