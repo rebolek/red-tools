@@ -17,6 +17,7 @@ graphql: context [
 	mark: none
 	stack: []
 	type!: none
+	s: e: none
 
 	op-type=: name=: value=: alias=: type=:
 		none
@@ -105,7 +106,7 @@ graphql: context [
 	|	float-value (type!: 'float!)
 	|	string-value (type!: 'string!)
 	|	boolean-value (type!: 'logic!)
-	|	null-value (type!: 'none!)
+	|	_null-value (type!: 'none!)
 	|	enum-value (type!: 'enum!)
 	|	list-value (type!: 'list!)
 	|	object-value (type!: 'object!)
@@ -137,17 +138,15 @@ graphql: context [
 	hex-char: charset [#"0" - #"9" #"a" - #"f" #"A" - #"F"]
 	escaped-unicode: [4 hex-char]
 	escaped-char: charset "^"\/bfnrt"
-	null-value: "null"
+	_null-value: "null"
 	enum-value: [ahead not ["true" | "false" | "null"] name]
 	list-value: [ ; NOTE: This is * rule
 		; TODO: list= must be recursive
-		"[]" (append mark [])
+		"[]"
 	|	[
 			bracket-start
-			(clear list=) 
 			value* 
-			(append list= load-value) 
-			any [value* (append list= load-value)] 
+			any [value*]
 			bracket-end
 		]	
 	]
@@ -177,27 +176,75 @@ graphql: context [
 	; values and types
 	value*: [
 		ws
-		copy value= [
+		[
 			variable* (type!: 'variable!)
-		|	int-value (type!: 'integer!)
-		|	float-value (type!: 'float!)
-		|	string-value (type!: 'string!)
-		|	boolean-value (type!: 'logic!)
-		|	null-value (type!: 'none!)
-		|	enum-value (type!: 'enum!)
-		|	list-value (type!: 'list!)
-		|	object-value (type!: 'object!)
+		|	int-value* (type!: 'integer!) keep (load copy/part s e)
+		|	float-value* (type!: 'float!) keep (load copy/part s e)
+		|	boolean-value* (type!: 'logic!) keep (copy/part s e)
+		|	string-value* (type!: 'string!) keep (copy/part s e)
+		|	null-value* (type!: 'none!) keep (null-value)
+		|	enum-value* (type!: 'enum!) (print "--type enum")
+		|	list-value* (type!: 'list!) (print "--type list")
+		|	object-value* (print "--type object" type!: 'object!)
 		]
-		(value=: switch/default type! [
-			none! [null-value: none]
-			logic! [load value=]
-		] [value=])
 		ws
 	]
+	int-value*: [s: integer-part e:]
+	integer-part: [
+		opt negative-sign #"0"
+	|	opt negative-sign non-zero-digit any digit
+	]
+	negative-sign: #"-"
+	digit: charset [#"0" - #"9"]
+	non-zero-digit: difference digit charset #"0"
+	
+	float-value*: [
+		s: [
+			integer-part fractional-part exponent-part
+		|	integer-part fractional-part
+		|	integer-part exponent-part
+		]
+		e:
+	]
+	fractional-part: [#"." some digit]
+	exponent-part: [exponent-indicator opt sign some digit]
+	exponent-indicator: charset "eE"
+	sign: charset "+-"
 
-	name*: [copy name= name (name=: to word! name=)]
-	keep-name*: [name* ws (append mark name=)]
+	boolean-value*: [s: ["true" | "false"] e:]
 
+	string-value*: [#"^"" s: e: #"^"" | #"^"" s: some string-char e: #"^""]
+	string-char: [
+		ahead not [#"^"" | #"\" | line-terminator] source-char
+	|	{\u} escaped-unicode
+	|	#"\" escaped-char
+	]
+	hex-char: charset [#"0" - #"9" #"a" - #"f" #"A" - #"F"]
+	escaped-unicode: [4 hex-char]
+	escaped-char: charset "^"\/bfnrt"
+	
+	null-value*: "null"
+	enum-value*: [ahead not ["true" | "false" | "null"] name]
+	list-value*: [ ; NOTE: This is * rule
+		; TODO: list= must be recursive
+		"[]"
+	|	[
+			bracket-start
+			value* 
+			any [value*] 
+			bracket-end
+		]	
+	]
+	object-value*: [
+		brace-start brace-end
+	|	brace-start (print "obj") object-field brace-end
+	]
+	object-field: [ws name #":" ws value any [ws name #":" ws value] ws]
+
+
+
+	name*: [start-name-char any name-char]
+	
 	document*: [some definition*]
 	definition*: [
 		operation-definition* 
@@ -206,50 +253,50 @@ graphql: context [
 	operation-definition*: [
 		[
 			ws operation-type* ws 
-			opt keep-name*
+			opt name*
 			opt variable-definitions*
 			opt directives* selection-set*
 		]
 	|	selection-set*
 	]
-	operation-type*: [copy op-type= ["query" | "mutation" | "subscription"] (append mark to word! op-type=)]
+	operation-type*: [copy op-type= ["query" | "mutation" | "subscription"] keep (to word! op-type=)]
 	selection-set*: [
 		brace-start 
-		(push-stack []) 
-		some selection* 
+		(print "selection")
+		collect set selection=
+		[some selection*] 
+		keep (selection=)
 		brace-end
-		(mark: take/last stack)
 	]
 	selection*: [
 		ws field* ws
 	|	ws inline-fragment* ws
 	|	ws fragment-spread* ws
 	]
+	alias*: [ws s: name e: #":" ws keep (print "alias" to set-word! copy/part s e)]
 	field*: [
-		opt [copy alias= alias ws (append mark to set-word! alias=)]
-		keep-name*
+		opt alias*
+		s: name* e: keep (to word! copy/part s e)
 		opt [arguments* ws]
 		opt [directives ws]
 		opt selection-set*
 	]
 	arguments*: [
-		paren-start 
-		(push-stack quote ())
-		ws argument* ws 
-		any [ws argument* ws] 
-		paren-end
-		(mark: take/last stack)
+		paren-start (print "args")
+		collect set list= [
+			ws argument* ws 
+			(print "first arg")
+			any [ws argument* ws (print "next arg")] 
+			paren-end
+		]
+		keep (to paren! list=)
 	]
 	argument*: [
-		name* #":" ws
-		(append stack name=)
+		ws s: name* #":" e: ws keep (to set-word! copy/part s e)
 		value* ws
-		(name=: take/last stack)
-		(repend mark [to set-word! name= load-value])
 	]
 	dots*: [
-		"..." ws
-		(append mark '...)
+		"..." ws keep ('...)
 	]
 	fragment-spread*: [
 		dots*
@@ -258,7 +305,7 @@ graphql: context [
 	]
 	fragment-definition*: [
 		"fragment" ws
-		(append mark 'fragment)
+		keep ('fragment)
 		fragment-name* ws
 		type-condition* ws
 		opt directives* ws
@@ -267,7 +314,6 @@ graphql: context [
 	fragment-name*: [
 		ahead not "on" 
 		copy name= name 
-		(append mark load name=)
 	]
 	inline-fragment*: [
 		dots*
@@ -276,35 +322,33 @@ graphql: context [
 		selection-set*
 	]
 	type-condition*: [
-		"on" ws (append mark 'on)
-		keep-name*
+		"on" ws keep ('on)
+		name*
 	]
 	; variables
-	variable*: [ws #"$" name* (name=: to lit-word! name=)]
+	variable*: [ws #"$" s: name* e: keep (to set word! copy/part s e)]
 	variable-definitions*: [
 		paren-start
-		(push-stack quote ()) 
-		some variable-definition* 
+		collect set list= (print "var defs")
+		some variable-definition*
 		paren-end
-		(mark: take/last stack)
+		keep (to paren! list)
 	]
 	variable-definition*: [
 		variable* #":" 
 		type* 
 		opt default-value*
-		(repend mark [name= select red-types type=])
-		(if value= [append mark value=])
 	]
-	default-value*: [(value=: none) ws #"=" ws value* ws]
+	default-value*: [ws #"=" ws value* ws]
 	type*: [ws copy type= [named-type | list-type | non-null-type]]
-	named-type: [name]
+	named-type: [s: name e: keep (to word! copy/part s e)]
 	list-type: [bracket-start type bracket-end]
 	non-null-type: [
 		named-type #"!"
 	|	list-type #"!"
 	]
 	directives*: [some directive*]
-	directive*: [#"@" name* (append mark rejoin [@ name=]) ws opt arguments*]
+	directive*: [#"@" name* ws opt arguments*]
 
 	; === Support ============================================================
 
@@ -336,17 +380,19 @@ graphql: context [
 		rejoin [#"[" list #"]"]
 	]
 
-	; === GraphQL minimizer ==================================================
+	; === GraphQL minifier ==================================================
 
-	minimize: function [
+	minify: function [
 		string
 	] [
 		ws: charset " ^-^/"
 		delimiter: charset "[](){}"
-	;	string: copy string ; NOTE: copy or not to copy
+		string: copy string ; NOTE: copy or not to copy
 		parse string [
+			; TODO: empty line beginnings
 			opt [mark: some ws end: (remove/part mark end)]
 			some [
+			;	change newline space
 				mark:
 				some ws
 				delimiter
@@ -360,7 +406,7 @@ graphql: context [
 				(remove/part mark end)
 				:mark
 			|	"..." change ws ""
-			|	mark: change ws space change ws "" :mark
+		;	|	mark: change ws space change ws "" :mark
 			|	skip
 			]
 		]
@@ -381,14 +427,14 @@ graphql: context [
 	decode: func [
 		data
 	] [
-		mark: clear output
-		parse data document*
-		all [
-			1 = length? output
-			block? first output
-			output: first output
-		]
-		copy output
+	;	mark: clear output
+		parse data [collect document*]
+	;	all [
+	;		1 = length? output
+	;		block? first output
+	;		output: first output
+	;	]
+	;	copy output
 	]
 
 	; === Encoder ============================================================
@@ -473,6 +519,6 @@ graphql: context [
 			|	arguments-rule
 			]
 		]
-		minimize output
+		minify output
 	]	
 ]
