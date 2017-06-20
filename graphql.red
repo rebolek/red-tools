@@ -19,7 +19,7 @@ graphql: context [
 	type!: none
 	s: e: none
 
-	op-type=: name=: value=: alias=: type=: selection=:
+	op-type=: name=: value=: alias=: type=: selection=: object=:
 		none
 	list=: []
 
@@ -181,7 +181,7 @@ graphql: context [
 		|	int-value* (type!: 'integer!) keep (load copy/part s e)
 		|	float-value* (type!: 'float!) keep (load copy/part s e)
 		|	boolean-value* (type!: 'logic!) keep (copy/part s e)
-		|	string-value* (type!: 'string!) keep (copy/part s e)
+		|	string-value* (type!: 'string!) keep (print "--string!" probe copy/part s e)
 		|	null-value* (type!: 'none!) keep (null-value)
 		|	enum-value* (type!: 'enum!) (print "--type enum")
 		|	list-value* (type!: 'list!) ; handled in list-value*
@@ -240,12 +240,20 @@ graphql: context [
 		]	
 	]
 	object-value*: [
-		brace-start brace-end
-	|	brace-start object-field brace-end
+		brace-start brace-end keep (#())
+	|	brace-start collect set object= [object-field] keep (make map! object=) brace-end
 	]
-	object-field: [ws name #":" ws value any [ws name #":" ws value] ws]
-
-
+	object-field: [
+		ws s: name* e: #":" ws 
+		keep (to set-word! copy/part s e)
+		value* 
+		any [
+			ws s: name* e: #":" ws
+			keep (to set-word! copy/part s e)
+			value*
+		] 
+		ws
+	]
 
 	name*: [start-name-char any name-char]
 	
