@@ -181,11 +181,11 @@ graphql: context [
 		|	int-value* (type!: 'integer!) keep (load copy/part s e)
 		|	float-value* (type!: 'float!) keep (load copy/part s e)
 		|	boolean-value* (type!: 'logic!) keep (copy/part s e)
-		|	string-value* (type!: 'string!) keep (print "--string!" probe copy/part s e)
+		|	string-value* (type!: 'string!) keep (copy/part s e)
 		|	null-value* (type!: 'none!) keep (null-value)
 		|	enum-value* (type!: 'enum!) (print "--type enum")
 		|	list-value* (type!: 'list!) ; handled in list-value*
-		|	object-value* (print "--type object" type!: 'object!)
+		|	object-value* (type!: 'object!)
 		]
 		ws
 	]
@@ -406,6 +406,16 @@ graphql: context [
 		remove back tail list
 		rejoin [#"[" list #"]"]
 	]
+	map-to-obj: function [
+		data
+	] [
+		obj: copy {} 
+		foreach [key value] body-of data [
+			repend obj [mold key space mold value #"," space]
+		] 
+		remove back tail obj
+		rejoin [#"{" obj #"}"]
+	]
 
 	; === GraphQL minifier ==================================================
 
@@ -537,6 +547,7 @@ graphql: context [
 		|	set value get-word! (keep [#"$" value])
 		|	set value block! (keep block-to-list value)
 		|	into-sel-set-rule
+		|	set value map! (keep map-to-obj value)
 		|	set value skip (keep [mold value])
 		]
 		parse dialect [
