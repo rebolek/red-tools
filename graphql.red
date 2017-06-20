@@ -237,7 +237,7 @@ graphql: context [
 	]
 	object-value*: [
 		brace-start brace-end
-	|	brace-start (print "obj") object-field brace-end
+	|	brace-start object-field brace-end
 	]
 	object-field: [ws name #":" ws value any [ws name #":" ws value] ws]
 
@@ -261,8 +261,7 @@ graphql: context [
 	]
 	operation-type*: [copy op-type= ["query" | "mutation" | "subscription"] keep (to word! op-type=)]
 	selection-set*: [
-		brace-start 
-		(print "selection")
+		brace-start
 		collect set selection=
 		[some selection*] 
 		keep (selection=)
@@ -270,10 +269,10 @@ graphql: context [
 	]
 	selection*: [
 		ws field* ws
-	|	ws inline-fragment* ws
 	|	ws fragment-spread* ws
+	|	ws inline-fragment* ws
 	]
-	alias*: [ws s: name e: #":" ws keep (print "alias" to set-word! copy/part s e)]
+	alias*: [ws s: name e: #":" ws keep (to set-word! copy/part s e)]
 	field*: [
 		opt alias*
 		s: name* e: keep (to word! copy/part s e)
@@ -282,11 +281,10 @@ graphql: context [
 		opt selection-set*
 	]
 	arguments*: [
-		paren-start (print "args")
+		paren-start
 		collect set list= [
-			ws argument* ws 
-			(print "first arg")
-			any [ws argument* ws (print "next arg")] 
+			ws argument* ws
+			any [ws argument* ws] 
 			paren-end
 		]
 		keep (to paren! list=)
@@ -296,40 +294,45 @@ graphql: context [
 		value* ws
 	]
 	dots*: [
-		"..." ws keep ('...)
+		"..." ws
 	]
 	fragment-spread*: [
 		dots*
-		fragment-name* ws 
+		s: fragment-name* e: ws 
+		keep ('...)
+		keep (to word! copy/part s e)
 		opt directives*
 	]
 	fragment-definition*: [
 		"fragment" ws
 		keep ('fragment)
-		fragment-name* ws
+		s: fragment-name* e: ws
+		keep (to word! copy/part s e)
 		type-condition* ws
 		opt directives* ws
 		selection-set*
 	]
 	fragment-name*: [
 		ahead not "on" 
-		copy name= name 
+		name
 	]
 	inline-fragment*: [
-		dots*
+		dots* ; TODO: keep dots, but not from here
 		opt type-condition*
 		opt directives*
 		selection-set*
 	]
 	type-condition*: [
-		"on" ws keep ('on)
-		name*
+		"on" ws 
+		keep ('on)
+		s: name* e:
+		keep (to word! copy/part s e)
 	]
 	; variables
 	variable*: [ws #"$" s: name* e: keep (to set word! copy/part s e)]
 	variable-definitions*: [
 		paren-start
-		collect set list= (print "var defs")
+		collect set list=
 		some variable-definition*
 		paren-end
 		keep (to paren! list)
