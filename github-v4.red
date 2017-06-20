@@ -81,7 +81,7 @@ github: context [
 		"Perform some escaping and optimization"
 		string [string!]
 	] [
-		parse trim string [
+		parse string [
 			some [
 				change #"^"" {\"} 
 			|	change #"^/" {} 	; TODO: change to escaping?
@@ -132,13 +132,56 @@ github: context [
 ; get repository: 
 ;
 ;query {
-;  organization(login: "rails") {
+;  organization(login: "red") {
 ;    name
 ;    url
-;    repository(name: "rails") {
+;    repository(name: "red") {
 ;      name
 ;    }
 ;  }
 ;}
 ;
 ; query [organization (login: "red") [name url repository (name: "red") [name]]]
+;
+; get last 10 issues (title):
+;
+;query {
+;  organization(login: "red") {
+;    name 	; not required
+;    url 	; not required
+;    repository(name: "red") {
+;      name
+;      issues (last: 10) {edges {node {title}}}
+;    }
+;  }
+;}
+;
+; query [organization (login: "red") [repository (name: "red") [issues (last: 10) [edges [node [title]]]]]]
+
+
+; add comment to issue:
+;query FindIssueID {
+;  repository(owner:"rebolek", name:"red-tools") {
+;    id
+;    issue(number:1) {
+;      id
+;    }
+;  }
+;}
+; 
+; NOTE: subjectId is (issue) id from above query, clientMutationId is (repository) id
+;
+;mutation AddCommentToIssue {
+;  addComment(input: {subjectId: "MDU6SXNzdWUyMzEzOTE1NTE=", body: "testing comment", clientMutationId: "MDEwOlJlcG9zaXRvcnk3OTM5MjA0OA=="}) {
+;		clientMutationId
+;  }
+;}
+;
+; red version:
+;
+; query FindIssueId [repository (owner: "rebolek" name: "red-tools") [issue (number: 1) [id]]]
+; mutation AddCommentToIssue [
+;	addComment (input: [subjectId: "MDU6SXNzdWUyMzEzOTE1NTE=" clientMutationId: "MDEwOlJlcG9zaXRvcnk3OTM5MjA0OA==" body: "it works!"]) [
+;	  clientMutationId	
+;	]
+; ]
