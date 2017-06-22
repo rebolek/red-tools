@@ -165,8 +165,8 @@ make-url: function [
 	parse append clear [] data [
 		some [
 			args-rule
-		|	set value [set-word! | file! | url! ] (append link dirize form value)
-		|	set value word! (append link dirize form get :value)	
+		|	set value [set-word! | file! | url! | refinement!] (append link dirize form value)
+		|	set value [word! | path!] (append link dirize form get :value)	
 		]
 	]
 	unless empty? args [
