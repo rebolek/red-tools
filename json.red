@@ -18,14 +18,14 @@ json: context [
 	s: e:		 none
 	list:		 none
 
-	null-value:	none ; NOTE: Change this, if you prefer someting else than NONE
+	null-value:	none ; NOTE: Change this, if you prefer something else than NONE
 
 	load-str: func [
 		"Return word if possible, leave untouched when not" 
 		str
 		/local out 
 	] [
-		if block? try [out: load str] [out: str]
+		if error? try [out: load str] [out: str]
 		out
 	]
 
@@ -34,12 +34,12 @@ json: context [
 		rule: [
 			any [
 				s: remove #"\" [
-					#"b" 	(s/1: #"^H")
-					| #"f"  (s/1: #"^(0C)")
-					| #"n"  (s/1: #"^/")
-					| #"r"  (s/1: #"^M")
-					| #"t"	(s/1: #"^-")
-					| #"u" 4 hexa
+					#"b"	(s/1: #"^H")
+				|	#"f"	(s/1: #"^(0C)")
+				|	#"n"	(s/1: #"^/")
+				|	#"r" 	(s/1: #"^M")
+				|	#"t"	(s/1: #"^-")
+				|	#"u"	4 hexa
 				]
 				| skip
 			]
@@ -55,13 +55,13 @@ json: context [
 		rule: [
 			any [
 				change #"^H"		"\b"
-				| change #"^(0C)"	"\f"
-				| change #"^/"		"\n"
-				| change #"^M"		"\r"
-				| change #"\"		"\\"
-				| change #"^-"		"\t"
-				| change #"^""		{\"}
-				| skip
+			|	change #"^(0C)"		"\f"
+			|	change #"^/"		"\n"
+			|	change #"^M"		"\r"
+			|	change #"\"			"\\"
+			|	change #"^-"		"\t"
+			|	change #"^""		{\"}
+			|	skip
 			]
 		]
 		parse start rule
@@ -69,34 +69,50 @@ json: context [
 	]
 		
 	value: [
-		string	  keep (decode-str s e)
-		| number  keep (load copy/part s e)
-		| "true"  keep (true)
-		| "false" keep (false)
-		| "null"  keep (null-value)
-		| object-rule
-		| array
+		string		keep (decode-str s e)
+	|	number		keep (load copy/part s e)
+	|	"true"		keep (true)
+	|	"false"		keep (false)
+	|	"null"		keep (null-value)
+	|	object-rule
+	|	array
 	]
 
-	number: [s: opt #"-" some digit opt [dot some digit opt [exponent sign 1 3 digit]] e:]
+	number: [
+		s: opt #"-" 
+		some digit 
+		opt [dot some digit opt [exponent sign 1 3 digit]] 
+		e:
+	]
 	
-	string: [dbl-quote s: any [#"\" [quoted-char | #"u" 4 hexa] | dbl-quote break | skip] e:]
+	string: [
+		dbl-quote 
+		s: any [#"\" [quoted-char | #"u" 4 hexa] | dbl-quote break | skip] 
+		e:
+	]
 	
-	couple: [ws string keep (load-str decode-str s e) ws #":" ws value]
+	couple: [ws string keep (load-str decode-str s e) ws #":" ws value ws]
 	
 	object-rule: [
-		#"{" collect set list opt [any [couple #","] couple] ws #"}"
+		#"{" 
+		collect set list opt [any [couple #","] couple] ws #"}" 
 		keep (make map! list)
 	]
 	
 	array: [#"[" collect opt [ws value any [ws #"," ws value]] ws #"]"]
 	
-	decode: function [data [string!] return: [block! object!]][
+	decode: function [
+		data [string!] 
+		return: [block! object!]
+	][
 		output: parse data [collect any [blank | object-rule | array | value]]
 		either equal? 1 length? output [first output] [output]
 	]
 
-	encode-into: function [data [any-type!] buffer [string!]][
+	encode-into: function [
+		data [any-type!] 
+		buffer [string!]
+	][
 		case [
 			any [map? data object? data] [
 				append buffer #"{"
@@ -136,9 +152,15 @@ json: context [
 		]
 	]
 
-	encode: function [data return: [string!]][
+	encode: function [
+		data 
+		return: [string!]
+	][
 		buffer: make string! 1000
 		encode-into data buffer
 		buffer
 	]
 ]
+
+
+t: does [bad: read %bad.json]
