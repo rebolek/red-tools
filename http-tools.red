@@ -177,13 +177,15 @@ make-url: function [
 ]
 
 send-request: function [
-	link 
-	method
+	"Send HTTP request. Useful for REST APIs"
+	link 		[url!] 	"URL link"
+	method 		[word!] "Method type (GET, POST, PUT, DELETE)"
+	/only 		"Return only data without headers"
 	/data 		"Use with POST and other methods"
 		content
-	/with 
+	/with 		"Headers to send with request"
 		args
-	/auth
+	/auth 		"Authentication method and data"
 		auth-type [word!]
 		auth-data
 ] [
@@ -195,10 +197,10 @@ send-request: function [
 				Authorization: (rejoin [auth-type space enbase rejoin [first auth-data #":" second auth-data]])
 			]
 			OAuth [
-				; TODO: Add OAuth (see Twitter API)
+				; TODO: OAuth 1 (see Twitter API)
 			]
 			Bearer [
-				; token passing for Gitter
+				; token passing for OAuth 2
 				extend header compose [
 					Authorization: (rejoin [auth-type space auth-data])
 				]
@@ -210,14 +212,13 @@ send-request: function [
 	reply: write/info link data
 	set 'raw-reply reply
 	type: first split reply/2/Content-Type #";"
-	map [
+	reply: map [
 		code: reply/1
 		headers: reply/2
 		raw: reply/3
-; TODO: decode data based on reply/2/Content-Type
-;		data: (www-form/decode reply/3 type)
 		data: mime-decoder reply/3 type
 	]
+	either only [reply/data] [reply]
 ]
 
 www-form: object [
