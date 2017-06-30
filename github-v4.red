@@ -190,8 +190,9 @@ comment-issue: function [
 	repo
 	issue-id
 	text
+	; usage: comment-issue 'owner/repo 123 "blablabla"
 ] [
-	reply: probe github/send reduce [
+	reply: github/send reduce [
 		'query 'FindIssueId reduce [
 			'repository to paren! compose [
 				owner: (form repo/1) name: (form repo/2)
