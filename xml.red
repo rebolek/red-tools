@@ -27,6 +27,7 @@ Red [
 ]
 
 xml: context [
+	s: e: value: none
 	name-chars: charset [#"a" - #"z" #"A" - #"Z"  #"0" - #"9" #"-" #":"]
 	ws:         charset reduce [space tab cr lf]
 	attributes: [
