@@ -67,7 +67,7 @@ js: context [
 	;	|	enum-value* (type!: 'enum!) (print "--type enum")
 		|	list-value* (type!: 'list!) ; handled in list-value*
 		|	object-value* (type!: 'object!)
-		|	s: name* e: keep (print "name" probe to word! copy/part s e)
+		|	s: name* e: keep (to word! copy/part s e)
 		]
 		ws
 	]
@@ -147,6 +147,7 @@ js: context [
 			path*
 		|	set-var*
 		|	call-func*	
+		|	set-func*
 		|	value*
 		]
 	]
@@ -175,6 +176,23 @@ js: context [
 		keep (to word! copy/part s e)
 		args* 
 		paren-end
+	]
+
+	set-func*: [
+		"function" ws
+		s: name* e: 
+		ws paren-start ws 
+		keep (to set-word! copy/part s e)
+		keep ('function)
+		args*
+		paren-end
+		func-body*
+	]
+
+	func-body*: [
+		brace-start
+		collect some value*
+		brace-end
 	]
 
 	args*: [
