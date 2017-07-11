@@ -50,7 +50,7 @@ js: context [
 	ignored: [unicode-bom | whitespace | line-terminator | comment]
 	punctuator-chars: charset "!$():=@[]{|}"
 	punctuator: [punctuator-chars | "..."]
-	name: [start-name-char any name-char]
+	name*: [start-name-char any name-char]
 	start-name-char: charset [#"_" #"A" - #"Z" #"a" - #"z"] 
 	name-char: union start-name-char charset [#"0" - #"9"]
 
@@ -64,9 +64,10 @@ js: context [
 		|	boolean-value* (type!: 'logic!) keep (copy/part s e)
 		|	string-value* (type!: 'string!) keep (copy/part s e)
 		|	null-value* (type!: 'none!) keep (null-value)
-		|	enum-value* (type!: 'enum!) (print "--type enum")
+	;	|	enum-value* (type!: 'enum!) (print "--type enum")
 		|	list-value* (type!: 'list!) ; handled in list-value*
 		|	object-value* (type!: 'object!)
+		|	s: name* e: keep (print "name" probe to word! copy/part s e)
 		]
 		ws
 	]
@@ -123,21 +124,20 @@ js: context [
 	]
 	object-value*: [
 		brace-start brace-end keep (#())
-	|	brace-start collect set object= [object-field] keep (make map! object=) brace-end
+	|	brace-start collect set object= object-fields keep (make map! object=) brace-end
 	]
-	object-field: [
-		ws s: name* e: #":" ws 
-		keep (to set-word! copy/part s e)
-		value* 
-		any [
-			ws s: name* e: #":" ws
-			keep (to set-word! copy/part s e)
-			value*
-		] 
+	object-fields: [
+		object-field
+		any object-field
 		ws
 	]
+	object-field: [
+		ws s: name* e: 
+		#":" ws 
+		keep (to set-word! copy/part s e)
+		value* 
+	]
 
-	name*: [start-name-char any name-char]
 	; query document
 
 	semicolon*: [ws #";" ws]
@@ -147,7 +147,7 @@ js: context [
 			path*
 		|	set-var*
 		|	call-func*	
-	;	|	path*
+		|	value*
 		]
 	]
 
@@ -171,8 +171,10 @@ js: context [
 
 	call-func*: [
 		s: name* e: 
+		paren-start 
 		keep (to word! copy/part s e)
-		#"(" args* #")"
+		args* 
+		paren-end
 	]
 
 	args*: [
@@ -194,10 +196,13 @@ js: context [
 	path*: [
 		(path=: make block! 10)
 		s: name* e:
-		(append path= to word! copy/part s e)
 		some [
-			#"." s: name* e: (append path= to word! copy/part s e)
+			#"." 
+			(print "path")
+			(append path= to word! copy/part s e)
+			s: name* e:
 		]
+		(append path= to word! copy/part s e)
 		keep (to path! path=)
 	]
 	
