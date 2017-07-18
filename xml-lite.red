@@ -73,9 +73,9 @@ xml-lite: context [
 	whitespace: charset " ^-^/^M"
 	ws: [any whitespace]
 
-	name: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9"]
+	chars: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9"]
 ;	tag-name: union name charset #"!" ; TODO: support full range
-	tag-name: name
+	tag-name: chars
 
 	; TODO: single tags (<single/>)
 	open-tag: [
@@ -108,10 +108,10 @@ xml-lite: context [
 		atts
 		ws
 		"/>"
-		(append atts-stack copy probe atts=)
+		(append atts-stack copy atts=)
 		keep (to word! name=)
 		keep (empty-value) ; empty content
-		keep (take/last probe atts-stack)
+		keep (take/last atts-stack)
 		ws
 	]
 	; TODO: fix the name
@@ -125,11 +125,11 @@ xml-lite: context [
 		(append atts-stack copy atts=)
 		keep (to word! name=)
 		keep (empty-value) ; empty content
-		keep (take/last probe atts-stack)
+		keep (take/last atts-stack)
 		ws
 	]
 	not-att-chars: union whitespace charset [#">" #"/" #"="]
-	att-name: union name charset ":-_"
+	att-name: union chars charset ":-_"
 	pair-att: [
 		ws
 		not #"/"
@@ -159,12 +159,12 @@ xml-lite: context [
 	comment: [ws "<!--" thru "-->" ws]
 	
 	content: [
-		ahead "</" (print "break") break
-	|	(print #c>) comment
-	|	(print #n>) some [open-tag collect some content close-tag]
-	|	(print #f>) doctype-tag
-	|	(print #s>) single-tag
-	|	(print #d>) s: any [[ahead #"<" break] | skip (prin #".")] e: keep (copy/part s e)
+		ahead "</" break
+	|	comment
+	|	some [open-tag collect some content close-tag]
+	|	doctype-tag
+	|	single-tag
+	|	s: any [[ahead #"<" break] | skip] e: keep (copy/part s e)
 	]
 
 	atts-stack: []
