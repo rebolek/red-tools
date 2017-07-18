@@ -64,6 +64,8 @@ run-tests: function [
 xml-lite: context [
 
 	empty-value: none ; used for single tags that have no content
+	reverse?: no      ; normal order is [tag-name content attributes],
+					  ; reversed order is [tag-name attributes content]
 
 	document: [
 		(clear stack)
@@ -89,6 +91,7 @@ xml-lite: context [
 		(append atts-stack copy atts=)
 		(append stack name=)
 		keep (to word! name=)
+		[if (reverse?) keep (take/last atts-stack) | none]
 		ws
 	]
 	close-tag: [
@@ -98,7 +101,7 @@ xml-lite: context [
 		(name=: take/last stack)
 		name=
 		#">"
-		keep (take/last atts-stack)
+		[if (not reverse?) keep (take/last atts-stack) | none]
 		ws
 	]
 	single-tag: [
@@ -110,8 +113,16 @@ xml-lite: context [
 		"/>"
 		(append atts-stack copy atts=)
 		keep (to word! name=)
-		keep (empty-value) ; empty content
-		keep (take/last atts-stack)
+		[
+			if (reverse?) [
+				keep (take/last atts-stack)
+				keep (empty-value) ; empty content
+			]
+		|	if (not reverse?) [
+				keep (empty-value) ; empty content
+				keep (take/last atts-stack)
+			]
+		]
 		ws
 	]
 	; TODO: fix the name
@@ -124,8 +135,16 @@ xml-lite: context [
 		">"
 		(append atts-stack copy atts=)
 		keep (to word! name=)
-		keep (empty-value) ; empty content
-		keep (take/last atts-stack)
+		[
+			if (reverse?) [
+				keep (take/last atts-stack)
+				keep (empty-value) ; empty content
+			]
+		|	if (not reverse?) [
+				keep (empty-value) ; empty content
+				keep (take/last atts-stack)
+			]
+		]
 		ws
 	]
 	not-att-chars: union whitespace charset [#">" #"/" #"="]
