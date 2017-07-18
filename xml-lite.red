@@ -79,7 +79,6 @@ xml-lite: context [
 ;	tag-name: union name charset #"!" ; TODO: support full range
 	tag-name: chars
 
-	; TODO: single tags (<single/>)
 	open-tag: [
 		ws
 		#"<"
@@ -167,7 +166,6 @@ xml-lite: context [
 		ws
 	]
 	atts: [
-		; TODO: single value attributes
 		(atts=: copy #()) ; FIXME: IMO `clear` should be enough here, but it is not
 		ws
 		any [
