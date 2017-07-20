@@ -1,6 +1,9 @@
 Red []
 
 rl: read http://red-lang.org
+
+; for content see page/html/body/20
+
 test: {<!--this is sparta, err comment--><a href="blabla"><b>bleble</b></a>}
 xx: {^/<head>^/<link type='text/css' rel='stylesheet' href='https://www.blogger.com/static/v1/widgets/2258130529-css_bundle_v2.css' />^/<meta content='width=1100' name='viewport'/>^/</head>^/}
 xy: {
@@ -63,9 +66,15 @@ run-tests: function [
 
 xml-lite: context [
 
-	empty-value: none ; used for single tags that have no content
-	reverse?: no      ; normal order is [tag-name content attributes],
-					  ; reversed order is [tag-name attributes content]
+	; === SETTINGS ===========================================================
+
+	empty-value: none   ; used for single tags that have no content
+	reverse?: no        ; normal order is [tag-name content attributes],
+					    ; reversed order is [tag-name attributes content]
+	align-content?: yes ; store HTML strings as one or three values:
+						; string or [NONE string NONE]
+
+	; === RULES ==============================================================
 
 	document: [
 		(clear stack)
@@ -174,6 +183,14 @@ xml-lite: context [
 		]
 	]
 	comment: [ws "<!--" thru "-->" ws]
+	string: [s: any [[ahead #"<" break] | skip] e: keep (copy/part s e)]
+	string-as-tag: [
+		s: any [[ahead #"<" break] | skip] e: 
+		keep (none)
+		keep (copy/part s e)
+		keep (none)
+	]
+
 	
 	content: [
 		ahead "</" break
@@ -181,8 +198,17 @@ xml-lite: context [
 	|	some [open-tag collect some content close-tag]
 	|	doctype-tag
 	|	single-tag
-	|	s: any [[ahead #"<" break] | skip] e: keep (copy/part s e)
+;	|	string
+	|	string-as-tag
 	]
+
+; NOTE: choose between string and string-as-tag
+;		STRING will store content as one value
+;		STRING-AS-TAG as three values, which is compatible with FOREACH-NODE
+;
+; TODO: option for selecting string or string-as-tag
+;		encoder should support (and ignore) NONE "tags"
+
 
 	atts-stack: []
 	stack: []
@@ -195,5 +221,26 @@ xml-lite: context [
 		data
 	] [
 		parse data [collect document]
+	]
+]
+
+foreach-node: func [
+	data
+	code
+] [
+	; FN takes three parameters: [tag content attribute] (or just two? without content)
+	foreach [tag content attributes] data [
+		do bind code 'tag
+		if block? content [
+			foreach-node content code
+		]
+	]
+]
+
+probe-xml: func [
+	data
+] [
+	foreach [tag content attributes] data [
+		print [tag length? content length? attributes]
 	]
 ]
