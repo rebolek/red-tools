@@ -1,5 +1,7 @@
 Red []
 
+; TODO: conversion of map keys to word! if possible
+
 rl: read http://red-lang.org
 
 ; for content see page/html/body/20
@@ -72,7 +74,8 @@ xml-lite: context [
 	reverse?: no        ; normal order is [tag-name content attributes],
 					    ; reversed order is [tag-name attributes content]
 	align-content?: yes ; store HTML strings as one or three values:
-						; string or [NONE string NONE]
+						; string or [NONE string NONE]  
+						; this required for traversing with FOREACH-NODE
 
 	; === RULES ==============================================================
 
@@ -183,14 +186,17 @@ xml-lite: context [
 		]
 	]
 	comment: [ws "<!--" thru "-->" ws]
-	string: [s: any [[ahead #"<" break] | skip] e: keep (copy/part s e)]
-	string-as-tag: [
+	string: [
 		s: any [[ahead #"<" break] | skip] e: 
-		keep (none)
-		keep (copy/part s e)
-		keep (none)
+		[
+			if (align-content?) [
+				keep (none)
+				keep (copy/part s e)
+				keep (#()) ; TODO: should be user defined?
+			]
+		|	if (not align-content?) [keep (copy/part s e)]
+		]
 	]
-
 	
 	content: [
 		ahead "</" break
@@ -198,17 +204,8 @@ xml-lite: context [
 	|	some [open-tag collect some content close-tag]
 	|	doctype-tag
 	|	single-tag
-;	|	string
-	|	string-as-tag
+	|	string
 	]
-
-; NOTE: choose between string and string-as-tag
-;		STRING will store content as one value
-;		STRING-AS-TAG as three values, which is compatible with FOREACH-NODE
-;
-; TODO: option for selecting string or string-as-tag
-;		encoder should support (and ignore) NONE "tags"
-
 
 	atts-stack: []
 	stack: []
@@ -243,4 +240,17 @@ probe-xml: func [
 	foreach [tag content attributes] data [
 		print [tag length? content length? attributes]
 	]
+]
+
+select-by-class: func [
+	data
+	class
+] [
+	ret: copy []
+	foreach-node p compose [
+		if find select attributes "class" (class) [
+			append ret reduce [tag content attributes]
+		]
+	]
+	ret
 ]
