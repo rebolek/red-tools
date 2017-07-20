@@ -90,100 +90,83 @@ xml-lite: context [
 	chars: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9"]
 ;	tag-name: union name charset #"!" ; TODO: support full range
 	tag-name: chars
+	push-atts: [(append atts-stack copy atts=)]
+	pop-atts: [keep (take/last atts-stack)]
 
 	open-tag: [
-		ws
-		#"<"
+		ws #"<"
 		copy name= some tag-name
-		ws
-		atts
-		ws
-		#">"
-		(append atts-stack copy atts=)
+		ws atts ws
+		#">" ws
+		push-atts
 		(append stack name=)
 		keep (to word! name=)
-		[if (reverse?) keep (take/last atts-stack) | none]
-		ws
+		[if (reverse?) keep pop-atts | none]
 	]
 	close-tag: [
-		ws
-		#"<"
-		#"/"
+		ws "</"
 		(name=: take/last stack)
 		name=
-		#">"
-		[if (not reverse?) keep (take/last atts-stack) | none]
-		ws
+		#">" ws
+		[if (not reverse?) pop-atts | none]
 	]
 	single-tag: [
-		ws
-		#"<" copy name= some tag-name
-		ws
-		atts
-		ws
-		"/>"
-		(append atts-stack copy atts=)
+		ws #"<" 
+		copy name= some tag-name
+		ws atts ws
+		"/>" ws
+		push-atts
 		keep (to word! name=)
 		[
 			if (reverse?) [
-				keep (take/last atts-stack)
+				pop-atts
 				keep (empty-value) ; empty content
 			]
 		|	if (not reverse?) [
 				keep (empty-value) ; empty content
-				keep (take/last atts-stack)
+				pop-atts
 			]
 		]
-		ws
 	]
 	; TODO: fix the name
 	doctype-tag: [
-		ws
-		"<!" copy name= some tag-name
-		ws
-		atts
-		ws
-		">"
-		(append atts-stack copy atts=)
+		ws "<!" 
+		copy name= some tag-name
+		ws atts ws
+		">" ws
+		push-atts
 		keep (to word! name=)
 		[
 			if (reverse?) [
-				keep (take/last atts-stack)
+				pop-atts
 				keep (empty-value) ; empty content
 			]
 		|	if (not reverse?) [
 				keep (empty-value) ; empty content
-				keep (take/last atts-stack)
+				pop-atts
 			]
 		]
-		ws
 	]
 	not-att-chars: union whitespace charset [#">" #"/" #"="]
 	att-name: union chars charset ":-_"
 	pair-att: [
-		ws
-		not #"/"
+		ws not #"/"
 		copy att-name= some att-name
 		#"="
 		set quot-char [#"^"" | #"'"]
 		copy att-value= to quot-char skip
-		(atts=/:att-name=: att-value=)
 		ws
+		(atts=/:att-name=: att-value=)
 	]
 	single-att: [
-		ws
-		not #"/"
+		ws not #"/"
 		copy att-name= some att-name
-		(atts=/:att-name=: true)
 		ws
+		(atts=/:att-name=: true)
 	]
 	atts: [
 		(atts=: copy #()) ; FIXME: IMO `clear` should be enough here, but it is not
-		ws
-		any [
-			pair-att
-		|	single-att
-		]
+		ws any [pair-att | single-att]
 	]
 	comment: [ws "<!--" thru "-->" ws]
 	string: [
