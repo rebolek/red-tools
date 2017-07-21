@@ -2,7 +2,7 @@ Red []
 
 ; TODO: conversion of map keys to word! if possible
 
-rl: read http://red-lang.org
+;rl: read-thru http://red-lang.org
 
 ; for content see page/html/body/20
 
@@ -26,6 +26,9 @@ xz: {
 <meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>
 <meta content='blogger' name='generator'/>
 }
+
+google: https://www.google.cz/search?q=bullerbyne
+malf-scr: {<script>x=x+1;x<5</script>} ; google uses this...
 
 ; TODO: move tests to separate file
 
@@ -93,8 +96,10 @@ xml-lite: context [
 	push-atts: [(append atts-stack copy atts=)]
 	pop-atts: [keep (take/last atts-stack)]
 
+	single-tags: ["img" | "meta" | "link" | "br" | "hr"] ; TODO...
 	open-tag: [
 		ws #"<"
+		not ahead single-tags
 		copy name= some tag-name
 		ws atts ws
 		#">" ws
@@ -110,30 +115,18 @@ xml-lite: context [
 		#">" ws
 		[if (not reverse?) pop-atts | none]
 	]
+	close-char: #"/"
+	action: none
 	single-tag: [
-		ws #"<" 
-		copy name= some tag-name
-		ws atts ws
-		"/>" ws
-		push-atts
-		keep (to word! name=)
-		[
-			if (reverse?) [
-				pop-atts
-				keep (empty-value) ; empty content
-			]
-		|	if (not reverse?) [
-				keep (empty-value) ; empty content
-				pop-atts
-			]
+		(close-char: #"/")
+		ws #"<" opt [#"!" (close-char: "")]
+		copy name= [
+			single-tags (close-char: "")
+		|	some tag-name
 		]
-	]
-	; TODO: fix the name
-	doctype-tag: [
-		ws "<!" 
-		copy name= some tag-name
+	;	(print "==single:" mold name=)
 		ws atts ws
-		">" ws
+		close-char #">" ws
 		push-atts
 		keep (to word! name=)
 		[
@@ -170,7 +163,13 @@ xml-lite: context [
 	]
 	comment: [ws "<!--" thru "-->" ws]
 	string: [
-		s: any [[ahead #"<" break] | skip] e: 
+		s: any [
+			if (equal? name= "script") not ahead </script> skip ; accept #"<" inside <script>...</script> (Google does it)
+		|	ahead #"<" break
+		|	skip
+		] 
+		p: (print ["before E:" mold/part p 20])
+		e: 
 		[
 			if (align-content?) [
 				keep (none)
@@ -183,11 +182,10 @@ xml-lite: context [
 	
 	content: [
 		ahead "</" break
-	|	comment
-	|	some [open-tag collect some content close-tag]
-	|	doctype-tag
-	|	single-tag
-	|	string
+	|	comment (print ["cmnt" name=])
+	|	some [open-tag (print ["open" name=]) collect some content close-tag (print ["clos" name=])]
+	|	single-tag (print ["sngl" name=])
+	|	string (print ["strn" copy/part s e])
 	]
 
 	atts-stack: []
@@ -236,4 +234,10 @@ select-by-class: func [
 		]
 	]
 	ret
+]
+
+show-h: does [
+	page: xml-lite/decode read http://www.red-lang.org
+	headings: select-by-class page "post-title"
+	foreach [t c a] headings [print c/a/2]
 ]
