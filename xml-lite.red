@@ -228,6 +228,19 @@ probe-xml: func [
 	]
 ]
 
+select-by-tag: func [
+	data
+	tag
+] [
+	ret: copy []
+	foreach-node data compose [
+		if equal? tag (to lit-word! tag) [
+			append ret reduce [tag content attributes]
+		]
+	]
+	ret
+]
+
 select-by-class: func [
 	data
 	class
