@@ -65,7 +65,7 @@ run-tests: function [
 	copy output
 ]
 
-debug: func [value] [if debug? print value]
+debug: func [value] [if debug? [print value]]
 
 debug?: no
 
@@ -273,4 +273,20 @@ show-h: does [
 	page: xml-lite/decode read http://www.red-lang.org
 	headings: select-by-class page "post-title"
 	foreach [t c a] headings [print c/a/2]
+]
+
+google: function [value] [
+	debug "Loading page"
+	page: rejoin [http://www.google.cz/search?q= replace/all value space #"+"]
+	page: read/binary probe page
+	write %goog.html page
+	debug "Decoding page"
+	page: load-non-utf page
+	debug "Page read"
+	page: xml-lite/decode page
+	results: select-by-tag page 'h3
+	results: collect [
+		foreach [t c a] results [keep reduce [rejoin [c/a/2/2 c/a/5] rejoin [http://www.google.com select c/3 "href"]]]
+	]
+	new-line/all/skip results true 2
 ]
