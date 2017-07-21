@@ -106,7 +106,7 @@ xml-lite: context [
 		not ahead single-tags
 		copy name= some tag-name
 		ws atts ws
-		#">" ws
+		#">"
 		push-atts
 		(append stack name=)
 		keep (to word! name=)
@@ -116,7 +116,7 @@ xml-lite: context [
 		ws "</"
 		(name=: take/last stack)
 		name=
-		#">" ws
+		#">"
 		[if (not reverse?) pop-atts | none]
 	]
 	close-char: #"/"
@@ -130,7 +130,7 @@ xml-lite: context [
 		]
 	;	(print "==single:" mold name=)
 		ws atts ws
-		close-char #">" ws
+		close-char #">"
 		push-atts
 		keep (to word! name=)
 		[
