@@ -96,7 +96,7 @@ xml-lite: context [
 	push-atts: [(append atts-stack copy atts=)]
 	pop-atts: [keep (take/last atts-stack)]
 
-	single-tags: ["img" | "meta" | "link" | "br" | "hr"] ; TODO...
+	single-tags: ["img" | "meta" | "link" | "br" | "hr" | "input"] ; TODO...
 	open-tag: [
 		ws #"<"
 		not ahead single-tags
@@ -145,9 +145,11 @@ xml-lite: context [
 	pair-att: [
 		ws not #"/"
 		copy att-name= some att-name
-		#"="
-		set quot-char [#"^"" | #"'"]
-		copy att-value= to quot-char skip
+		#"=" [
+			set quot-char [#"^"" | #"'"]
+			copy att-value= to quot-char skip
+		|	copy att-value= to [#">" | whitespace]
+		]
 		ws
 		(atts=/:att-name=: att-value=)
 	]
