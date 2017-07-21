@@ -342,3 +342,8 @@ percent: context [
 	]
 ]
 
+load-non-utf: func [
+	data [binary!]
+] [
+	copy collect/into [forall data [keep to char! data/1]] {}
+]
