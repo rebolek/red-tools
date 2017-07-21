@@ -65,6 +65,10 @@ run-tests: function [
 	copy output
 ]
 
+debug: func [value] [if debug? print value]
+
+debug?: no
+
 ; ============================================================================
 
 ; TODO: NAME* rules should be CHAR*
@@ -170,7 +174,6 @@ xml-lite: context [
 		|	ahead #"<" break
 		|	skip
 		] 
-		p: (print ["before E:" mold/part p 20])
 		e: 
 		[
 			if (align-content?) [
@@ -184,10 +187,10 @@ xml-lite: context [
 	
 	content: [
 		ahead "</" break
-	|	comment (print ["cmnt" name=])
-	|	some [open-tag (print ["open" name=]) collect some content close-tag (print ["clos" name=])]
-	|	single-tag (print ["sngl" name=])
-	|	string (print ["strn" copy/part s e])
+	|	comment (debug ["cmnt" name=])
+	|	some [open-tag (debug ["open" name=]) collect some content close-tag (debug ["clos" name=])]
+	|	single-tag (debug ["sngl" name=])
+	|	string (debug ["strn" copy/part s e])
 	]
 
 	atts-stack: []
@@ -230,8 +233,23 @@ select-by-class: func [
 	class
 ] [
 	ret: copy []
-	foreach-node p compose [
+	foreach-node data compose [
 		if find select attributes "class" (class) [
+			append ret reduce [tag content attributes]
+		]
+	]
+	ret
+]
+
+select-by-content: func [
+	data
+	value
+] [
+	ret: copy []
+	foreach-node data compose/deep [
+		all [
+			string? content
+			find content (value)
 			append ret reduce [tag content attributes]
 		]
 	]
