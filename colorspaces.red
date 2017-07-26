@@ -8,6 +8,7 @@ Red[
 
 minimum-of: func [block] [first sort copy block]
 maximum-of: func [block] [last sort copy block]
+abs: :absolute
 
 to-hsl: func [
 	color [tuple!]
@@ -65,18 +66,18 @@ load-hsl: func [
 	color [block!]
 	/local alpha c x m i
 ][
-	if color/4 [alpha: color/4]
+	if 4 = length? color [alpha: color/4 / 255.0]
 	; LOCAL: HSL, COLOR: RGB
-	bind/new [h s l] local: object []
+	local: context [h: s: l: none]
 	set words-of local color
-	bind/new [r g b] color: object []
-	do in local [
-		i: h / 60
-		c: 1 - (abs 2 * l - 1) * s
-		x: 1 - (abs -1 + mod i 2) * c
-		m: l - (c / 2)
-	]
-	do in color [
+	color: context [r: g: b: none]
+	do bind [
+		i: h / 60.0
+		c: 1.0 - (abs 2.0 * l - 1.0) * s
+		x: 1.0 - (abs -1.0 + mod i 2.0) * c
+		m: to float! l - (c / 2.0)
+	] local
+	do bind [
 		set [r g b] reduce switch to integer! i [
 			0 [[c x 0]]
 			1 [[x c 0]]
@@ -85,8 +86,8 @@ load-hsl: func [
 			4 [[x 0 c]]
 			5 [[c 0 x]]
 		]
-	]
-	color: to tuple! map-each value values-of color [to integer! round m + value * 255]
+	] color
+	color: make tuple! collect [foreach value values-of color [keep round m + value * 255]]
 	if alpha [color/4: alpha * 255]
 	color
 ]
@@ -95,18 +96,18 @@ load-hsv: func [
 	color [block!]
 	/local alpha c x m i
 ][
-	if color/4 [alpha: color/4]
-	; LOCAL: HSV, COLOR: RGB
-	bind/new [h s v] local: object []
+	if 4 = length? color [alpha: color/4 / 255.0]
+	; LOCAL: HSL, COLOR: RGB
+	local: context [h: s: v: none]
 	set words-of local color
-	bind/new [r g b] color: object []
-	do in local [
-		i: h / 60
+	color: context [r: g: b: none]
+	do bind [
+		i: h / 60.0
 		c: v * s
-		x: 1 - (abs -1 + mod i 2) * c
-		m: v - c
-	]
-	do in color [
+		x: 1.0 - (abs -1.0 + mod i 2.0) * c
+		m: to float! v - c
+	] local
+	do bind [
 		set [r g b] reduce switch to integer! i [
 			0 [[c x 0]]
 			1 [[x c 0]]
@@ -115,8 +116,8 @@ load-hsv: func [
 			4 [[x 0 c]]
 			5 [[c 0 x]]
 		]
-	]
-	color: to tuple! map-each value values-of color [to integer! round m + value * 255]
+	] color
+	color: make tuple! collect [foreach value values-of color [keep round m + value * 255]]
 	if alpha [color/4: alpha * 255]
 	color
 ]
