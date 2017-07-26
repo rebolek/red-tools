@@ -13,19 +13,24 @@ Red[
 minimum-of: func [block] [first sort copy block]
 maximum-of: func [block] [last sort copy block]
 abs: :absolute
-to-hex*: :to-hex
-to-hex: function [
-	"Patched TO-HEX with tuple! support" ; NOTE: tuple is expected to have length 3
-	value
-	/size
-		length
-] [
-	unless size [length: 8]
-	if tuple? value [
-		value: (65536 * value/1) + (256 * value/2) + value/3
+
+if equal? checksum mold :to-hex 'SHA1 #{B5C54B7F72B13EA037F366B3EB464DC46617210A} [
+	; Make sure we are not redefining already redefined func
+	to-hex*: :to-hex
+	to-hex: function [
+		"Patched TO-HEX with tuple! support" ; NOTE: tuple is expected to have length 3
+		value
+		/size
+			length
+	] [
+		unless size [length: 8]
+		if tuple? value [
+			value: (65536 * value/1) + (256 * value/2) + value/3
+		]
+		to-hex*/size value length
 	]
-	to-hex*/size value length
 ]
+
 
 
 to-hsl: func [
@@ -225,5 +230,42 @@ effects: [
 	hue [
 		color/hsl/1: color/hsl/1 + amount // 360
 		'hsl
+	]
+]
+
+example-font: make font! [size: 18 color: black]
+
+gui-example: does [
+;	box: base 100x100 font example-font
+	view [
+		field [
+			all [
+				not error? value: try [load face/text]
+				tuple? value
+				color: set-color new-color value 'rgb
+				main-box/color: value
+				main-box/font/color: select apply-color copy/deep color 'hue 180 'rgb
+				sat+50-box/color: select apply-color copy/deep color 'saturate 50% 'rgb
+				sat-50-box/color: select apply-color copy/deep color 'saturate -50% 'rgb
+				lit+50-box/color: select apply-color copy/deep color 'lighten 50% 'rgb
+				lit-50-box/color: select apply-color copy/deep color 'lighten -50% 'rgb
+				hue60-box/color: select apply-color copy/deep color 'hue 60 'rgb
+				hue120-box/color: select apply-color copy/deep color 'hue 120 'rgb
+				hue180-box/color: select apply-color copy/deep color 'hue 180 'rgb
+				hue240-box/color: select apply-color copy/deep color 'hue 240 'rgb
+			]
+		]
+		return
+		main-box: base 100x100 "color" font example-font
+		sat+50-box: base 100x100 "sat+50%" font example-font
+		sat-50-box: base 100x100 "sat-50%" font example-font
+		lit+50-box: base 100x100 "lit+50%" font example-font
+		lit-50-box: base 100x100 "lit-50%" font example-font
+		return
+		hue60-box: base 100x100 "hue+60" font example-font
+		hue120-box: base 100x100 "hue+120" font example-font
+		hue180-box: base 100x100 "hue+180" font example-font
+		hue240-box: base 100x100 "hue+240" font example-font
+		
 	]
 ]
