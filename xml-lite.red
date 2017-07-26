@@ -110,7 +110,7 @@ xml-lite: context [
 		push-atts
 		(append stack name=)
 		keep (to word! name=)
-		[if (reverse?) keep pop-atts | none]
+		[if (reverse?) pop-atts | none]
 	]
 	close-tag: [
 		ws "</"
@@ -269,13 +269,26 @@ select-by-content: func [
 	ret
 ]
 
+get-text: func [
+	data
+] [
+	ret: copy {}
+	foreach-node data compose/deep [
+		all [
+			string? content
+			append ret content
+		]
+	]
+	ret
+]
+
 show-h: does [
 	page: xml-lite/decode read http://www.red-lang.org
 	headings: select-by-class page "post-title"
 	foreach [t c a] headings [print c/a/2]
 ]
 
-google: function [value] [
+google: func [value] [
 	debug "Loading page"
 	page: rejoin [http://www.google.cz/search?q= replace/all value space #"+"]
 	page: read/binary probe page
@@ -285,8 +298,8 @@ google: function [value] [
 	debug "Page read"
 	page: xml-lite/decode page
 	results: select-by-tag page 'h3
-	results: collect [
-		foreach [t c a] results [keep reduce [rejoin [c/a/2/2 c/a/5] rejoin [http://www.google.com select c/3 "href"]]]
+	result: collect [
+		foreach [t c a] results [keep reduce [get-text c/a rejoin [http://www.google.com select c/3 "href"]]]
 	]
-	new-line/all/skip results true 2
+	new-line/all/skip result true 2
 ]
