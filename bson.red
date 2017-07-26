@@ -56,7 +56,24 @@ element: [
 	#"^(01)" e-name double     ; 64-bit binary FP
 |	#"^(02)" e-name string	   ; UTF-8 string
 |	#"^(03)" e-name document   ; Embedded document
-|	#"^(04)" e-name binary     ; Binary data	
+|	#"^(04)" e-name document   ; Array
+|	#"^(05)" e-name binary     ; Binary data
+|	#"^(06)" e-name Undefined  ; Deprecated
+|	#"^(07)" e-name 12 byte    ; ObjectId
+|	#"^(08)" e-name #"^(00)"   ; Boolean "false"
+|	#"^(08)" e-name #"^(01)"   ; Boolean "true"
+|	#"^(09)" e-name int64      ; UTC datetime
+|	#"^(0A)" e-name            ; Null value
+|	#"^(0B)" e-name cstring cstring   ; Regular expression - The first cstring is the regex pattern, the second is the regex options string. ;Options are identified by characters, which must be stored in alphabetical order. Valid options are 'i' for case insensitive matching, 'm' ;for multiline matching, 'x' for verbose mode, 'l' to make \w, \W, etc. locale dependent, 's' for dotall mode ('.' matches everything), and ;'u' to make \w, \W, etc. match unicode.
+|	#"^(0C)" e-name string 12 byte    ; DBPointer — Deprecated
+|	#"^(0D)" e-name string     ; JavaScript code
+|	#"^(0E)" e-name string     ; Symbol. Deprecated
+|	#"^(10)" e_name int32      ; 32-bit integer
+|	#"^(11)" e_name uint64     ; Timestamp
+|	#"^(12)" e_name int64      ; 64-bit integer
+|	#"^(13)" e_name decimal128 ; 128-bit decimal floating point
+|	#"^(FF)" e_name            ; Min key
+|	#"^(7F)" e_name            ; Max key
 
 
 
