@@ -67,7 +67,7 @@ element: [
 |	#"^(03)" (debug "document") e-name keep (to string! name=) document   ; Embedded document
 |	#"^(04)" (debug "array") e-name keep (to string! name=) document   ; Array
 |	#"^(05)" (debug "binary") e-name binary    ; Binary data
-|	#"^(06)" e-name Undefined  ; Deprecated
+|	#"^(06)" (debug "undefined") e-name (value=: <DEPRECATED>) ; Deprecated
 |	#"^(07)" (debug "objectid") e-name s: 12 byte e: (value=: probe to integer! copy/part s e)   ; ObjectId
 |	#"^(08)" (debug "false") e-name #"^(00)" (value=: false)  ; Boolean "false"
 |	#"^(08)" (debug "true") e-name #"^(01)" (value=: true)  ; Boolean "true"
