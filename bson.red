@@ -1,5 +1,6 @@
 Red [
 	Title: "BSON"
+	Author: "Boleslav Březovský"
 ]
 
 ; Types:
@@ -21,7 +22,7 @@ double: [8 byte]
 decimal128: [16 byte]
 
 null-byte: #"^(00)"
-string-byte: complenment charset null-byte
+string-byte: complement charset null-byte
 
 document: [s: int32 e: e-list null-byte]
 
@@ -57,9 +58,9 @@ element: [
 ; TODO: where length is set, use that length in rule instead of SOME 
 
 e-name: [cstring]              ; Key name
-string: [int32 some byte null-byte] ; String - The int32 is the number bytes in the (byte*) + 1 (for the trailing '\x00'). The (byte*) is zero or more UTF-8 encoded characters.
-cstring: [some string-byte null-byte] ; Zero or more modified UTF-8 encoded characters followed by '\x00'. The (byte*) MUST NOT contain '\x00', hence it is not full UTF-8.
-binary: [int32 subtype some byte] ; Binary - The int32 is the number of bytes in the (byte*).
+string: [int32 s: some byte e: null-byte] ; String - The int32 is the number bytes in the (byte*) + 1 (for the trailing '\x00'). The (byte*) is zero or more UTF-8 encoded characters.
+cstring: [s: some string-byte e: null-byte] ; Zero or more modified UTF-8 encoded characters followed by '\x00'. The (byte*) MUST NOT contain '\x00', hence it is not full UTF-8.
+binary: [int32 subtype s: some byte e:] ; Binary - The int32 is the number of bytes in the (byte*).
 subtype: [
 	#"^(00)"                   ; Generic binary subtype
 |	#"^(01)"                   ; Function
