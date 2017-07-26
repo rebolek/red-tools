@@ -246,9 +246,9 @@ gui-example: does [
 				main-box/color: value
 				main-box/font/color: select apply-color copy/deep color 'hue 180 'rgb
 				sat+50-box/color: select apply-color copy/deep color 'saturate 50% 'rgb
-				sat-50-box/color: select apply-color copy/deep color 'saturate -50% 'rgb
+				sat-50-box/color: select apply-color copy/deep color 'desaturate 50% 'rgb
 				lit+50-box/color: select apply-color copy/deep color 'lighten 50% 'rgb
-				lit-50-box/color: select apply-color copy/deep color 'lighten -50% 'rgb
+				lit-50-box/color: select apply-color copy/deep color 'darken 50% 'rgb
 				hue60-box/color: select apply-color copy/deep color 'hue 60 'rgb
 				hue120-box/color: select apply-color copy/deep color 'hue 120 'rgb
 				hue180-box/color: select apply-color copy/deep color 'hue 180 'rgb
