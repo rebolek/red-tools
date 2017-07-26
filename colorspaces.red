@@ -2,13 +2,31 @@ Red[
 	Title: 		"Colorspaces"
 	File: 		%colorspaces.red
 	Author: 	"Boleslav Březovský"
-	Date:		3-4-2014
-	Version: 	0.0.1
+	Date:		26-7-2017
+	Version: 	0.0.2
+	History:    [
+		0.0.2 26-7-2017 "Rewritten to Red"
+		0.0.1 3-4-2014 "Initial version"
+	]
 ]
 
 minimum-of: func [block] [first sort copy block]
 maximum-of: func [block] [last sort copy block]
 abs: :absolute
+to-hex*: :to-hex
+to-hex: function [
+	"Patched TO-HEX with tuple! support" ; NOTE: tuple is expected to have length 3
+	value
+	/size
+		length
+] [
+	unless size [length: 8]
+	if tuple? value [
+		value: (65536 * value/1) + (256 * value/2) + value/3
+	]
+	to-hex*/size value length
+]
+
 
 to-hsl: func [
 	color [tuple!]
@@ -136,17 +154,17 @@ set-color: func [
 	value	[block! tuple! issue!]
 	type 	[word!]
 ] [
-	switch type [
+	do bind switch type [
 		rgb [
-			do in color [
+			[
 				rgb: value
-				web: to-hex value
+				web: to-hex/size value 6
 				hsl: to-hsl value
 				hsv: to-hsv value
 			]
 		]
 		web [
-			do in color [
+			[
 				rgb: to tuple! value
 				web: value
 				hsl: to-hsl rgb
@@ -154,22 +172,22 @@ set-color: func [
 			]
 		]
 		hsl [
-			do in color [
+			[
 				rgb: load-hsl value
-				web: to-hex rgb
+				web: to-hex/size rgb 6
 				hsl: value
 				hsv: to-hsv load-hsv value
 			]
 		]
 		hsv [
-			do in color [
+			[
 				rgb: load-hsv value
-				web: to-hex rgb
+				web: to-hex/size rgb 6
 				hsl: to-hsl load-hsv value
 				hsv: value
 			]
 		]
-	]
+	] color
 	color
 ]
 
