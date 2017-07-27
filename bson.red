@@ -32,8 +32,8 @@ bson: context [
 	length: 1
 	byte: [skip]
 	int32: [s: 4 byte e:]
-	int64: [8 byte]
-	uint64: [8 byte]
+	int64: [s: 8 byte e:]
+	uint64: [s: 8 byte e:]
 	double: [s: 8 byte e:]
 	decimal128: [16 byte]
 
@@ -67,16 +67,16 @@ bson: context [
 	probe-rule: [p: (print mold p)]
 
 	element: [
-		#"^(01)" (debug "float64") e-name double (value=: to float! reverse probe copy/part s e)     ; 64-bit binary FP
-	|	#"^(02)" (debug "string") e-name string	(value=: probe to string! copy/part s e)   ; UTF-8 string
+		#"^(01)" (debug "float64") e-name double (value=: to float! reverse copy/part s e)     ; 64-bit binary FP
+	|	#"^(02)" (debug "string") e-name string	(value=: to string! copy/part s e)   ; UTF-8 string
 	|	#"^(03)" (debug "document") e-name keep (to string! name=) document   ; Embedded document
 	|	#"^(04)" (debug "array") e-name keep (to string! name=) document   ; Array
 	|	#"^(05)" (debug "binary") e-name binary    ; Binary data
 	|	#"^(06)" (debug "undefined") e-name (value=: <DEPRECATED>) ; Deprecated
-	|	#"^(07)" (debug "objectid") e-name s: 12 byte e: (value=: probe to integer! copy/part s e)   ; ObjectId
+	|	#"^(07)" (debug "objectid") e-name s: 12 byte e: (value=: to integer! copy/part s e)   ; ObjectId
 	|	#"^(08)" (debug "false") e-name #"^(00)" (value=: false)  ; Boolean "false"
 	|	#"^(08)" (debug "true") e-name #"^(01)" (value=: true)  ; Boolean "true"
-	|	#"^(09)" (debug "datetime") e-name int64 (value=: to date! load-int s e)     ; UTC datetime
+	|	#"^(09)" (debug "datetime") e-name (debug "dt1") int64 (probe "datatype+" value=: to date! probe load-int s e)     ; UTC datetime
 	|	#"^(0A)" (debug "null") e-name (value=: none)            ; Null value
 	|	#"^(0B)" (debug "regexp") e-name (regex=: copy []) cstring (append regex= to string! copy/part s e) cstring (append regex= to string! copy/part s e) (value=: regex=) ; Regular expression - The first cstring is the regex pattern, the second is the regex options string. ;Options are identified by characters, which must be stored in alphabetical order. Valid options are 'i' for case insensitive matching, 'm' ;for multiline matching, 'x' for verbose mode, 'l' to make \w, \W, etc. locale dependent, 's' for dotall mode ('.' matches everything), and ;'u' to make \w, \W, etc. match unicode.
 	|	#"^(0C)" (debug "dbpointer") e-name string s: 12 byte e: (value=: probe to integer! copy/part s e) ; DBPointer — Deprecated
@@ -147,6 +147,19 @@ bson: context [
 		set value string!
 		(keep-value [#"^(02)" c-name num 1 + length? value value #"^@"])
 	]
+	datetime-rule: [
+		set name set-word!
+		set value date!
+		(keep-value [#"^(09)" c-name to binary! TODO: to-64-bit-integer-here! value])
+	]
+	regex-rule: [
+		set name set-word!
+		TODO:
+	]
+	code-rule: [
+		TODO: "how to recognize js code?"
+	]
+
 
 	rules: [
 		some [
@@ -155,6 +168,9 @@ bson: context [
 		|	logic-rule
 		|	none-rule
 		|	string-rule
+	;	|	datetime-rule
+	;	|	regex-rule
+	;	|	code-rule
 		]
 	]
 
@@ -168,6 +184,6 @@ bson: context [
 	encode: func [data] [
 		init-output
 		parse data rules
-		output
+		head change/part output num length? output 4
 	]
 ]
