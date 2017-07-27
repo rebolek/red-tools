@@ -4,7 +4,7 @@ Red [
 	Author:         "Boleslav Březovský"
 ]
 
-debug: func [value] [if debug? [print value wait 0.1]]
+debug: func [value] [if debug? [print value wait 0.02]]
 debug?: no
 
 ; ============================================================================
@@ -112,7 +112,7 @@ xml: context [
 	comment: [ws "<!--" thru "-->" ws]
 	string: [
 		s: any [
-			if (equal? name= "script") not ahead </script> skip ; accept #"<" inside <script>...</script> (Google does it)
+			if (find ["script" "pre"] name=) not ahead ["</" name= #">"] skip ; accept #"<" inside <script> and <pre>
 		|	ahead #"<" break
 		|	skip
 		] 
