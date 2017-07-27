@@ -29,6 +29,17 @@ xz: {
 
 google: https://www.google.cz/search?q=bullerbyne
 malf-scr: {<script>x=x+1;x<5</script>} ; google uses this...
+chip: https://en.wikipedia.org/wiki/CHIP-8
+
+chipp: {
+<!DOCTYPE html>
+<html class="client-nojs" lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8"/>
+<title>CHIP-8 - Wikipedia</title>
+</head>
+</html>
+}
 
 ; TODO: move tests to separate file
 
@@ -47,7 +58,7 @@ tests: [
 	{<img src="http://www.image.com/image.jpg"/><img src="http://www.image.com/image.jpg"/>} [img none #("src" "http://www.image.com/image.jpg") img none #("src" "http://www.image.com/image.jpg")]
 	{<img src="http://www.image.com/image.jpg"/> <img src="http://www.image.com/image.jpg"/>} [img none #("src" "http://www.image.com/image.jpg") img none #("src" "http://www.image.com/image.jpg")]
 	{<!-- a comment --><img src="http://www.image.com/image.jpg"/><!-- a comment -->} [img none #("src" "http://www.image.com/image.jpg")]
-]
+]yes
 
 run-tests: function [
 	tests
@@ -65,7 +76,7 @@ run-tests: function [
 	copy output
 ]
 
-debug: func [value] [if debug? [print value]]
+debug: func [value] [if debug? [print value wait 0.1]]
 
 debug?: no
 
@@ -104,6 +115,7 @@ xml-lite: context [
 	open-tag: [
 		ws #"<"
 		not ahead single-tags
+		(debug "--open-tag")
 		copy name= some tag-name
 		ws atts ws
 		#">"
@@ -125,10 +137,10 @@ xml-lite: context [
 		(close-char: #"/")
 		ws #"<" opt [#"!" (close-char: "")]
 		copy name= [
-			single-tags (close-char: "")
+			single-tags (close-char: [opt #"/"])
 		|	some tag-name
 		]
-	;	(print "==single:" mold name=)
+		(debug  ["--single:" mold name=])
 		ws atts ws
 		close-char #">"
 		push-atts
@@ -190,7 +202,7 @@ xml-lite: context [
 	|	comment (debug ["cmnt" name=])
 	|	some [open-tag (debug ["open" name=]) collect some content close-tag (debug ["clos" name=])]
 	|	single-tag (debug ["sngl" name=])
-	|	string (debug ["strn" copy/part s e])
+	|	string (debug ["strn" t: copy/part s e length? t])
 	]
 
 	atts-stack: []
