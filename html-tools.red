@@ -28,7 +28,7 @@ select-by-tag: func [
 	ret: copy []
 	foreach-node data compose [
 		if equal? tag (to lit-word! tag) [
-			append ret reduce [tag content attributes]
+			append/only ret reduce [tag content attributes]
 		]
 	]
 	ret
@@ -108,8 +108,7 @@ get-table: func [
 			keep/only collect [
 				foreach [t c a] row [
 					if c [
-						text: get-text c
-						keep text
+						keep either block? c [get-text c] [c]
 					]
 				]
 			]
