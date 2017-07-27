@@ -2,7 +2,7 @@ Red []
 
 debug: func [value] [if debug? [print value wait 0.1]]
 
-debug?: no
+debug?: yes
 
 ; ============================================================================
 
@@ -143,5 +143,79 @@ xml-lite: context [
 		data
 	] [
 		parse data [collect document]
+	]
+
+; === encoder part
+
+	dbl-quot: #"^""
+	output: make string! 10000
+
+	enquote: function [value] [rejoin [dbl-quot value dbl-quot]]
+
+	make-atts: function [
+		data
+	] [
+		probe data
+		copy collect/into [
+			foreach key keys-of data [
+				keep rejoin [key #"=" enquote data/:key space]
+			]
+		] clear ""
+	]
+
+	make-tag: function [
+		name
+		/with
+			atts
+		/close
+		/empty
+	] [
+		atts: either with [rejoin [space make-atts atts]] [""]
+		rejoin trim reduce [#"<" if close [#"/"] form name atts if empty [" /"] #">"] 
+	]
+
+	process-tag: function [
+		data
+	] [
+		output: make string! 1000
+	;	unless length? data [print "PROBLEM"]
+		either data/1 [
+			; tag
+			if reverse? [move next data tail data]
+			probe data
+			either empty? data/2 [
+				debug ["single tag" mold data]
+				; empty tag
+				repend output [#"<" form data/1 space make-atts data/3 "/>"] 
+			] [
+				debug ["tag pair" mold data]
+				; tag pair
+				repend output [#"<" form data/1 space make-atts data/3 ">"] 
+				until [
+					repend output process-tag take/part data/2 3
+				;	remove ind
+					empty? data/2
+				]
+				repend output ["</" form data/1 ">"]
+			]
+		] [
+			; content
+			repend output data/2
+		]
+		output
+	]
+
+	encode: function [
+		data
+	] [
+		clear output
+	;	header: take data: copy/deep data
+	;	repend output ["<?xml " make-atts header "?>"]
+	;	data: data/1
+		until [
+			repend output process-tag take/part data 3
+			empty? data
+		]
+		output
 	]
 ]
