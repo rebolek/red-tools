@@ -57,6 +57,7 @@ xml: context [
 		(name=: take/last stack)
 		name=
 		#">"
+		(close=: name=) ; for debug purpose only
 		(name=: none)
 		[if (not reverse?) pop-atts | none]
 	]
@@ -114,7 +115,7 @@ xml: context [
 	string: [
 		s: any [
 			if (find ["script" "pre"] name=) not ahead ["</" name= #">"] skip ; accept #"<" inside <script> and <pre>
-		|	ahead #"<" break
+		|	ahead ["</" | "<" tag-name] break
 		|	skip
 		] 
 		e: 
@@ -128,10 +129,16 @@ xml: context [
 		]
 	]
 	
+	doctype: [
+		; TODO: Add some output and better handling
+		"<!DOCTYPE" thru #">"
+	]
+
 	content: [
 		ahead "</" break
 	|	comment (debug ["cmnt" name=])
-	|	some [open-tag (debug ["open" name=]) collect some content close-tag (debug ["clos" name=])]
+	|	doctype (debug ["dctp"])
+	|	some [open-tag (debug ["open" name=]) collect some content close-tag (debug ["clos" close=])]
 	|	single-tag (debug ["sngl" name=])
 	|	string (debug ["strn" t: copy/part s e length? t])
 	]
