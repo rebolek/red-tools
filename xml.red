@@ -73,6 +73,7 @@ xml: context [
 		(debug  ["--single-tag" mold name=])
 		ws atts ws
 		close-char #">"
+		opt ["</" name= #">"]
 		push-atts
 		keep (to word! name=)
 		[
