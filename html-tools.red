@@ -100,8 +100,9 @@ google: func [value] [
 get-table: func [
 	"Convert <table> to block! of block!s"
 	table
+
 ] [
-	collect [
+	data: collect/into [
 		foreach [t c a] table [ ; row
 			row: c
 			keep/only collect [
@@ -113,5 +114,7 @@ get-table: func [
 				]
 			]
 		]
-	]
+	] clear []
+	new-line/all/skip data true 1
+	copy data
 ]
