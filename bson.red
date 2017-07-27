@@ -114,21 +114,41 @@ bson: context [
 
 ; === encoder =============================================================
 
+	name: value: none
+
+	keep-value: func [data] [
+		append output probe to binary! probe reduce data
+	]
+	cname: func [] [rejoin [form name #"^(00)"]]
+
 	int-rule: [
 		set name set-word! 
 		set value integer!
-		(append output probe to binary! reduce [#"^(10)" form name #"^(00)" reverse to binary! value])
+		(keep-value [#"^(10)" cname reverse to binary! value])
 	]
 	float-rule: [
 		set name set-word! 
 		set value float!
-		(append output probe to binary! reduce [#"^(01)" form name #"^(00)" reverse to binary! value])
+		(keep-value [#"^(01)" cname reverse to binary! value])
+	]
+	logic-rule: [
+		set name set-word! 
+		set value logic!
+		(keep-value [#"^(08)" cname to char! make integer! value])
+	]
+
+	none-rule: [
+		set name set-word! 
+		none!
+		(keep-value [#"^(0A)" cname])
 	]
 
 	rules: [
 		some [
 			int-rule
 		|	float-rule
+		|	logic-rule
+		|	none-rule
 		]
 	]
 
