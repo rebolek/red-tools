@@ -158,12 +158,13 @@ xml: context [
 	make-atts: function [
 		data
 	] [
-		probe data
-		copy collect/into [
+		data: collect/into [
 			foreach key keys-of data [
 				keep rejoin [key #"=" enquote data/:key space]
 			]
 		] clear ""
+		unless empty? data [insert data space]
+		data
 	]
 
 	make-tag: function [
@@ -189,11 +190,11 @@ xml: context [
 			either empty? data/2 [
 				debug ["single tag" mold data]
 				; empty tag
-				repend output [#"<" form data/1 space make-atts data/3 "/>"] 
+				repend output [#"<" form data/1 make-atts data/3 "/>"] 
 			] [
 				debug ["tag pair" mold data]
 				; tag pair
-				repend output [#"<" form data/1 space make-atts data/3 ">"] 
+				repend output [#"<" form data/1 make-atts data/3 ">"] 
 				until [
 					repend output process-tag take/part data/2 3
 				;	remove ind
