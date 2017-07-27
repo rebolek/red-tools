@@ -34,7 +34,7 @@ bson: context [
 	int32: [s: 4 byte e:]
 	int64: [8 byte]
 	uint64: [8 byte]
-	double: [8 byte]
+	double: [s: 8 byte e:]
 	decimal128: [16 byte]
 
 	null-byte: copy [#"^(00)"]
@@ -67,7 +67,7 @@ bson: context [
 	probe-rule: [p: (print mold p)]
 
 	element: [
-		#"^(01)" (debug "float64") e-name double (value=: <TODO>)     ; 64-bit binary FP
+		#"^(01)" (debug "float64") e-name double (value=: to float! reverse probe copy/part s e)     ; 64-bit binary FP
 	|	#"^(02)" (debug "string") e-name string	(value=: probe to string! copy/part s e)   ; UTF-8 string
 	|	#"^(03)" (debug "document") e-name keep (to string! name=) document   ; Embedded document
 	|	#"^(04)" (debug "array") e-name keep (to string! name=) document   ; Array
@@ -119,10 +119,16 @@ bson: context [
 		set value integer!
 		(append output probe to binary! reduce [#"^(10)" form name #"^(00)" reverse to binary! value])
 	]
+	float-rule: [
+		set name set-word! 
+		set value float!
+		(append output probe to binary! reduce [#"^(01)" form name #"^(00)" reverse to binary! value])
+	]
 
 	rules: [
 		some [
-			int-rule 
+			int-rule
+		|	float-rule
 		]
 	]
 
