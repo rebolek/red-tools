@@ -1,6 +1,9 @@
 Red [
 	Title: "BSON"
 	Author: "Boleslav Březovský"
+	Note: [
+		"test31.bson fails - key is out of range. how to handle it?"
+	]
 ]
 
 path: %../libbson/tests/binary/
@@ -17,7 +20,7 @@ path: %../libbson/tests/binary/
 
 ; document 	::= 	int32 e_list "\x00" 	BSON Document. int32 is the total number of bytes comprising the document.
 
-load-int: func [s e] [to integer! probe reverse copy/part s e]
+load-int: func [s e] [to integer! reverse copy/part s e]
 
 debug?: true
 debug: func [value] [if debug? [print value]]
@@ -74,11 +77,11 @@ element: [
 |	#"^(09)" (debug "datetime") e-name int64 (value=: to date! load-int s e)     ; UTC datetime
 |	#"^(0A)" (debug "null") e-name (value=: none)            ; Null value
 |	#"^(0B)" (debug "regexp") e-name (regex=: copy []) cstring (append regex= to string! copy/part s e) cstring (append regex= to string! copy/part s e) (value=: regex=) ; Regular expression - The first cstring is the regex pattern, the second is the regex options string. ;Options are identified by characters, which must be stored in alphabetical order. Valid options are 'i' for case insensitive matching, 'm' ;for multiline matching, 'x' for verbose mode, 'l' to make \w, \W, etc. locale dependent, 's' for dotall mode ('.' matches everything), and ;'u' to make \w, \W, etc. match unicode.
-|	#"^(0C)" e-name string 12 byte    ; DBPointer — Deprecated
-|	#"^(0D)" (debug "jscode") e-name string     ; JavaScript code
-|	#"^(0E)" e-name string     ; Symbol. Deprecated
+|	#"^(0C)" (debug "dbpointer") e-name string s: 12 byte e: (value=: probe to integer! copy/part s e) ; DBPointer — Deprecated
+|	#"^(0D)" (debug "jscode") e-name string (value=: to string! copy/part s e)    ; JavaScript code
+|	#"^(0E)" (debug "symbol") e-name string (value=: to string! copy/part s e)    ; Symbol. Deprecated
 |	#"^(10)" (debug "integer32") e-name int32 (print "val" value=: load-int s e) probe-rule      ; 32-bit integer
-|	#"^(11)" (debug "timestamp") e-name uint64     ; Timestamp
+|	#"^(11)" (debug "timestamp") e-name s: uint64 e: (print "val" value=: load-int s e)    ; Timestamp
 |	#"^(12)" (debug "integer64") e-name int64 (value=: load-int s e)     ; 64-bit integer
 |	#"^(13)" (debug "decimal128") e-name decimal128 ; 128-bit decimal floating point
 |	#"^(FF)" (debug "minkey") e-name            ; Min key
