@@ -62,6 +62,23 @@ select-by-content: func [
 	ret
 ]
 
+parent: none ; TODO: make a closure
+parent?: func [
+	data
+	value
+] [
+	foreach [tag content attributes] data [
+		if equal? value reduce [tag content attributes] [
+			return parent
+		]
+		if block? content [
+			parent: reduce [tag content attributes]
+			if parent? content value [return parent]
+		]
+	]
+	none
+]
+
 get-text: func [
 	data
 ] [
