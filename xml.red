@@ -16,13 +16,19 @@ xml: context [
 	; === SETTINGS ===========================================================
 
 	empty-value: none   ; used for single tags that have no content
-	reverse?: no        ; normal order is [tag-name content attributes],
-					    ; reversed order is [tag-name attributes content]
-	align-content?: yes ; store HTML strings as one or three values:
-						; string or [NONE string NONE]  
-						; this required for traversing with FOREACH-NODE
+	reverse?: no        ; normal order is `[tag content attributes]`
+					    ; reversed order is `[tag attributes content]`
+	align-content?: yes ; store `HTML` strings as one or three values:
+						; `string` or  `[NONE string NONE]`  
+						; this required for traversing with `foreach-node`
+	key-type: string!	; `string!` or `word!` for conversion where possible 
 
 	; === RULES ==============================================================
+
+	s: e: t: none
+
+	push-atts: [(append atts-stack copy atts=)]
+	pop-atts: [keep (take/last atts-stack)]
 
 	document: [
 		(clear stack)
@@ -31,19 +37,26 @@ xml: context [
 	]
 	whitespace: charset " ^-^/^M"
 	ws: [any whitespace]
-
-	chars: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9"]
-;	tag-name: union name charset #"!" ; TODO: support full range
-	tag-name: chars
-	push-atts: [(append atts-stack copy atts=)]
-	pop-atts: [keep (take/last atts-stack)]
-
-	single-tags: ["img" | "meta" | "link" | "br" | "hr" | "input"] ; TODO...
+	name-start-char: charset [
+		":_" #"a" - #"z" #"A" - #"Z" #"0" #"^(C0)" - #"^(D6)" #"^(D8)" - #"^(F6)" 
+		#"^(F8)" - #"^(02FF)" #"^(0370)" - #"^(037D)" #"^(037F)" - #"^(1FFF)"
+		#"^(200C)" - #"^(200D)" #"^(2070)" - #"^(218F)" #"^(2C00)" - #"^(2FEF)"
+		#"^(3001)" - #"^(D7FF)" #"^(F900)" - #"^(FDCF)" #"^(FDF0)" - #"^(FFFD)"
+		#"^(010000)" - #"^(0EFFFF)"
+	]
+	name-char: union name-start-char charset [
+		"-." #"0" - #"9" #"^(B7)" #"^(0300)" - #"^(036F)" #"^(203F)" - #"^(2040)"
+	]
+	name: [name-start-char any name-char]
+	single-tags: [
+		"area" | "base" | "br" | "col" | "command" | "embed" | "hr" | "img" 
+	|	"input" | "keygen" | "link" | "meta" | "param" | "source" | "track" | "wbr"
+	]
 	open-tag: [
 		ws #"<"
 		not ahead single-tags
 		(debug "--open-tag?")
-		copy name= some tag-name
+		copy name= some name
 		(debug ["--open-tag" mold name=])
 		ws atts ws
 		#">"
@@ -69,7 +82,7 @@ xml: context [
 		(debug "--single-tag?")
 		copy name= [
 			single-tags (close-char: [opt #"/"])
-		|	some tag-name
+		|	some name
 		]
 		(debug  ["--single-tag" mold name=])
 		ws atts ws
@@ -88,22 +101,27 @@ xml: context [
 			]
 		]
 	]
-	not-att-chars: union whitespace charset [#">" #"/" #"="]
-	att-name: union chars charset ":-_"
+	;TODO: for HTML attribute names, #":" should be excluded
 	pair-att: [
 		ws not #"/"
-		copy att-name= some att-name
+		copy att-name= some name
 		#"=" [
 			set quot-char [#"^"" | #"'"]
 			copy att-value= to quot-char skip
 		|	copy att-value= to [#">" | whitespace]
 		]
-		ws
-		(atts=/:att-name=: att-value=)
+		ws (
+			all [
+				equal? word! key-type
+				try [t: to set-word! att-name=]
+				att-name=: t
+			]
+			atts=/:att-name=: att-value=
+		)
 	]
 	single-att: [
 		ws not #"/"
-		copy att-name= some att-name
+		copy att-name= some name
 		ws
 		(atts=/:att-name=: true)
 	]
@@ -114,13 +132,14 @@ xml: context [
 	comment: [ws "<!--" thru "-->" ws]
 	string: [
 		s: any [
-			if (find ["script" "pre"] name=) not ahead ["</" name= #">"] skip ; accept #"<" inside <script> and <pre>
-		|	ahead ["</" | "<" tag-name] break
+			if (find ["script" "pre"] name=) not ahead ["</" name= #">"] skip 
+			; accept #"<" inside <script> and <pre>
+		|	ahead ["</" | "<" name] break
 		|	skip
 		] 
-		e: 
-		[
+		e: [
 			if (align-content?) [
+				; FIXME: three `keep`s are here because `keep` works as `keep/only`
 				keep (none)
 				keep (copy/part s e)
 				keep (#()) ; TODO: should be user defined?
@@ -128,7 +147,6 @@ xml: context [
 		|	if (not align-content?) [keep (copy/part s e)]
 		]
 	]
-	
 	doctype: [
 		; TODO: Add some output and better handling
 		"<!DOCTYPE" thru #">"
@@ -138,7 +156,7 @@ xml: context [
 		ahead "</" break
 	|	comment (debug ["cmnt" name=])
 	|	doctype (debug ["dctp"])
-	|	some [open-tag (debug ["open" name=]) collect some content close-tag (debug ["clos" close=])]
+	|	some [open-tag (debug ["open" name=]) collect some content close-tag (debug ["clos" close= "stack:" mold stack])]
 	|	single-tag (debug ["sngl" name=])
 	|	string (debug ["strn" t: copy/part s e length? t])
 	]
@@ -190,22 +208,20 @@ xml: context [
 		data
 	] [
 		output: make string! 1000
-	;	unless length? data [print "PROBLEM"]
 		either data/1 [
 			; tag
 			if reverse? [move next data tail data]
 			probe data
 			either empty? data/2 [
-				debug ["single tag" mold data]
 				; empty tag
+				debug ["single tag" mold data]
 				repend output [#"<" form data/1 make-atts data/3 "/>"] 
 			] [
-				debug ["tag pair" mold data]
 				; tag pair
+				debug ["tag pair" mold data]
 				repend output [#"<" form data/1 make-atts data/3 ">"] 
 				until [
 					repend output process-tag take/part data/2 3
-				;	remove ind
 					empty? data/2
 				]
 				repend output ["</" form data/1 ">"]
@@ -221,9 +237,7 @@ xml: context [
 		data
 	] [
 		clear output
-	;	header: take data: copy/deep data
-	;	repend output ["<?xml " make-atts header "?>"]
-	;	data: data/1
+		; TODO add proper header: xml/doctype
 		until [
 			repend output process-tag take/part data 3
 			empty? data
