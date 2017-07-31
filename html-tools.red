@@ -102,15 +102,18 @@ google: func [value] [
 get-table: func [
 	"Convert <table> to block! of block!s"
 	table
-
+	/trim
 ] [
+	; TODO: support for THEAD, TBODY, TH, ...
 	data: collect/into [
 		foreach [t c a] table [ ; row
 			row: c
 			keep/only collect [
 				foreach [t c a] row [
 					if c [
-						keep either block? c [get-text c] [c]
+						c: either block? c [get-text c] [c]
+						if all [string? c trim] [c: system/words/trim/lines c]
+						keep c
 					]
 				]
 			]
@@ -119,3 +122,19 @@ get-table: func [
 	new-line/all/skip data true 1
 	copy data
 ]
+
+; Using `get-table`:
+;
+; page: xml/decode read https://coinmarketcap.com/
+; table: select-by page 'table 'tag
+; t: get-table/trim table/table/tbody ; TODO: `get-table` should find this automatically
+; probe copy/part t 5
+;
+; >>
+; [
+;     ["1" "Bitcoin" "$46,856,630,435" "$2843.13" "16,480,650 BTC" "$748,864,000" "3.85%" "" ""]
+;     ["2" "Ethereum" "$18,906,132,157" "$201.78" "93,695,367 ETH" "$522,577,000" "0.44%" "" ""]
+;     ["3" "Ripple" "$6,482,777,296" "$0.169117" "38,333,090,674 XRP *" "$52,118,400" "1.42%" "" ""]
+;     ["4" "Litecoin" "$2,248,733,073" "$43.03" "52,255,407 LTC" "$211,233,000" "5.29%" "" ""]
+;     ["5" "NEM" "$1,499,805,000" "$0.166645" "8,999,999,999 XEM *" "$2,905,890" "1.11%" "" ""]
+; ]
