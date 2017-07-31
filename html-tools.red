@@ -30,58 +30,17 @@ probe-xml: func [
 select-by: func [
 	data
 	value
-	type 		; tag, class, content
+	type 		; tag, class, content, attribute name
 	; TODO: How to support /only ? There some binding problems
 ] [
-	action: compose select [
-		tag     [equal? tag (to lit-word! value)]
-		class   [find select attributes "class" (value)]
-		content [all [string? content find content (value)]]
-	] type
+	action: compose switch/default type [
+		tag     [[equal? tag (to lit-word! value)]]
+		class   [[find select attributes "class" (value)]]
+		content [[all [string? content find content (value)]]]
+	] [[equal? (value) select attributes (type)]]
 	ret: copy []
 	foreach-node data [
 		if do action [
-			append ret reduce [tag content attributes]
-		]
-	]
-	ret
-]
-
-select-by-tag: func [
-	data
-	tag
-] [
-	ret: copy []
-	foreach-node data compose [
-		if equal? tag (to lit-word! tag) [
-			append/only ret reduce [tag content attributes]
-		]
-	]
-	ret
-]
-
-select-by-class: func [
-	data
-	class
-] [
-	ret: copy []
-	foreach-node data compose [
-		if find select attributes "class" (class) [
-			append ret reduce [tag content attributes]
-		]
-	]
-	ret
-]
-
-select-by-content: func [
-	data
-	value
-] [
-	ret: copy []
-	foreach-node data compose/deep [
-		all [
-			string? content
-			find content (value)
 			append ret reduce [tag content attributes]
 		]
 	]
