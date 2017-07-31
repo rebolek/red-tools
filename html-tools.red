@@ -1,4 +1,10 @@
-Red[]
+Red[
+	Title: "HTML Tools"
+	Author: "Boleslav Březovský"
+
+]
+
+do %xml.red
 
 foreach-node: func [
 	data
@@ -19,6 +25,26 @@ probe-xml: func [
 	foreach [tag content attributes] data [
 		print [tag length? content length? attributes]
 	]
+]
+
+select-by: func [
+	data
+	value
+	type 		; tag, class, content
+	; TODO: How to support /only ? There some binding problems
+] [
+	action: compose select [
+		tag     [equal? tag (to lit-word! value)]
+		class   [find select attributes "class" (value)]
+		content [all [string? content find content (value)]]
+	] type
+	ret: copy []
+	foreach-node data [
+		if do action [
+			append ret reduce [tag content attributes]
+		]
+	]
+	ret
 ]
 
 select-by-tag: func [
