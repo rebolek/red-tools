@@ -195,7 +195,15 @@ send-request: function [
 	if auth [
 		switch auth-type [
 			Basic [
-				Authorization: (rejoin [auth-type space enbase rejoin [first auth-data #":" second auth-data]])
+				extend header compose [
+					Authorization: (
+						rejoin [
+							auth-type space enbase rejoin [
+								first auth-data #":" second auth-data
+							]
+						]
+					)
+				]
 			]
 			OAuth [
 				; TODO: OAuth 1 (see Twitter API)
