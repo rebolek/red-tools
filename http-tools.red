@@ -223,6 +223,38 @@ send-request: function [
 	either only [reply/data] [reply]
 ]
 
+mime-decoder: function [
+	string
+	type
+] [
+	switch probe type [
+		"application/json" [json/decode string]
+		"application/x-www-form-urlencoded" [www-form/decode string]
+		"text/html" [string]
+	]
+]
+
+make-nonce: function [] [
+	nonce: enbase/base checksum form random/secure 2147483647 'SHA512 64
+	remove-each char nonce [find "+/=" char]
+	copy/part nonce 32
+]
+
+get-unix-timestamp: function [
+	"Read UNIX timestamp from Internet"
+] [
+	date: none
+	page: read http://www.unixtimestamp.com/
+	parse page [
+		thru "The Current Unix Timestamp"
+		thru <h3 class="text-danger">
+		copy date to <small>
+	]
+	to integer! date
+]
+
+; --- www-form encoding ------------------------------------------------------
+
 www-form: object [
 	encode: function [
 		data
@@ -249,38 +281,7 @@ www-form: object [
 	]
 ]
 
-mime-decoder: function [
-	string
-	type
-] [
-	switch type [
-		"application/json" [json/decode string]
-		"application/x-www-form-urlencoded" [www-form/decode string]
-		"text/html" [www-form/decode string]
-	]
-]
-
-make-nonce: function [] [
-	nonce: enbase/base checksum form random/secure 2147483647 'SHA512 64
-	remove-each char nonce [find "+/=" char]
-	copy/part nonce 32
-]
-
-get-unix-timestamp: function [
-	"Read UNIX timestamp from Internet"
-] [
-	date: none
-	page: read http://www.unixtimestamp.com/
-	parse page [
-		thru "The Current Unix Timestamp"
-		thru <h3 class="text-danger">
-		copy date to <small>
-	]
-	to integer! date
-]
-
 ; --- percent encoding -------------------------------------------------------
-
 
 percent: context [
 	; RFC 3986 characters
