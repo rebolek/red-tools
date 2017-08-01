@@ -64,6 +64,13 @@ parent?: func [
 	none
 ]
 
+children?: func [
+	"Return children tag names"
+	data
+] [
+	collect [foreach [tag content attributes] data [keep tag]]
+]
+
 get-text: func [
 	data
 ] [
