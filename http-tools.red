@@ -188,6 +188,7 @@ send-request: function [
 	/auth 		"Authentication method and data"
 		auth-type [word!]
 		auth-data
+	/raw 		"Return raw data and do not try to decode them"
 ] [
 	header: clear #()
 	if with [extend header args]
@@ -211,6 +212,7 @@ send-request: function [
 	if content [append data content]
 	reply: write/info link data
 	set 'raw-reply reply
+	if raw [return reply]
 	type: first split reply/2/Content-Type #";"
 	reply: map [
 		code: reply/1
