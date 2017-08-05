@@ -111,14 +111,25 @@ get-table: function [
 	table
 	/trim
 	/headers "First row is headers"
+	; TODO: /only support (default currently)
 ] [
+	if equal? 'table table/1 [table: table/2]
 	; TODO: support for THEAD, TBODY, TH, ...
-	children: children? table
+	children: probe children? table
 	hdrs: copy []
-	if find children 'thead [
-		; CHECK: Can I expect `table/thead/tr` path?
-		foreach [t c a] table/thead/tr [append hdrs c/2]
+	; get headers
+	case [
+		find children 'thead [
+			; CHECK: Can I expect `table/thead/tr` path?
+			foreach [t c a] table/thead/tr [append hdrs c/2]
+		]
+		find children? table/2 'th [
+			; CHECK: This should be first row, if there's no <thead>
+			;			try to get <th>s from first <tr>
+			foreach [t c a] table/2 [append hdrs c/2]
+		]
 	]
+	; get body
 	if find children 'tbody [table: table/tbody]
 	data: collect/into [
 		foreach [t c a] table [ ; row
