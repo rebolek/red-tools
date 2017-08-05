@@ -106,12 +106,20 @@ google: func [value] [
 	new-line/all/skip result true 2
 ]
 
-get-table: func [
+get-table: function [
 	"Convert <table> to block! of block!s"
 	table
 	/trim
+	/headers "First row is headers"
 ] [
 	; TODO: support for THEAD, TBODY, TH, ...
+	children: children? table
+	hdrs: copy []
+	if find children 'thead [
+		; CHECK: Can I expect `table/thead/tr` path?
+		foreach [t c a] table/thead/tr [append hdrs c/2]
+	]
+	if find children 'tbody [table: table/tbody]
 	data: collect/into [
 		foreach [t c a] table [ ; row
 			row: c
@@ -126,6 +134,9 @@ get-table: func [
 			]
 		]
 	] clear []
+	if headers [
+		insert/only data hdrs
+	]
 	new-line/all/skip data true 1
 	copy data
 ]
