@@ -71,14 +71,15 @@ children?: func [
 	collect [foreach [tag content attributes] data [keep tag]]
 ]
 
-get-text: func [
+get-text: function [
 	data
 ] [
+	if any [not data string? data char? data] [return data]
 	ret: copy {}
 	foreach-node data compose/deep [
 		all [
 			string? content
-			append ret content
+			append (ret) content
 		]
 	]
 	ret
@@ -110,22 +111,33 @@ get-table: func [
 	"Convert <table> to block! of block!s"
 	table
 	/trim
+	/header "Get headers and return them as first row"
 ] [
-	; TODO: support for THEAD, TBODY, TH, ...
+	table: any [table/table table]
+	if header [
+		headers: any [table/thead/tr (also remove/part table 3 table/tr)]
+		headers: collect [
+			foreach [t col a] headers [
+				col: get-text col
+				if trim [col: system/words/trim/lines form col]
+				keep col
+			]
+		]
+	]
+	table: any [table/tbody table]
 	data: collect/into [
-		foreach [t c a] table [ ; row
-			row: c
+		foreach [t row a] table [ ; row
 			keep/only collect [
-				foreach [t c a] row [
-					if c [
-						c: either block? c [get-text c] [c]
-						if all [string? c trim] [c: system/words/trim/lines c]
-						keep c
+				foreach [t cell a] row [
+					if cell: get-text cell [
+						if trim [cell: system/words/trim/lines form cell]
+						keep cell
 					]
 				]
 			]
 		]
 	] clear []
+	if header [insert/only data headers]
 	new-line/all/skip data true 1
 	copy data
 ]
