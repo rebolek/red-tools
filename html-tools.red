@@ -71,14 +71,15 @@ children?: func [
 	collect [foreach [tag content attributes] data [keep tag]]
 ]
 
-get-text: func [
+get-text: function [
 	data
 ] [
+	if any [not data string? data char? data] [return data]
 	ret: copy {}
 	foreach-node data compose/deep [
 		all [
 			string? content
-			append ret content
+			append (ret) content
 		]
 	]
 	ret
@@ -106,48 +107,37 @@ google: func [value] [
 	new-line/all/skip result true 2
 ]
 
-get-table: function [
+get-table: func [
 	"Convert <table> to block! of block!s"
 	table
 	/trim
-	/headers "First row is headers"
-	; TODO: /only support (default currently)
+	/header "Get headers and return them as first row"
 ] [
-	if equal? 'table table/1 [table: table/2]
-	; TODO: support for THEAD, TBODY, TH, ...
-	children: probe children? table
-	hdrs: copy []
-	; get headers
-	case [
-		find children 'thead [
-			; CHECK: Can I expect `table/thead/tr` path?
-			foreach [t c a] table/thead/tr [append hdrs c/2]
-		]
-		find children? table/2 'th [
-			; CHECK: This should be first row, if there's no <thead>
-			;			try to get <th>s from first <tr>
-			foreach [t c a] table/2 [append hdrs c/2]
+	table: any [table/table table]
+	if header [
+		headers: any [table/thead/tr (also remove/part table 3 table/tr)]
+		headers: collect [
+			foreach [t col a] headers [
+				col: get-text col
+				if trim [col: system/words/trim/lines form col]
+				keep col
+			]
 		]
 	]
-	; get body
-	if find children 'tbody [table: table/tbody]
+	table: any [table/tbody table]
 	data: collect/into [
-		foreach [t c a] table [ ; row
-			row: c
+		foreach [t row a] table [ ; row
 			keep/only collect [
-				foreach [t c a] row [
-					if c [
-						c: either block? c [get-text c] [c]
-						if all [string? c trim] [c: system/words/trim/lines c]
-						keep c
+				foreach [t cell a] row [
+					if cell: get-text cell [
+						if trim [cell: system/words/trim/lines form cell]
+						keep cell
 					]
 				]
 			]
 		]
 	] clear []
-	if headers [
-		insert/only data hdrs
-	]
+	if header [insert/only data headers]
 	new-line/all/skip data true 1
 	copy data
 ]
