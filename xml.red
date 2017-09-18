@@ -1,83 +1,177 @@
 Red [
 	Title:          "XML"
-	Description:    "Parser for XML format. Transforms XML data into red block"
-	Author:         ["Iosif Haidu" "Boleslav Březovský"]
-	Rights:         "Copyright (c) 2016-2020 Iosif Haidu. All rights reserved."
-	License: {
-		Redistribution and use in source and binary forms, with or without modification,
-		are permitted provided that the following conditions are met:
-
-			* Redistributions of source code must retain the above copyright notice,
-				this list of conditions and the following disclaimer.
-			* Redistributions in binary form must reproduce the above copyright notice,
-				this list of conditions and the following disclaimer in the documentation
-				and/or other materials provided with the distribution.
-
-		THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-		ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-		WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-		DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-		FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-		DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-		SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-		CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-		OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-		OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-	}
+	Description:    "Encoder and decoder for XML and HTML format"
+	Author:         "Boleslav Březovský"
 ]
 
+debug: func [value] [if debug? [print value wait 0.02]]
+debug?: no
+
+; ============================================================================
+
+; TODO: NAME* rules should be CHAR*
+
 xml: context [
-	s: e: value: none
-	name-chars: charset [#"a" - #"z" #"A" - #"Z"  #"0" - #"9" #"-" #":"]
-	ws:         charset reduce [space tab cr lf]
-	attributes: [
-		any ws some name-chars change ["="] space
-		2 thru #"^"" any ws 
+
+	; === SETTINGS ===========================================================
+
+	empty-value: none   ; used for single tags that have no content
+	reverse?: no        ; normal order is `[tag content attributes]`
+					    ; reversed order is `[tag attributes content]`
+	align-content?: yes ; store `HTML` strings as one or three values:
+						; `string` or  `[NONE string NONE]`  
+						; this required for traversing with `foreach-node`
+	key-type: string!	; `string!` or `word!` for conversion where possible 
+
+	; === RULES ==============================================================
+
+	s: e: t: none
+
+	push-atts: [(append atts-stack copy atts=)]
+	pop-atts: [keep (take/last atts-stack)]
+
+	document: [
+		(clear stack)
+		(clear atts-stack)
+		some content
 	]
-	comments:   [change [any ws "<!--" thru "-->"] ""]    
-	nodes:      [
-		any [
-			change [any ws "<?xml"] "[" any attributes change ["?>"] "]"
-		|	comments
-		|	change [any ws "<!"] "[" to ">" change [">"] "]"
-		] 
-		insert "[" any [ 
-			[
-				change [any ws #"<" s: some name-chars e: any ws] (copy/part s e) (value: none)
-					insert "[ " any attributes 
-					[change ["/>"] "][ ] " | change [">"] " ][ " (value: true)]
-				| comments
-				| change ["</" thru ">"] "]" 
-				| change [cr | lf] ""
-				| if (value) insert #"^"" to "</" insert #"^"" (value: none)
-				| skip
-			]
-		] insert "]"
-   ]
-
-	set 'old-xml function [
-		"Converts XML data in string or block format"
-		/to-block   "Converts an XML string into block"
-		xml-str     [ string! ] "XML in string format"
-		/to-string  "Converts an XML block into string"
-		xml-block   [ block! ] "XML in block format"
-	][
-		case [
-			to-block [
-				parse s: copy xml-str nodes
-				load s
-			]
-			to-string [
-				;-- TBD
-			] 
+	whitespace: charset " ^-^/^M"
+	ws: [any whitespace]
+	name-start-char: charset [
+		":_" #"a" - #"z" #"A" - #"Z" #"0" #"^(C0)" - #"^(D6)" #"^(D8)" - #"^(F6)" 
+		#"^(F8)" - #"^(02FF)" #"^(0370)" - #"^(037D)" #"^(037F)" - #"^(1FFF)"
+		#"^(200C)" - #"^(200D)" #"^(2070)" - #"^(218F)" #"^(2C00)" - #"^(2FEF)"
+		#"^(3001)" - #"^(D7FF)" #"^(F900)" - #"^(FDCF)" #"^(FDF0)" - #"^(FFFD)"
+		#"^(010000)" - #"^(0EFFFF)"
+	]
+	name-char: union name-start-char charset [
+		"-." #"0" - #"9" #"^(B7)" #"^(0300)" - #"^(036F)" #"^(203F)" - #"^(2040)"
+	]
+	name: [name-start-char any name-char]
+	single-tags: [
+		"area" | "base" | "br" | "col" | "command" | "embed" | "hr" | "img" 
+	|	"input" | "keygen" | "link" | "meta" | "param" | "source" | "track" | "wbr"
+	]
+	open-tag: [
+		ws #"<"
+		not ahead single-tags
+		(debug "--open-tag?")
+		copy name= some name
+		(debug ["--open-tag" mold name=])
+		ws atts ws
+		#">"
+		push-atts
+		(append stack name=)
+		keep (to word! name=)
+		[if (reverse?) pop-atts | none]
+	]
+	close-tag: [
+		ws "</"
+		(name=: take/last stack)
+		name=
+		#">"
+		(close=: name=) ; for debug purpose only
+		(name=: none)
+		[if (not reverse?) pop-atts | none]
+	]
+	close-char: #"/"
+	action: none
+	single-tag: [
+		(close-char: #"/")
+		ws #"<" opt [#"!" (close-char: "")]
+		(debug "--single-tag?")
+		copy name= [
+			single-tags (close-char: [opt #"/"])
+		|	some name
 		]
-	]  
+		(debug  ["--single-tag" mold name=])
+		ws atts ws
+		close-char #">"
+		opt ["</" name= #">"]
+		push-atts
+		keep (to word! name=)
+		[
+			if (reverse?) [
+				pop-atts
+				keep (empty-value) ; empty content
+			]
+		|	if (not reverse?) [
+				keep (empty-value) ; empty content
+				pop-atts
+			]
+		]
+	]
+	;TODO: for HTML attribute names, #":" should be excluded
+	pair-att: [
+		ws not #"/"
+		copy att-name= some name
+		#"=" [
+			set quot-char [#"^"" | #"'"]
+			copy att-value= to quot-char skip
+		|	copy att-value= to [#">" | whitespace]
+		]
+		ws (
+			all [
+				equal? word! key-type
+				try [t: to set-word! att-name=]
+				att-name=: t
+			]
+			atts=/:att-name=: att-value=
+		)
+	]
+	single-att: [
+		ws not #"/"
+		copy att-name= some name
+		ws
+		(atts=/:att-name=: true)
+	]
+	atts: [
+		(atts=: copy #()) ; FIXME: IMO `clear` should be enough here, but it is not
+		ws any [pair-att | single-att]
+	]
+	comment: [ws "<!--" thru "-->" ws]
+	string: [
+		s: any [
+			if (find ["script" "pre"] name=) not ahead ["</" name= #">"] skip 
+			; accept #"<" inside <script> and <pre>
+		|	ahead ["</" | "<" name] break
+		|	skip
+		] 
+		e: [
+			if (align-content?) [
+				; FIXME: three `keep`s are here because `keep` works as `keep/only`
+				keep (none)
+				keep (copy/part s e)
+				keep (#()) ; TODO: should be user defined?
+			]
+		|	if (not align-content?) [keep (copy/part s e)]
+		]
+	]
+	doctype: [
+		; TODO: Add some output and better handling
+		"<!DOCTYPE" thru #">"
+	]
 
-	decode: function [
+	content: [
+		ahead "</" break
+	|	comment (debug ["cmnt" name=])
+	|	doctype (debug ["dctp"])
+	|	some [open-tag (debug ["open" name=]) collect some content close-tag (debug ["clos" close= "stack:" mold stack])]
+	|	single-tag (debug ["sngl" name=])
+	|	string (debug ["strn" t: copy/part s e length? t])
+	]
+
+	atts-stack: []
+	stack: []
+	name=: none
+	atts=: #()
+	att-name=:
+	att-value=: none
+
+	decode: func [
 		data
 	] [
-		parse s: copy data nodes
-		load s
+		parse data [collect document]
 	]
 
 ; === encoder part
@@ -90,11 +184,13 @@ xml: context [
 	make-atts: function [
 		data
 	] [
-		copy collect/into [
-			foreach [key value] data [
-				keep rejoin [key #"=" enquote value space]
+		data: collect/into [
+			foreach key keys-of data [
+				keep rejoin [key #"=" enquote data/:key space]
 			]
 		] clear ""
+		unless empty? data [insert data space]
+		data
 	]
 
 	make-tag: function [
@@ -112,25 +208,27 @@ xml: context [
 		data
 	] [
 		output: make string! 1000
-	;	unless length? data [print "PROBLEM"]
-		either 3 = length? data [
+		either data/1 [
 			; tag
-			either empty? data/3 [
+			if reverse? [move next data tail data]
+			probe data
+			either empty? data/2 [
 				; empty tag
-				repend output [#"<" form data/1 space make-atts data/2 "/>"] 
+				debug ["single tag" mold data]
+				repend output [#"<" form data/1 make-atts data/3 "/>"] 
 			] [
 				; tag pair
-				repend output [#"<" form data/1 space make-atts data/2 ">"] 
+				debug ["tag pair" mold data]
+				repend output [#"<" form data/1 make-atts data/3 ">"] 
 				until [
-					repend output process-tag take/part data/3 3
-					remove ind
-					empty? data/3
+					repend output process-tag take/part data/2 3
+					empty? data/2
 				]
 				repend output ["</" form data/1 ">"]
 			]
 		] [
 			; content
-			output: data/1
+			repend output data/2
 		]
 		output
 	]
@@ -139,9 +237,7 @@ xml: context [
 		data
 	] [
 		clear output
-		header: take data: copy/deep data
-		repend output ["<?xml " make-atts header "?>"]
-		data: data/1
+		; TODO add proper header: xml/doctype
 		until [
 			repend output process-tag take/part data 3
 			empty? data
