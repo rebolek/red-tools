@@ -162,7 +162,7 @@ make-url: function [
 			]
 		]
 	]
-	parse probe append clear [] data [
+	parse append clear [] data [
 		some [
 			args-rule
 		|	set value [set-word! | file! | url! | refinement!] (append link dirize form value)

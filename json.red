@@ -19,6 +19,7 @@ json: context [
 	list:		 none
 
 	null-value:	none ; NOTE: Change this, if you prefer something else than NONE
+	conversion?: no  ; EXPERIMENTAL: For numbers in quotes, load them
 
 	load-str: func [
 		"Return word if possible, leave untouched when not" 
@@ -29,7 +30,7 @@ json: context [
 		out
 	]
 
-	decode-str: func [start end /local new rule s][
+	decode-str: func [start end /local new rule s loaded][
 		new: copy/part start back end					;-- exclude ending quote
 		rule: [
 			any [
@@ -45,6 +46,11 @@ json: context [
 			]
 		]
 		parse new rule
+		all [
+			conversion? 
+			number? loaded: try [load new]
+			new: loaded
+		] 
 		new
 	]
 
@@ -161,6 +167,3 @@ json: context [
 		buffer
 	]
 ]
-
-
-t: does [bad: read %bad.json]
