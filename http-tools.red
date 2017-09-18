@@ -188,13 +188,22 @@ send-request: function [
 	/auth 		"Authentication method and data"
 		auth-type [word!]
 		auth-data
+	/raw 		"Return raw data and do not try to decode them"
 ] [
 	header: clear #()
 	if with [extend header args]
 	if auth [
 		switch auth-type [
 			Basic [
-				Authorization: (rejoin [auth-type space enbase rejoin [first auth-data #":" second auth-data]])
+				extend header compose [
+					Authorization: (
+						rejoin [
+							auth-type space enbase rejoin [
+								first auth-data #":" second auth-data
+							]
+						]
+					)
+				]
 			]
 			OAuth [
 				; TODO: OAuth 1 (see Twitter API)
@@ -211,6 +220,7 @@ send-request: function [
 	if content [append data content]
 	reply: write/info link data
 	set 'raw-reply reply
+	if raw [return reply]
 	type: first split reply/2/Content-Type #";"
 	reply: map [
 		code: reply/1
@@ -220,6 +230,38 @@ send-request: function [
 	]
 	either only [reply/data] [reply]
 ]
+
+mime-decoder: function [
+	string
+	type
+] [
+	switch probe type [
+		"application/json" [json/decode string]
+		"application/x-www-form-urlencoded" [www-form/decode string]
+		"text/html" [string]
+	]
+]
+
+make-nonce: function [] [
+	nonce: enbase/base checksum form random/secure 2147483647 'SHA512 64
+	remove-each char nonce [find "+/=" char]
+	copy/part nonce 32
+]
+
+get-unix-timestamp: function [
+	"Read UNIX timestamp from Internet"
+] [
+	date: none
+	page: read http://www.unixtimestamp.com/
+	parse page [
+		thru "The Current Unix Timestamp"
+		thru <h3 class="text-danger">
+		copy date to <small>
+	]
+	to integer! date
+]
+
+; --- www-form encoding ------------------------------------------------------
 
 www-form: object [
 	encode: function [
@@ -247,38 +289,7 @@ www-form: object [
 	]
 ]
 
-mime-decoder: function [
-	string
-	type
-] [
-	switch type [
-		"application/json" [json/decode string]
-		"application/x-www-form-urlencoded" [www-form/decode string]
-		"text/html" [www-form/decode string]
-	]
-]
-
-make-nonce: function [] [
-	nonce: enbase/base checksum form random/secure 2147483647 'SHA512 64
-	remove-each char nonce [find "+/=" char]
-	copy/part nonce 32
-]
-
-get-unix-timestamp: function [
-	"Read UNIX timestamp from Internet"
-] [
-	date: none
-	page: read http://www.unixtimestamp.com/
-	parse page [
-		thru "The Current Unix Timestamp"
-		thru <h3 class="text-danger">
-		copy date to <small>
-	]
-	to integer! date
-]
-
 ; --- percent encoding -------------------------------------------------------
-
 
 percent: context [
 	; RFC 3986 characters
@@ -342,3 +353,8 @@ percent: context [
 	]
 ]
 
+load-non-utf: func [
+	data [binary!]
+] [
+	copy collect/into [forall data [keep to char! data/1]] {}
+]
