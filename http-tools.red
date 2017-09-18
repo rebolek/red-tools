@@ -153,16 +153,16 @@ make-url: function [
 	link: make url! 80
 	args-rule: [
 		ahead block! into [
-			some [
+			any [
 				set value set-word! (append args rejoin [form value #"="])
-				set value [word! | string! | integer!] (
+				set value [any-word! | any-string! | number!] (
 					if word? value [value: get :value]
 					append args rejoin [value #"&"]
 				)
 			]
 		]
 	]
-	parse append clear [] data [
+	parse probe append clear [] data [
 		some [
 			args-rule
 		|	set value [set-word! | file! | url! | refinement!] (append link dirize form value)
@@ -189,6 +189,7 @@ send-request: function [
 		auth-type [word!]
 		auth-data
 	/raw 		"Return raw data and do not try to decode them"
+	/verbose    "Print request informations"
 ] [
 	header: clear #()
 	if with [extend header args]
@@ -210,10 +211,19 @@ send-request: function [
 	]
 	data: reduce [method body-of header]
 	if content [append data content]
+	if verbose [
+		print [
+			"Link:" link newline
+			"Data:" mold data newline
+		]
+	]
 	reply: write/info link data
 	set 'raw-reply reply
 	if raw [return reply]
 	type: first split reply/2/Content-Type #";"
+	if verbose [
+		print ["Return type:" type]
+	]
 	reply: map [
 		code: reply/1
 		headers: reply/2
@@ -256,7 +266,8 @@ mime-decoder: function [
 	switch type [
 		"application/json" [json/decode string]
 		"application/x-www-form-urlencoded" [www-form/decode string]
-		"text/html" [www-form/decode string]
+	;	"text/html" [www-form/decode string]
+		"text/html" [string]
 	]
 ]
 
