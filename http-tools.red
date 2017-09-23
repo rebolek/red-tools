@@ -209,7 +209,7 @@ send-request: function [
 			]
 		]
 	]
-	data: reduce [method body-of header]
+	data: reduce [method copy body-of header] ; FIXME: COPY hopefully prevents Access violation when header is empty (sometimes)
 	if content [append data content]
 	if verbose [
 		print [
