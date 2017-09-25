@@ -191,7 +191,10 @@ send-request: function [
 	/raw 		"Return raw data and do not try to decode them"
 	/verbose    "Print request informations"
 ] [
-	header: clear #()
+	if verbose [
+		print ["SEND-REQUEST to" link ", method:" method]
+	]
+	header: copy #() ; NOTE: CLEAR causes crash later!!! 
 	if with [extend header args]
 	if auth [
 		switch auth-type [
@@ -209,12 +212,15 @@ send-request: function [
 			]
 		]
 	]
-	data: reduce [method body-of header]
-	if content [append data content]
+	data: probe reduce [method body-of header]
+;	if content [append data content]
+	unless content [content: ""]
+	append data content
 	if verbose [
 		print [
-			"Link:" link newline
-			"Data:" mold data newline
+;			"Link:" link newline
+;			"Data:" mold data newline
+			"print here"
 		]
 	]
 	reply: write/info link data
