@@ -212,14 +212,14 @@ send-request: function [
 			]
 		]
 	]
-	data: probe reduce [method body-of header]
+	data: reduce [method body-of header]
 ;	if content [append data content]
 	unless content [content: ""]
 	append data content
 	if verbose [
 		print [
-;			"Link:" link newline
-;			"Data:" mold data newline
+			"Link:" link newline
+			"Data:" mold data newline
 			"print here"
 		]
 	]
@@ -253,7 +253,7 @@ www-form: object [
 				] 
 			]
 		] make string! 1000
-		cut-tail/part output either with [length? form last pattern] [2]
+		cut-tail/part output either only [length? form last pattern] [2]
 	]
 	decode: function [
 		string
@@ -313,7 +313,7 @@ percent: context [
 				some [
 					keep some chars
 				|	space keep #"+"	
-				|	set value skip keep (head insert for %"%")
+				|	set value skip keep (head insert enbase/base form value 16 "%")
 				]
 			]
 		] ""
