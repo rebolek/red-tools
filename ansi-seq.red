@@ -35,18 +35,33 @@ set-position: func [position][
 ]
 
 demo: does [
-    do [cls at 1x1 fg red "Welcome to " fg green bg white "ANSI" reset bold " console" reset]
+    do [cls at 1x1 fg red "Welcome to " fg black bg white "A" bg yellow "N" bg red "S" bg magenta "I" reset bold underline " console" reset]
 ]
 
-do: func [data][
+do: func [
+    data 
+    /local move-rule value type
+][
+    move-rule: [
+        (value: 1)
+        set type ['up | 'down | 'left | 'right]
+        opt [set value integer!]
+        keep (rejoin [esc-main form value #"@" + index? find [up down left right] type])
+    ]
+    style-rule: [
+        set type ['bold | 'italic | 'underline]
+        keep (rejoin [esc-main form index? find [bold none italic underline] type #"m"])
+    ]
+
     print-seq parse data [
         collect [
             some [
                 'reset keep (rejoin [esc-main "0m"])
             |   'cls keep (clear-screen)
-            |   'bold keep (rejoin [esc-main "1m"])
-            |   'italic keep (rejoin [esc-main "3m"])
-            |   'underline keep (rejoin [esc-main "4m"])
+
+            |   style-rule
+            |   move-rule
+
             |   'at set value pair! keep (probe set-position value)
             |    set type ['fg | 'bg] set value word! keep (set-color type value)
             |   keep string! 
