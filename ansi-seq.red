@@ -20,16 +20,6 @@ print-seq: func [
     ]
 ]
 
-set-color: func [type color][
-    type: either equal? 'fg type [#"3"][#"4"]
-    colors: [black red green yellow blue magenta cyan white]
-    all [
-        color: find colors color
-        color: index? color
-        rejoin [esc-main type 47 + color #"m"]
-    ]
-]
-
 set-position: func [position][
     rejoin [esc-main form position/x #";" form position/y #"H"]
 ]
@@ -38,10 +28,33 @@ demo: does [
     do [cls at 1x1 fg red "Welcome to " fg black bg white "A" bg yellow "N" bg red "S" bg magenta "I" reset bold underline " console" reset]
 ]
 
+colors: [black red green yellow blue magenta cyan white none default]
+
+as-rule: func [block][
+    block: collect [
+        foreach value block [keep reduce [to lit-word! value '|]]
+    ]
+    also block take/last block
+]
+
+colors-list: as-rule colors
+
 do: func [
     data 
-    /local move-rule value type
+    /local value type
+        move-rule
+        color-rule
+        style-rule 
 ][
+    color-rule: compose/deep [
+        set type ['fg | 'bg]
+        set value [(colors-list)]
+        keep (to paren! [
+            type: form pick [3 4] equal? 'fg type
+            value: 47 + index? find colors value
+            rejoin [esc-main type value #"m"]
+        ])
+    ]
     move-rule: [
         (value: 1)
         set type ['up | 'down | 'left | 'right]
@@ -61,9 +74,10 @@ do: func [
 
             |   style-rule
             |   move-rule
+            |   color-rule
 
             |   'at set value pair! keep (probe set-position value)
-            |    set type ['fg | 'bg] set value word! keep (set-color type value)
+        ;    |    set type ['fg | 'bg] set value word! keep (set-color type value)
             |   keep string! 
             ]
         ]
