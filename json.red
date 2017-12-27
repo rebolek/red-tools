@@ -30,17 +30,23 @@ json: context [
 		out
 	]
 
-	decode-str: func [start end /local new rule s loaded][
+	decode-str: func [start end /local new rule s t loaded][
 		new: copy/part start back end					;-- exclude ending quote
 		rule: [
 			any [
 				s: remove #"\" [
-					#"b"	(s/1: #"^H")
+					#"^""	(s/1: #"^"")
+				|	#"/"	(s/1: #"/")
+				|	#"\"	(s/1: #"\")
+				|	#"b"	(s/1: #"^H")
 				|	#"f"	(s/1: #"^(0C)")
 				|	#"n"	(s/1: #"^/")
 				|	#"r" 	(s/1: #"^M")
 				|	#"t"	(s/1: #"^-")
-				|	#"u"	4 hexa
+				|	#"u"	copy t 4 hexa (
+						change/part s load rejoin [{#"^^(} t {)"}] 5
+						s: skip s -4
+					) :s
 				]
 				| skip
 			]
@@ -93,6 +99,7 @@ json: context [
 	
 	string: [
 		dbl-quote 
+		; TODO: check if any unicode conversion needs to be done here
 		s: any [#"\" [quoted-char | #"u" 4 hexa] | dbl-quote break | skip] 
 		e:
 	]
