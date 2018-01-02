@@ -3,13 +3,13 @@ Red []
 parse-lua: func [
     data
 ][
-    parse data rules/main-rule
+    parse/case data rules/main-rule
 ]
 
 rules: context [
     ws: charset " ^-^/"
     chars: charset [#"a" - #"z" #"A" - #"Z"]
-    digits: charse [#"0" - #"9"]
+    digits: charset [#"0" - #"9"]
     chars+under: union chars charset [#"_"]
     chars+digits: union chars+under digits
 
@@ -21,6 +21,20 @@ rules: context [
     |    'in | 'local | 'nil | 'not | 'or
     |    'repeat | 'return | 'then | 'true | 'until
     |    'while
+    ]
+
+    number: [
+        opt #"-"
+        some digits
+        opt [
+            dot
+            some digits
+        ]
+        opt [
+            [#"e" | #"E"]
+            opt #"-"
+            some digits
+        ]
     ]
 
     comment: [
@@ -37,6 +51,7 @@ rules: context [
     main-rule: [
         some [
             comment
+        |   number            
         ]
     ]
 ]
