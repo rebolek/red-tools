@@ -16,11 +16,18 @@ rules: context [
     identifier: [chars+under any chars+digits] ;  TODO: underscore + uppercase should not work
 
     keyword: [
-        'and | 'break | 'do | 'else | 'elseif
-    |    'end | 'false | 'for | 'function | 'if
-    |    'in | 'local | 'nil | 'not | 'or
-    |    'repeat | 'return | 'then | 'true | 'until
-    |    'while
+        "and" | "break" | "do" | "else" | "elseif"
+    |   "end" | "false" | "for" | "function" | "if"
+    |   "in" | "local" | "nil" | "not" | "or"
+    |   "repeat" | "return" | "then" | "true" | "until"
+    |   "while"
+    ]
+
+    token: [
+        #"+" | #"-" | #"*" | #"/" | #"%" | "^^" | #"#"
+    |   "==" | "~=" | "<=" | ">=" | #"<" | #">" | #"="
+    |   #"(" | #")" | #"{" | #"}" | #"[" | #"]"
+    |   #";" | #":" | #"," | 1 3 #"."
     ]
 
     number: [
