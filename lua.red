@@ -12,6 +12,7 @@ rules: context [
     digits: charset [#"0" - #"9"]
     chars+under: union chars charset [#"_"]
     chars+digits: union chars+under digits
+    hexa-digits:  union union digits charset [#"a" - #"f"] charset [#"A" - #"F"]
 
     identifier: [chars+under any chars+digits] ;  TODO: underscore + uppercase should not work
 
@@ -24,7 +25,7 @@ rules: context [
     ]
 
     token: [
-        #"+" | #"-" | #"*" | #"/" | #"%" | "^^" | #"#"
+        #"+" | #"-" | #"*" | #"/" | #"%" | #"^^" | #"#"
     |   "==" | "~=" | "<=" | ">=" | #"<" | #">" | #"="
     |   #"(" | #")" | #"{" | #"}" | #"[" | #"]"
     |   #";" | #":" | #"," | 1 3 #"."
@@ -44,6 +45,8 @@ rules: context [
         ]
     ]
 
+    hexa-number: ["0x" some hexa-digits]
+
     comment: [
         single-line-comment
     |   multi-line-comment    
@@ -58,7 +61,8 @@ rules: context [
     main-rule: [
         some [
             comment
-        |   number            
+        |   number
+        |   hexa-number
         ]
     ]
 ]
