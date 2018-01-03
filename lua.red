@@ -1,4 +1,7 @@
-Red []
+Red [
+    Title: "Lua parser"
+    Specs: http://www.lua.org/manual/5.1/manual.html
+]
 
 parse-lua: func [
     data
@@ -15,6 +18,26 @@ rules: context [
     hexa-digits:  union union digits charset [#"a" - #"f"] charset [#"A" - #"F"]
 
     identifier: [chars+under any chars+digits] ;  TODO: underscore + uppercase should not work
+    name: [identifier]
+    var: [name]
+    varlist: [var any [any ws comma any ws var]]
+
+    exp: [ ; expression
+        prefix-exp
+    |   "nil" | "false"  | "true"
+    |   number
+    |   string
+    |   function
+    |   table-constructor
+    |   "..."
+    |   exp bin-op exp
+    |   un-op exp    
+    ]
+    prefix-exp: [
+        var
+    |   function-call
+    |   #"(" exp #")" 
+    ]
 
     keyword: [
         "and" | "break" | "do" | "else" | "elseif"
@@ -56,6 +79,34 @@ rules: context [
     ]
     multi-line-comment: [
         any ws "--[[" thru "]]"
+    ]
+
+    ; strings-todo: add escape sequences
+    quot: none
+    literal-string: [
+        set quot [#"'" | #"^""]
+        copy str any [
+            #"\" quot
+        |   not quot skip
+        ]
+        quot
+    ]
+    level: ""
+    end-long-string: [#"]" level #"]"]
+    long-string: [
+        #"["
+        copy level any #"="
+        #"["
+        (print "long-string")
+        opt newline
+        copy str any [
+            not end-long-string skip
+        ]
+        end-long-string
+    ]
+    string: [
+        literal-string
+    |   long-string        
     ]
 
     main-rule: [
