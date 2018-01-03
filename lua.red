@@ -20,24 +20,42 @@ rules: context [
     identifier: [chars+under any chars+digits] ;  TODO: underscore + uppercase should not work
     name: [identifier]
     var: [name]
-    varlist: [var any [any ws comma any ws var]]
+    varlist: [var any [any ws comma any ws var]] ; TODO: capture vals
+
+
+    float-number: [
+        opt #"-"
+        some digits
+        opt [
+            dot
+            some digits
+        ]
+        opt [
+            [#"e" | #"E"]
+            opt #"-"
+            some digits
+        ]
+    ]
+    hexa-number: ["0x" some hexa-digits]
+    number: [float-number | hexa-number]
 
     exp: [ ; expression
-        prefix-exp
-    |   "nil" | "false"  | "true"
+;        prefix-exp
+       "nil" | "false"  | "true"
     |   number
     |   string
-    |   function
-    |   table-constructor
+;    |   function
+;    |   table-constructor
     |   "..."
-    |   exp bin-op exp
-    |   un-op exp    
+;    |   exp bin-op exp
+;    |   un-op exp    
     ]
     prefix-exp: [
         var
     |   function-call
     |   #"(" exp #")" 
     ]
+    explist: [exp any [any ws comma any ws exp]]
 
     keyword: [
         "and" | "break" | "do" | "else" | "elseif"
@@ -54,21 +72,14 @@ rules: context [
     |   #";" | #":" | #"," | 1 3 #"."
     ]
 
-    number: [
-        opt #"-"
-        some digits
-        opt [
-            dot
-            some digits
-        ]
-        opt [
-            [#"e" | #"E"]
-            opt #"-"
-            some digits
-        ]
-    ]
+    chunk: [some [stat opt #";"]]
 
-    hexa-number: ["0x" some hexa-digits]
+    block: [chunk]
+
+    stat: [
+        "do" some ws block some ws "end"
+    |   varlist some ws #"=" some ws explist
+    ]
 
     comment: [
         single-line-comment
@@ -94,10 +105,7 @@ rules: context [
     level: ""
     end-long-string: [#"]" level #"]"]
     long-string: [
-        #"["
-        copy level any #"="
-        #"["
-        (print "long-string")
+        #"[" copy level any #"=" #"["
         opt newline
         copy str any [
             not end-long-string skip
@@ -112,8 +120,8 @@ rules: context [
     main-rule: [
         some [
             comment
-        |   number
-        |   hexa-number
+        |   stat
+        |   any ws
         ]
     ]
 ]
