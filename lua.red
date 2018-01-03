@@ -40,8 +40,8 @@ rules: context [
     number: [float-number | hexa-number]
 
     exp: [ ; expression
-;        prefix-exp
-       "nil" | "false"  | "true"
+        prefix-exp
+    |   "nil" | "false"  | "true"
     |   number
     |   string
 ;    |   function
@@ -52,8 +52,8 @@ rules: context [
     ]
     prefix-exp: [
         var
-    |   function-call
-    |   #"(" exp #")" 
+;    |   function-call
+;    |   #"(" exp #")" 
     ]
     explist: [exp any [any ws comma any ws exp]]
 
@@ -78,7 +78,7 @@ rules: context [
 
     stat: [
         "do" some ws block some ws "end"
-    |   varlist some ws #"=" some ws explist
+    |   varlist any ws #"=" any ws explist
     ]
 
     comment: [
