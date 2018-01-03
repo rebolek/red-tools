@@ -78,10 +78,10 @@ rules: context [
     block: [chunk]
 
     stat: [
-        "do" some ws block some ws "end"
-    |   control-structures
-    |   "return" opt explist
-    |   "break"
+        "do" some ws block some ws "end" some ws
+    |   control-structures some ws
+    |   "return" opt explist some ws
+    |   "break" some ws
     |   for-stat
     |   varlist any ws #"=" any ws explist
     ]
@@ -90,7 +90,8 @@ rules: context [
         while-struc
     |   repeat-struc
     |   if-struc  
-;    |   function-call  
+;    |   function-call
+    |   local-decl
     ]
     struc-exp: [some ws exp some ws]
     struc-act: [some ws block some ws]
@@ -128,6 +129,12 @@ rules: context [
         "end"
     ]
 
+    local-decl: [
+        "local" some ws
+        namelist
+        opt [some ws #"=" some ws explist]
+    ]
+
     comment: [
         single-line-comment
     |   multi-line-comment    
@@ -136,7 +143,7 @@ rules: context [
         any ws "--" thru [newline | end]
     ]
     multi-line-comment: [
-        any ws "--[[" thru "]]"
+        any ws "--[[" thru "]]" some ws
     ]
 
     ; strings-todo: add escape sequences
