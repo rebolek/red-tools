@@ -78,7 +78,31 @@ rules: context [
 
     stat: [
         "do" some ws block some ws "end"
+    |   control-structures    
     |   varlist any ws #"=" any ws explist
+    ]
+
+    control-structures: [
+        while-struc
+    |   repeat-struc
+    |   if-struc    
+    ]
+    struc-exp: [some ws exp some ws]
+    struc-act: [some ws block some ws]
+    while-struc: [
+        "while" struc-exp
+        "do" struc-act "end"
+    ]
+    repeat-struc: [
+        "repeat" struc-act
+        "until" struc-exp
+        "end"
+    ]
+    if-struc: [
+        "if" struc-exp "then" struc-act
+        any ["elseif" struc-exp "then" struc-act]
+        opt ["else" struc-act]
+        "end"
     ]
 
     comment: [
