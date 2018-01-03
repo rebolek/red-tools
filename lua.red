@@ -19,6 +19,7 @@ rules: context [
 
     identifier: [chars+under any chars+digits] ;  TODO: underscore + uppercase should not work
     name: [identifier]
+    namelist: [name any [any ws comma any ws name]]
     var: [name]
     varlist: [var any [any ws comma any ws var]] ; TODO: capture vals
 
@@ -78,14 +79,18 @@ rules: context [
 
     stat: [
         "do" some ws block some ws "end"
-    |   control-structures    
+    |   control-structures
+    |   "return" opt explist
+    |   "break"
+    |   for-stat
     |   varlist any ws #"=" any ws explist
     ]
 
     control-structures: [
         while-struc
     |   repeat-struc
-    |   if-struc    
+    |   if-struc  
+;    |   function-call  
     ]
     struc-exp: [some ws exp some ws]
     struc-act: [some ws block some ws]
@@ -102,6 +107,24 @@ rules: context [
         "if" struc-exp "then" struc-act
         any ["elseif" struc-exp "then" struc-act]
         opt ["else" struc-act]
+        "end"
+    ]
+
+    iterator: ""
+    for-stat: [for-numeric | for-generic]
+    for-numeric: [
+        "for" some ws copy iterator name some ws
+        #"=" some ws
+        exp any ws #"," any ws exp opt [any ws #"," any ws exp]
+        some ws "do" some ws
+        block some ws
+        "end"
+    ]
+    for-generic: [
+        "for" some ws namelist some ws
+        "in" some ws explist some ws
+        "do" some ws
+        block some ws
         "end"
     ]
 
