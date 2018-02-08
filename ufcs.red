@@ -32,11 +32,12 @@ arity: func [
 arity?: func [
     "Return function's arity" ; TODO: support for lit-word! and get-word! ?
     fn
-    /local count name refinement-rule
+    /local result count name refinement-rule
 ][
     result: copy []
     count: 0
     name: none
+    append-name: quote (repend result either name [[name count]][[count]]) 
     count-rule: [
         some [
             word! (count: count + 1)
@@ -45,14 +46,14 @@ arity?: func [
         ]
     ] 
     refinement-rule: [
-        (repend result either name [[name count]][[count]])
+        append-name
         set name refinement!
         (count: 0)
         count-rule
     ]
     parse spec-of :fn count-rule
-    repend result either name [[name count]][[count]]
-    result
+    do append-name
+    head remove/part find result /local 2
 ]
 
 refinements?: func [
