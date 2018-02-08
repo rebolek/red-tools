@@ -13,22 +13,6 @@ actions: does [
     ]
 ]
 
-arity: func [
-    "Return function's arity (ignores refinements for now)"
-    fn
-][
-    count: 0
-    parse spec-of :fn [
-        some [
-            word! (count: count + 1)
-        |   string! | block!
-        |   refinement! to end
-        |   skip    
-        ]
-    ]
-    count
-]
-
 arity?: func [
     "Return function's arity" ; TODO: support for lit-word! and get-word! ?
     fn
