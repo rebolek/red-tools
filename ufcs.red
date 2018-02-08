@@ -5,12 +5,16 @@ Red[
     Todo: "Add refinements support"
 ]
 
-actions: does [
-    collect [
-        foreach word words-of system/words [
-            if action? get/any word [keep word]
+actions: has [result][
+    result: []
+    if empty? result [
+        result: collect [
+            foreach word words-of system/words [
+                if action? get/any word [keep word]
+            ]
         ]
     ]
+    result
 ]
 
 arity?: func [
