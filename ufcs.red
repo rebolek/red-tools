@@ -4,7 +4,10 @@ Red[
     Purpose: "Provide kind of Unified Fuction Call Syntax for Red"
 ]
 
-actions: has [result][
+actions: has [
+    "Return block of all actions"
+    result
+][
     result: []
     if empty? result [
         result: collect [
@@ -18,8 +21,8 @@ actions: has [result][
 
 arity?: func [
     "Return function's arity" ; TODO: support for lit-word! and get-word! ?
-    fn
-    /local result count name refinement-rule
+    fn [any-function!]  "Function to examine"
+    /local result count name count-rule refinement-rule append-name
 ][
     result: copy []
     count: 0
@@ -47,7 +50,7 @@ arity?: func [
 
 refinements?: func [
     "Return block of refinements for given function"
-    fn
+    fn      [any-function!] "Function to examine"
     /local value
 ][
     parse spec-of :fn [
@@ -56,8 +59,9 @@ refinements?: func [
 ]
 
 ufcs: func [
-    series
-    dialect
+    "Apply actions to given series"
+    series  [any-series!]   "Series to manipulate"
+    dialect [block!]        "Block of actions and arguments, without first argument (series defined above)"
     /local result action args code
 ][
     result: none
@@ -117,5 +121,5 @@ apply: func [
     if path? [
         fun: make path! head insert refs 'fn
     ]
-    do probe compose [(fun) (vals)]
+    do compose [(fun) (vals)]
 ]
