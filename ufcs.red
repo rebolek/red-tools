@@ -95,4 +95,27 @@ ufcs: func [
     series
 ]
 
-
+apply: func [
+    "Apply a function to a block of arguments"
+    fn      [any-function!] "Function value to apply"
+    args    [block!]        "Block of arguments (to quote refinement use QUOTE keyword)"
+    /local arity path? refs vals val fun
+][
+    arity: arity? :fn
+    path?: false
+    refs: copy []
+    vals: copy []
+    parse args [
+        some [
+            'quote 'quote (append vals quote 'quote)
+        |   'quote set val skip (append vals val) 
+        |   set val refinement! (path?: true append refs to word! val)
+        |   set val skip (append vals val)
+        ]
+    ]
+    fun: 'fn
+    if path? [
+        fun: make path! head insert refs 'fn
+    ]
+    do probe compose [(fun) (vals)]
+]
