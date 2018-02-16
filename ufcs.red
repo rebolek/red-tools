@@ -2,7 +2,6 @@ Red[
     Title: "UFCS dialect"
     Author: "Boleslav Březovský"
     Purpose: "Provide kind of Unified Fuction Call Syntax for Red"
-    Todo: "Add refinements support"
 ]
 
 actions: has [result][
@@ -41,7 +40,9 @@ arity?: func [
     ]
     parse spec-of :fn count-rule
     do append-name
-    head remove/part find result /local 2
+    either find result /local [
+        head remove/part find result /local 2
+    ][result]
 ]
 
 refinements?: func [
@@ -93,3 +94,5 @@ ufcs: func [
     ]
     series
 ]
+
+
