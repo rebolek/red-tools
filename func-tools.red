@@ -103,22 +103,19 @@ apply: func [
     "Apply a function to a block of arguments"
     fn      [any-function!] "Function value to apply"
     args    [block!]        "Block of arguments (to quote refinement use QUOTE keyword)"
-    /local arity path? refs vals val fun
+    /local refs vals val fun
 ][
-    arity: arity? :fn
-    path?: false
     refs: copy []
     vals: copy []
+    set-val: [set val skip (append vals val)]
     parse args [
         some [
-            'quote set val skip (append vals val) 
-        |   set val refinement! (path?: true append refs to word! val)
-        |   set val skip (append vals val)
+            'quote set-val
+        |   set val refinement! (append refs to word! val)
+        |   set-val
         ]
     ]
     fun: 'fn
-    if path? [
-        fun: make path! head insert refs 'fn
-    ]
+    unless empty? refs [fun: make path! head insert refs 'fn]
     do compose [(fun) (vals)]
 ]
