@@ -103,11 +103,11 @@ apply: func [
     "Apply a function to a block of arguments"
     fn      [any-function!] "Function value to apply"
     args    [block!]        "Block of arguments (to quote refinement use QUOTE keyword)"
-    /local refs vals val fun
+    /local refs vals val
 ][
     refs: copy []
     vals: copy []
-    set-val: [set val skip (append vals val)]
+    set-val: [set val skip (append/only vals val)]
     parse args [
         some [
             'quote set-val
@@ -115,7 +115,66 @@ apply: func [
         |   set-val
         ]
     ]
-    fun: 'fn
-    fun: make path! head insert refs 'fn
-    do compose [(fun) (vals)]
+    do compose [(make path! head insert refs 'fn) (vals)]
+]
+
+make-type: func [
+    "Return default value of given type"
+    type    [datatype! block!] "Type of value or (TODO) dialect specs"
+    /local species
+][
+    species: 1 ; 1 - default, 2 - random
+    if block? type [
+        parse type [
+            ['random (species: 2) set type skip]
+            ; TODO: support multiple values and blocks of values
+        ]
+    ]
+    easy-pick: func [block index][either block? block [pick block index][block]]
+    easy-pick switch to word! type [
+        datatype!   [reduce [datatype! first random collect [foreach word words-of system/words [if datatype? get/any word [keep word]]]]]
+        unset!      [[<TODO> <TODO>]]
+        none!       [none]
+        logic!      [reduce [true first random [true false]]]
+        block!      [[[foo #bar "baz"] <TODO>]]
+        paren!      [[(foo #bar "baz") <TODO>]]
+        string!     ["foo"]
+        file!       [%foo.bar]
+        url!        [http://foo.bar]
+        char!       [#"x"]
+        integer!    [[0 random 2147483647]] ; TODO: also negative integers and switch in dialect for it
+        float!      [0.0]
+        word!       ['foo]
+        set-word!   [quote foo:]
+        lit-word!   [quote 'foo]
+        get-word!   [quote :foo]
+        refinement! [/foo]
+        issue!      [#foo]
+        native!     [<TODO>]
+        action!     [<TODO>]
+        op!         [<TODO>]
+        function!   [<TODO>]
+        path!       [quote foo/bar/baz]
+        lit-path!   [quote 'foo/bar/baz]
+        set-path!   [quote foo/bar/baz:]
+        get-path!   [quote :foo/bar/baz]
+        routine!    [<TODO>]
+        bitset!     [charset "foo"]
+        point!      [<TODO>]
+        object!     [<TODO>]
+        typeset!    [<TODO>]
+        error!      [<TODO>]
+        vector!     [make vector! [integer! 8 10]]
+        hash!       [make hash! [foo bar baz]]
+        pair!       [0x0]
+        percent!    [0%]
+        tuple!      [0.0.0]
+        map!        [#(foo: bar)]
+        binary!     [#{f00ba7}]
+        time!       [11:22:33]
+        tag!        [<foo>]
+        email!      [foo@bar.baz]
+        handle!     [<TODO>]
+        date!       [27-2-2011]
+    ] species
 ]
