@@ -116,6 +116,6 @@ apply: func [
         ]
     ]
     fun: 'fn
-    unless empty? refs [fun: make path! head insert refs 'fn]
+    fun: make path! head insert refs 'fn
     do compose [(fun) (vals)]
 ]
