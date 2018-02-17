@@ -60,7 +60,7 @@ refinements?: func [
 
 ufcs: func [
     "Apply actions to given series"
-    series  [any-series!]   "Series to manipulate"
+    series  [series!]       "Series to manipulate"
     dialect [block!]        "Block of actions and arguments, without first argument (series defined above)"
     /local result action args code
 ][
@@ -111,8 +111,7 @@ apply: func [
     vals: copy []
     parse args [
         some [
-            'quote 'quote (append vals quote 'quote)
-        |   'quote set val skip (append vals val) 
+            'quote set val skip (append vals val) 
         |   set val refinement! (path?: true append refs to word! val)
         |   set val skip (append vals val)
         ]
