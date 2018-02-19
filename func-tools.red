@@ -209,20 +209,25 @@ dispatcher: func [
 	]
 ]
 
+; TODO: remove rules using NONE
 dispatch: func [
 	"Add new condition and action to DISPATCHER function"
 	dispatcher  [any-function!] "Dispatcher function to use"
-	cond		[block!]		"Dispatching condition that must return true" 
+	cond		[block! none!]	"Block of conditions to pass or NONE for catch-all condition (forces /RELAX)" 
 	body		[block!]		"Action to do when condition is fulfilled"
 	/relax						"Add condition to end of rules instead of beginning"
-	/local this cases mark
+	/local this cases mark penultimo
 ][
 	cases: second body-of :dispatcher
-	this: bind compose/deep [(cond) [(body)]] :dispatcher
+    penultimo: back back tail cases
+    unless equal? true first penultimo [penultimo: tail cases]
+	this: bind compose/deep [all [(cond)] [(body)]] :dispatcher
 	case [
-		mark: find cases cond 	[change/only skip mark length? cond last this]
-		relax 					[append cases this]
-		'default 				[insert cases this]
+        all [not cond true = first penultimo] [change/only next penultimo body]
+        not cond                            [repend cases [true body]]
+		mark: find/only cases cond 	        [change/part back mark this 3]
+		relax 				    	        [insert penultimo this]
+		'default 				            [insert cases this]
 	]
 	:dispatcher
 ]
