@@ -142,7 +142,7 @@ make-type: func [
         either block? block [pick reduce block index][block]
     ]
     easy-pick switch to word! type [
-        datatype!   [
+        datatype! [
             reduce [
                 datatype! 
                 first random collect [
@@ -160,7 +160,7 @@ make-type: func [
         string!     ["foo"]
         file!       [%foo.bar]
         url!        [http://foo.bar]
-        char!       [#"x"]
+        char!       [[#"x" random 1FFFFFh]]
         integer!    [[0 random 2147483647]] ; TODO: also negative integers and switch in dialect for it
         float!      [[0.0 random 1.797693134862316e308]]
         word!       ['foo]
@@ -178,7 +178,7 @@ make-type: func [
         set-path!   [quote foo/bar/baz:]
         get-path!   [quote :foo/bar/baz]
         routine!    [<TODO>]
-        bitset!     [charset "foo"]
+        bitset!     [charset "bar"]
         point!      [<TODO>]
         object!     [<TODO>]
         typeset!    [<TODO>]
