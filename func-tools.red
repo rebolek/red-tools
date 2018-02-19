@@ -141,6 +141,14 @@ make-type: func [
     easy-pick: func [block index][
         either block? block [pick reduce block index][block]
     ]
+    random-string: func [
+        "Return random string"
+        length
+        ; TODO: support description dialect
+        /local
+    ][
+        collect/into [loop length [keep #"`" + random 26]] copy {}
+    ]
     easy-pick switch to word! type [
         datatype! [
             reduce [
@@ -157,7 +165,7 @@ make-type: func [
         logic!      [reduce [true first random [true false]]]
         block!      [[[foo #bar "baz"] <TODO>]]
         paren!      [[(foo #bar "baz") <TODO>]]
-        string!     ["foo"]
+        string!     [reduce ["foo" random-string 8]]
         file!       [%foo.bar]
         url!        [http://foo.bar]
         char!       [[#"x" random 1FFFFFh]]
