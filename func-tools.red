@@ -178,3 +178,32 @@ make-type: func [
         date!       [27-2-2011]
     ] species
 ]
+
+; dispatch
+
+dispatcher: func [
+	"Return dispatcher function that can be extended with DISPATCH"
+	spec [block!] "Function specification"
+][
+	func spec [
+		case []
+	]
+]
+
+dispatch: func [
+	"Add new condition and action to DISPATCHER function"
+	dispatcher  [any-function!] "Dispatcher function to use"
+	cond		[block!]		"Dispatching condition that must return true" 
+	body		[block!]		"Action to do when condition is fulfilled"
+	/relax						"Add condition to end of rules instead of beginning"
+	/local this cases mark
+][
+	cases: second body-of :dispatcher
+	this: bind compose/deep [(cond) [(body)]] :dispatcher
+	case [
+		mark: find cases cond 	[change/only skip mark length? cond last this]
+		relax 					[append cases this]
+		'default 				[insert cases this]
+	]
+	:dispatcher
+]
