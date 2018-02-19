@@ -209,12 +209,11 @@ dispatcher: func [
 	]
 ]
 
-; TODO: remove rules using NONE
 dispatch: func [
 	"Add new condition and action to DISPATCHER function"
 	dispatcher  [any-function!] "Dispatcher function to use"
 	cond		[block! none!]	"Block of conditions to pass or NONE for catch-all condition (forces /RELAX)" 
-	body		[block!]		"Action to do when condition is fulfilled"
+	body		[block! none!]  "Action to do when condition is fulfilled or NONE for removing rule"
 	/relax						"Add condition to end of rules instead of beginning"
 	/local this cases mark penultimo
 ][
@@ -223,11 +222,13 @@ dispatch: func [
     unless equal? true first penultimo [penultimo: tail cases]
 	this: bind compose/deep [all [(cond)] [(body)]] :dispatcher
 	case [
-        all [not cond true = first penultimo] [change/only next penultimo body]
-        not cond                            [repend cases [true body]]
-		mark: find/only cases cond 	        [change/part back mark this 3]
-		relax 				    	        [insert penultimo this]
-		'default 				            [insert cases this]
+        all [not cond not body not empty? penultimo][remove/part penultimo 2]   ; remove catch-all rule (if exists)
+        all [not body mark: find/only cases cond][remove/part back mark 3]      ; remove rule (if exists)
+        all [not cond true = first penultimo][change/only next penultimo body]  ; change catch-all rule (if exists)
+        not cond                            [repend cases [true body]]          ; add catch-all rule
+		mark: find/only cases cond 	        [change/part back mark this 3]      ; change existing rule (if exists)
+		relax 				    	        [insert penultimo this]             ; add new rule to end
+		'default 				            [insert cases this]                 ; add new rule to beginning
 	]
 	:dispatcher
 ]
