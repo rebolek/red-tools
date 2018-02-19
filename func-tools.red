@@ -19,6 +19,8 @@ actions: has [
     result
 ]
 
+; --- get arity and refinements ------------------------------------------------
+
 arity?: func [
     "Return function's arity" ; TODO: support for lit-word! and get-word! ?
     fn [any-function!]  "Function to examine"
@@ -58,11 +60,13 @@ refinements?: func [
     ]
 ]
 
+; --- unified function call syntax ---------------------------------------------
+
 ufcs: func [
     "Apply actions to given series"
     series  [series!]       "Series to manipulate"
     dialect [block!]        "Block of actions and arguments, without first argument (series defined above)"
-    /local result action args code
+    /local result action args code arity refs ref-stack refs?
 ][
     result: none
     code: []
@@ -99,6 +103,8 @@ ufcs: func [
     series
 ]
 
+; --- apply function -----------------------------------------------------------
+
 apply: func [
     "Apply a function to a block of arguments"
     fn      [any-function!] "Function value to apply"
@@ -118,10 +124,12 @@ apply: func [
     do compose [(make path! head insert refs 'fn) (vals)]
 ]
 
+; --- make default value of given type -----------------------------------------
+
 make-type: func [
     "Return default value of given type"
     type    [datatype! block!] "Type of value or (TODO) dialect specs"
-    /local species
+    /local species easy-pick
 ][
     species: 1 ; 1 - default, 2 - random
     if block? type [
@@ -130,9 +138,20 @@ make-type: func [
             ; TODO: support multiple values and blocks of values
         ]
     ]
-    easy-pick: func [block index][either block? block [pick block index][block]]
+    easy-pick: func [block index][
+        either block? block [pick reduce block index][block]
+    ]
     easy-pick switch to word! type [
-        datatype!   [reduce [datatype! first random collect [foreach word words-of system/words [if datatype? get/any word [keep word]]]]]
+        datatype!   [
+            reduce [
+                datatype! 
+                first random collect [
+                    foreach word words-of system/words [
+                        if datatype? get/any word [keep word]
+                    ]
+                ]
+            ]
+        ]
         unset!      [[<TODO> <TODO>]]
         none!       [none]
         logic!      [reduce [true first random [true false]]]
@@ -143,7 +162,7 @@ make-type: func [
         url!        [http://foo.bar]
         char!       [#"x"]
         integer!    [[0 random 2147483647]] ; TODO: also negative integers and switch in dialect for it
-        float!      [0.0]
+        float!      [[0.0 random 1.797693134862316e308]]
         word!       ['foo]
         set-word!   [quote foo:]
         lit-word!   [quote 'foo]
@@ -179,7 +198,7 @@ make-type: func [
     ] species
 ]
 
-; dispatch
+; --- dispatch function --------------------------------------------------------
 
 dispatcher: func [
 	"Return dispatcher function that can be extended with DISPATCH"
