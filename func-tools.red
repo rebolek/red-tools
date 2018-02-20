@@ -129,9 +129,10 @@ apply: func [
 make-type: func [
     "Return default value of given type"
     type    [datatype! block!] "Type of value or (TODO) dialect specs"
-    /local species easy-pick
+    /local species easy-pick length random-string
 ][
     species: 1 ; 1 - default, 2 - random
+    length: 8  ; default length for random strings
     if block? type [
         parse type [
             ['random (species: 2) set type skip]
@@ -145,7 +146,6 @@ make-type: func [
         "Return random string"
         length
         ; TODO: support description dialect
-        /local
     ][
         collect/into [loop length [keep #"`" + random 26]] copy {}
     ]
@@ -165,18 +165,18 @@ make-type: func [
         logic!      [reduce [true first random [true false]]]
         block!      [[[foo #bar "baz"] <TODO>]]
         paren!      [[(foo #bar "baz") <TODO>]]
-        string!     [reduce ["foo" random-string 8]]
+        string!     [reduce ["foo" random-string length]]
         file!       [%foo.bar]
         url!        [http://foo.bar]
         char!       [[#"x" random 1FFFFFh]]
         integer!    [[0 random 2147483647]] ; TODO: also negative integers and switch in dialect for it
-        float!      [[0.0 random 1.797693134862316e308]]
+        float!      [[0.0 random 1.797693134862315e308]]
         word!       ['foo]
-        set-word!   [quote foo:]
-        lit-word!   [quote 'foo]
-        get-word!   [quote :foo]
-        refinement! [/foo]
-        issue!      [#foo]
+        set-word!   [reduce [quote foo: to set-word! random-string length]]
+        lit-word!   [reduce [quote 'foo to lit-word! random-string length]]
+        get-word!   [reduce [quote :foo to get-word! random-string length]]
+        refinement! [reduce [/foo to refinement! random-string length]]
+        issue!      [reduce [#foo to issue! random-string length]]
         native!     [<TODO>]
         action!     [<TODO>]
         op!         [<TODO>]
@@ -186,18 +186,18 @@ make-type: func [
         set-path!   [quote foo/bar/baz:]
         get-path!   [quote :foo/bar/baz]
         routine!    [<TODO>]
-        bitset!     [charset "bar"]
+        bitset!     [reduce [charset "bar" charset random-string length]]
         point!      [<TODO>]
         object!     [<TODO>]
         typeset!    [<TODO>]
         error!      [<TODO>]
         vector!     [make vector! [integer! 8 10]]
         hash!       [make hash! [foo bar baz]]
-        pair!       [0x0]
-        percent!    [0%]
-        tuple!      [0.0.0]
+        pair!       [reduce [0x0 random 2147483647x2147483647]]
+        percent!    [reduce [0% random 1.797693134862315e308%]]
+        tuple!      [reduce [0.0.0 random 255.255.255]] ; TODO: support different length
         map!        [#(foo: bar)]
-        binary!     [#{f00ba7}]
+        binary!     [#{deadcafe}]
         time!       [11:22:33]
         tag!        [<foo>]
         email!      [foo@bar.baz]
@@ -228,7 +228,8 @@ dispatch: func [
 	cases: second body-of :dispatcher
     penultimo: back back tail cases
     unless equal? true first penultimo [penultimo: tail cases]
-	this: bind compose/deep [all [(cond)] [(body)]] :dispatcher
+    bind body :dispatcher
+	this: reduce ['all compose/deep [(cond)] [(body)]]
 	case [
         all [not cond not body not empty? penultimo][remove/part penultimo 2]   ; remove catch-all rule (if exists)
         all [not body mark: find/only cases cond][remove/part back mark 3]      ; remove rule (if exists)
