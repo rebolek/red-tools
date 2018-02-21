@@ -229,8 +229,8 @@ dispatch: func [
     penultimo: back back tail cases
     unless equal? true first penultimo [penultimo: tail cases]
     if cond [bind cond :dispatcher]
-    bind body :dispatcher
-	this: probe reduce ['all compose/deep [(cond)] compose/deep [(body)]]
+    if body [bind body :dispatcher]
+	this: compose/deep [all [(cond)] [(body)]]
 	case [
         all [not cond not body not empty? penultimo][remove/part penultimo 2]   ; remove catch-all rule (if exists)
         all [not body mark: find/only cases cond][remove/part back mark 3]      ; remove rule (if exists)
