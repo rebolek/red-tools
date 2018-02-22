@@ -1,7 +1,6 @@
 Red[
-    Title: "UFCS dialect"
+    Title: "Various function! related tools"
     Author: "Boleslav Březovský"
-    Purpose: "Provide kind of Unified Fuction Call Syntax for Red"
 ]
 
 actions: has [
@@ -63,10 +62,11 @@ refinements?: func [
 ; --- unified function call syntax ---------------------------------------------
 
 ufcs: func [
-    "Apply actions to given series"
+    "Apply functions to given series"
     series  [series!]       "Series to manipulate"
     dialect [block!]        "Block of actions and arguments, without first argument (series defined above)"
     /local result action args code arity refs ref-stack refs?
+    ; TODO: rewrite the dialect to  use `apply`-like system (e.g `enbase /base 16` instead of `enbase base 16`)
 ][
     result: none
     code: []
@@ -97,7 +97,7 @@ ufcs: func [
         append/only code action 
         append/only code series
         unless empty? ref-stack [append code ref-stack]
-        do code
+        series: do code
         empty? dialect
     ]
     series
