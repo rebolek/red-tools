@@ -66,7 +66,6 @@ ufcs: func [
     series  [series!]       "Series to manipulate"
     dialect [block!]        "Block of actions and arguments, without first argument (series defined above)"
     /local result action args code arity refs ref-stack refs?
-    ; TODO: rewrite the dialect to  use `apply`-like system (e.g `enbase /base 16` instead of `enbase base 16`)
 ][
     result: none
     code: []
@@ -101,6 +100,17 @@ ufcs: func [
         empty? dialect
     ]
     series
+]
+
+ufc: function [
+    "Apply functions to given series"
+    data    [series!] "Series to manipulate"
+    dialect [block!]  "Block of actions and arguments, without first argument (series defined above)"
+][
+    foreach [cmd args] dialect [
+        data: apply get cmd head insert/only args data
+    ]
+    data
 ]
 
 ; --- apply function -----------------------------------------------------------
