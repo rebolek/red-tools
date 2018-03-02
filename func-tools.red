@@ -18,6 +18,14 @@ actions: has [
     result
 ]
 
+op: func [
+    "Defines op! with given spec and body"
+    spec [block!]
+    body [block!]
+][
+    make op! func spec body
+]
+
 ; --- get arity and refinements ------------------------------------------------
 
 arity?: func [
