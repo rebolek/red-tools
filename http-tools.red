@@ -157,7 +157,7 @@ make-url: function [
 				set value set-word! (append args rejoin [form value #"="])
 				set value [any-word! | any-string! | number!] (
 					if word? value [value: get :value]
-					append args rejoin [value #"&"]
+					append args rejoin [percent/encode value #"&"]
 				)
 			]
 		]
