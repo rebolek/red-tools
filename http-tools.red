@@ -304,7 +304,7 @@ percent: context [
 	reserved-chars: union charset "!*'();:@&=+$,/?#[]" charset "%" ; RFCs are stupid
 	unreserved-chars: charset [#"A" - #"Z" #"a" - #"z" #"0" - #"9" "-_.~"]
 	encode: function [
-		string [string!]
+		string [any-string!]
 	] [
 		value: none
 		chars: unreserved-chars
