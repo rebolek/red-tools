@@ -142,6 +142,20 @@ apply: func [
     do compose [(make path! head insert refs 'fn) (vals)]
 ]
 
+map: func [
+	"Apply code over block of values"
+	data
+	code
+	/local f
+][
+	data: copy data
+	f: get take code
+	forall data [
+		data/1: apply :f compose [(first data) (code)]
+	]
+	data
+]
+
 ; --- make default value of given type -----------------------------------------
 
 make-type: func [
@@ -260,3 +274,4 @@ dispatch: func [
 	]
 	:dispatcher
 ]
+
