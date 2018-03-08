@@ -156,6 +156,21 @@ map: func [
 	data
 ]
 
+map-each: func [
+    'word
+    series
+    code
+][
+    collect [
+        until [
+            set :word first series
+            keep do code
+            series: next series
+            tail? series
+        ]
+    ]
+]
+
 ; --- make default value of given type -----------------------------------------
 
 make-type: func [
