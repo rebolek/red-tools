@@ -5,6 +5,7 @@ Red[
 ]
 
 do %xml.red
+do %http-tools.red
 
 foreach-node: func [
 	data
@@ -86,8 +87,8 @@ get-text: function [
 ]
 
 show-h: does [
-	page: xml-lite/decode read http://www.red-lang.org
-	headings: select-by-class page "post-title"
+	page: xml/decode read http://www.red-lang.org
+	headings: select-by page "post-title" 'class
 	foreach [t c a] headings [print c/a/2]
 ]
 
@@ -99,8 +100,8 @@ google: func [value] [
 	debug "Decoding page"
 	page: load-non-utf page
 	debug "Page read"
-	page: xml-lite/decode page
-	results: select-by-tag page 'h3
+	page: xml/decode page
+	results: select-by page 'h3 'tag
 	result: collect [
 		foreach [t c a] results [keep reduce [get-text c/a rejoin [http://www.google.com select c/3 "href"]]]
 	]
