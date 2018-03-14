@@ -1,6 +1,12 @@
 Red[
     Title: "Various function! related tools"
     Author: "Boleslav Březovský"
+    Note: {
+For details about these functions, see my articles:
+
+`apply`, `ufc` - http://red.qyz.cz/apply-and-ufcs.html
+`dispatcher`   - http://red.qyz.cz/pattern-matching.html
+}
 ]
 
 actions: has [
