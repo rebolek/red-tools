@@ -193,10 +193,12 @@ send-request: function [
 ] [
 	if verbose [
 		print ["SEND-REQUEST to" link ", method:" method]
+		print ["header:" mold args]
 	]
 	header: copy #() ; NOTE: CLEAR causes crash later!!! 
 	if with [extend header args]
 	if auth [
+		if verbose [print [auth-type mold auth-data]]
 		switch auth-type [
 			Basic [
 				extend header compose [
@@ -214,15 +216,20 @@ send-request: function [
 			]
 		]
 	]
-	data: reduce [method body-of header]
+	; Make sure all values are strings
+	body: body-of header
+	forall body [body: next body body/1: form body/1]
+	data: reduce [method body]
 ;	if content [append data content]
-	unless content [content: ""]
+	if any [
+		not content
+		method = 'GET
+	] [content: ""]
 	append data content
 	if verbose [
 		print [
 			"Link:" link newline
 			"Data:" mold data newline
-			"print here"
 		]
 	]
 	reply: write/info link data
