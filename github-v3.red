@@ -58,6 +58,7 @@ send: func [
 	link: make-url compose [https://api.github.com/ (data)]
 	header: [
 		Accept: "application/vnd.github.v3+json"
+		User-Agent: "Red-GitHub-API-v3"
 	]
 	unless equal? 'GET req-type [
 		insert header [
