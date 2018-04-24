@@ -16,11 +16,15 @@ do %json.red
 do %http-tools.red
 
 cloudflare!: context [
+    ; user settings
     api-key: none
     email: none
 
+    ; support
     reply: none ; reply from server
+    zone-cache: none
 
+    ; main function
     send: func [
         link
         /local method header
@@ -37,8 +41,11 @@ cloudflare!: context [
         self/reply/data
     ]
 
+    ; API implementation
     get-zones: func [][
+        ; TODO: Pagination
         self/send %zones
+        zone-cache: copy self/reply/data/result
     ]
 
     make-dns-record: func [
