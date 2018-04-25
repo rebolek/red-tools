@@ -296,3 +296,33 @@ dispatch: func [
 	:dispatcher
 ]
 
+; --- function constructors --------------------------------------------
+
+dfunc: func [
+    "Define function with default values for local words"
+    spec
+    body
+][
+    ; format for default values is [set-word: value] after /local refinement
+    ; it's possible to mix normal words (without default value) and set-words
+    local: copy []
+    locals: copy #()
+    if mark: find spec /local [
+        parse next mark [
+            some [
+                set word set-word!
+                set value skip (
+                    append local to word! word
+                    locals/:word: value
+                )
+            |   set word word! (append local word)
+            ]
+        ]
+        remove/part mark length? mark
+        append spec compose [/local (local)]
+        foreach word words-of locals [
+            insert body reduce [to set-word! word locals/:word]
+        ]
+    ]
+    func spec body
+]
