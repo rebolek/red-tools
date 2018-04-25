@@ -41,11 +41,43 @@ cloudflare!: context [
         self/reply/data
     ]
 
-    ; API implementation
+    ; --- support functions
+
+    id?: func [
+        "Return TRUE when string is ID"
+        string
+        /local hexa
+    ][
+        hexa: charset [#"a" - #"f" #"0" - #"9"]
+        parse string [32 hexa]
+    ]
+
+    get-zone-id: func [
+        name
+    ][
+        foreach zone self/zone-cache [
+            if equal? name zone/name [return zone/id]
+        ]
+        none
+    ]
+
+    ; --- API implementation
+
     get-zones: func [][
         ; TODO: Pagination
         self/send %zones
-        zone-cache: copy self/reply/data/result
+        self/zone-cache: copy self/reply/data/result
+    ]
+
+    list-dns-records: func [
+        zone
+    ][
+        unless id? zone [
+            if empty? self/zone-cache [get-zones]
+            zone: self/get-zone-id zone
+        ]
+        self/send rejoin [%zones/ zone "/dns_records"]
+        self/reply/data/result
     ]
 
     make-dns-record: func [
