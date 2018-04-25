@@ -62,7 +62,7 @@ cloudflare!: context [
     get-zone-id: func [
         name
     ][
-        either self/id? name [
+        either self/id? probe name [
             return name
         ][
             if empty? self/zone-cache [self/get-zones]
@@ -135,19 +135,17 @@ cloudflare!: context [
         name 
         content
         ; TODO: optional args
+        /local id
     ][
-
-comment {
+        id: self/get-dns-record-id zone name
         zone: self/get-zone-id zone
-        self/send/with rejoin [%zones/ zone "/dns_records"] 'POST json/encode make map! compose [
+        self/send/with rejoin [%zones/ zone "/dns_records/" :id] 'PUT json/encode make map! compose [
             type: (type)
             name: (name)
             content: (content)
         ]
-}
     ]
 ]
-
 
 test: [
     opt: load %cloudflare-options.red
