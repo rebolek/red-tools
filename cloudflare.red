@@ -145,6 +145,13 @@ cloudflare!: context [
             content: (content)
         ]
     ]
+
+    delete-dns-record: func [
+        zone
+        name
+    ][
+        ; TODO: DELETE method is missing currently
+    ]
 ]
 
 test: [
