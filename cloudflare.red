@@ -23,6 +23,7 @@ cloudflare!: context [
     ; support
     reply: none ; reply from server
     zone-cache: none
+    dns-cache: #()
 
     ; main function
     send: func [
@@ -62,12 +63,37 @@ cloudflare!: context [
         name
     ][
         either self/id? name [
-            name
+            return name
         ][
             if empty? self/zone-cache [self/get-zones]
             foreach zone self/zone-cache [
                 if equal? name zone/name [return zone/id]
             ]
+        ]
+        none
+    ]
+
+    get-zone-name: func [zone-id][
+        foreach zone self/zone-cache [
+            if equal? zone-id zone/id [return zone/name]
+        ]
+    ]
+
+    get-dns-record-id: func [
+        zone
+        name
+        /local zone-name records
+    ][
+        ; prepare caches
+        zone: self/get-zone-id zone
+        zone-name: self/get-zone-name zone
+        if empty? words-of self/dns-cache [self/list-dns-records zone]
+        ;  make sure that name contains zone name
+        unless find name zone-name [name: rejoin [name dot zone-name]]
+        ; find record ID
+        records: select self/dns-cache zone
+        foreach record records [
+            if equal? name record/name [return record/id]
         ]
         none
     ]
@@ -85,7 +111,7 @@ cloudflare!: context [
     ][
         zone: self/get-zone-id zone
         self/send rejoin [%zones/ zone "/dns_records"]
-        self/reply/data/result
+        self/dns-cache/:zone: self/reply/data/result
     ]
 
     make-dns-record: func [
@@ -101,6 +127,24 @@ cloudflare!: context [
             name: (name)
             content: (content)
         ] 
+    ]
+
+    update-dns-record: func [
+        zone
+        type 
+        name 
+        content
+        ; TODO: optional args
+    ][
+
+comment {
+        zone: self/get-zone-id zone
+        self/send/with rejoin [%zones/ zone "/dns_records"] 'POST json/encode make map! compose [
+            type: (type)
+            name: (name)
+            content: (content)
+        ]
+}
     ]
 ]
 
