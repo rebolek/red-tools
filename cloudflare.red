@@ -27,16 +27,22 @@ cloudflare!: context [
     ; main function
     send: func [
         link
-        /local method header
+        /with method data
+        /local header
     ][
         link: rejoin [base-url link]
-        method: 'GET
+        method: any [method 'GET]
         header: make map! compose [
             X-Auth-Key: (form self/api-key)
             X-Auth-Email: (form self/email)
             ; TODO: X-Auth-User-Service-Key
         ]
-        self/reply: send-request/with link method header
+        self/reply: either equal? method 'get [
+            send-request/with link method header
+        ] [
+            header/Content-Type: "application/json"
+            send-request/with/data link method header data
+        ]
         ; TODO: error handling
         self/reply/data
     ]
@@ -55,8 +61,13 @@ cloudflare!: context [
     get-zone-id: func [
         name
     ][
-        foreach zone self/zone-cache [
-            if equal? name zone/name [return zone/id]
+        either self/id? name [
+            name
+        ][
+            if empty? self/zone-cache [self/get-zones]
+            foreach zone self/zone-cache [
+                if equal? name zone/name [return zone/id]
+            ]
         ]
         none
     ]
@@ -72,21 +83,24 @@ cloudflare!: context [
     list-dns-records: func [
         zone
     ][
-        unless id? zone [
-            if empty? self/zone-cache [get-zones]
-            zone: self/get-zone-id zone
-        ]
+        zone: self/get-zone-id zone
         self/send rejoin [%zones/ zone "/dns_records"]
         self/reply/data/result
     ]
 
     make-dns-record: func [
+        zone
         type 
         name 
         content
         ; TODO: optional args
     ][
-;        self/send
+        zone: self/get-zone-id zone
+        self/send/with rejoin [%zones/ zone "/dns_records"] 'POST json/encode make map! compose [
+            type: (type)
+            name: (name)
+            content: (content)
+        ] 
     ]
 ]
 
