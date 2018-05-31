@@ -46,6 +46,7 @@ do: func [
 		color-rule
 		style-rule
 ][
+	append data 'reset
 	color-rule: compose/deep [
 		set type ['fg | 'bg]
 		set value [(colors-list)]
