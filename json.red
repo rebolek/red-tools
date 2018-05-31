@@ -20,11 +20,12 @@ json: context [
 
 	null-value:	none ; NOTE: Change this, if you prefer something else than NONE
 	conversion?: no  ; EXPERIMENTAL: For numbers in quotes, load them
+	pretify?: yes
 
 	load-str: func [
-		"Return word if possible, leave untouched when not" 
+		"Return word if possible, leave untouched when not"
 		str
-		/local out 
+		/local out
 	] [
 		if error? try [out: load str] [out: str]
 		out
@@ -53,10 +54,10 @@ json: context [
 		]
 		parse new rule
 		all [
-			conversion? 
+			conversion?
 			number? loaded: try [load new]
 			new: loaded
-		] 
+		]
 		new
 	]
 
@@ -79,7 +80,7 @@ json: context [
 		parse start rule
 		append buffer #"^""
 	]
-		
+
 	value: [
 		string		keep (decode-str s e)
 	|	number		keep (load copy/part s e)
@@ -91,31 +92,31 @@ json: context [
 	]
 
 	number: [
-		s: opt #"-" 
-		some digit 
-		opt [dot some digit opt [exponent sign 1 3 digit]] 
+		s: opt #"-"
+		some digit
+		opt [dot some digit opt [exponent sign 1 3 digit]]
 		e:
 	]
-	
+
 	string: [
-		dbl-quote 
+		dbl-quote
 		; TODO: check if any unicode conversion needs to be done here
-		s: any [#"\" [quoted-char | #"u" 4 hexa] | dbl-quote break | skip] 
+		s: any [#"\" [quoted-char | #"u" 4 hexa] | dbl-quote break | skip]
 		e:
 	]
-	
+
 	couple: [ws string keep (load-str decode-str s e) ws #":" ws value ws]
-	
+
 	object-rule: [
-		#"{" 
-		collect set list opt [any [couple #","] couple] ws #"}" 
+		#"{"
+		collect set list opt [any [couple #","] couple] ws #"}"
 		keep (make map! list)
 	]
-	
+
 	array: [#"[" collect opt [ws value any [ws #"," ws value]] ws #"]"]
-	
+
 	decode: function [
-		data [string!] 
+		data [string!]
 		return: [block! object!]
 	][
 		output: parse data [collect any [blank | object-rule | array | value]]
@@ -123,7 +124,7 @@ json: context [
 	]
 
 	encode-into: function [
-		data [any-type!] 
+		data [any-type!]
 		buffer [string!]
 	][
 		case [
@@ -166,7 +167,7 @@ json: context [
 	]
 
 	encode: function [
-		data 
+		data
 		return: [string!]
 	][
 		buffer: make string! 1000
