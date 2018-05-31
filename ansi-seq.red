@@ -1,5 +1,20 @@
 Red [
-	To-Do: "Write dialect that will be converted to `print-seq` format"
+	Title: "Ansi sequence dialect"
+	Author: "Boleslav Březovský"
+	Usage: {
+CLS       - clear screen
+AT pair!  - put curspor at position
+FG word!  - set foregroud to color
+BG word!  - set background to color
+BOLD      - set bold style
+ITALIC    - set italic style
+UNDERLINE - set underline style
+UP        - move cursor up
+DOWN      - move cursor down
+LEFT      - move cursor left
+RIGHT     - move cursor right
+RESET     - reset all styles
+	}
 ]
 
 ansi: context [
