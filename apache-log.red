@@ -73,8 +73,9 @@ parse-logs: func [
 		data: to string! decompress read/binary rejoin [dir %access.log. maximum %.gz]
 		append result parse-log data
 		maximum: maximum - 1
-		zero? maximum
+		1 = maximum
 	]
+	append result parse-log read rejoin [dir %access.log.1]
 	append result parse-log read rejoin [dir %access.log]
 	result
 ]
@@ -100,7 +101,7 @@ parse-line: func [
 		copy identd to space skip (identd: load identd)
 		copy userid to space skip (userid: load userid)
 		copy date thru #"]" skip (date: parse-apache-time date)
-		skip copy request to #"^"" 2 skip ; TODO: split request to [method address version] or smt like that
+		skip copy request to {" } 2 skip ; TODO: split request to [method address version] or smt like that
 		copy status to space skip (status: to integer! status)
 		copy size to space skip (size: to integer! size)
 		copy referrer to space skip (referrer: load referrer)
