@@ -50,6 +50,7 @@ parse-log: func [
 	log [string!]
 	/local result
 ][
+	result: copy []
 	log: split log newline
 	foreach line log [
 		append result parse-line line
