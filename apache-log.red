@@ -48,7 +48,7 @@ parse-apache-time: func [
 
 parse-logs: func [
 	dir
-	/local result file files maximum
+	/local result file files maximum id data
 ][
 	result: copy []
 	files: read dir
@@ -63,7 +63,7 @@ parse-logs: func [
 	maximum: 0
 	; find max ID
 	foreach file files [
-		id: to integer! third parse file
+		id: to integer! third split file dot
 		if id > maximum [maximum: id]
 	]
 	until [
