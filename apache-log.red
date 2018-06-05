@@ -70,8 +70,9 @@ parse-logs: func [
 		data: decompress read/binary rejoin [dir %access.log. maximum %.gz]
 		append result parse-log data
 		maximum: maximum - 1
-		zero? maximum
+		1 = maximum
 	]
+	append result parse-log read/binary rejoin [dir %access.log.1]
 	append result parse-log read/binary rejoin [dir %access.log]
 	result
 ]
