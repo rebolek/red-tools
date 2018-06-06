@@ -27,6 +27,7 @@ print-seq: func [
 	"Print combination of text and ANSI sequences"
 	data [block!] "Block of binary! and string! values"
 ][
+	set 't data
 	foreach value data [
 		switch type?/word value [
 			string! [prin value]
@@ -36,7 +37,7 @@ print-seq: func [
 ]
 
 set-position: func [position][
-	rejoin [esc-main form position/x #";" form position/y #"H"]
+	rejoin [esc-main form position/y #";" form position/x #"H"]
 ]
 
 demo: does [
@@ -56,7 +57,7 @@ colors-list: as-rule colors
 
 do: func [
 	data
-	/local value type
+	/local type value
 		move-rule
 		color-rule
 		style-rule
@@ -92,12 +93,56 @@ do: func [
 			|   move-rule
 			|   color-rule
 
-			|   'at set value pair! keep (probe set-position value)
+			|   'at set value pair! keep (set-position value)
 		;    |    set type ['fg | 'bg] set value word! keep (set-color type value)
-			|   keep string!
+			|   keep [string! | char!]
 			]
 		]
 	]
+]
+
+vline: func [
+	pos
+	height
+][
+	collect [
+		repeat i height [
+			keep reduce ['at pos + (i * 0x1) "│"]
+		]
+	]
+]
+
+tui: func [
+	data
+	/local cmd value stack
+		box-rule
+][
+	stack: []
+	dialect: clear []
+	box-rule: [
+		(clear stack)
+		'box
+		set value pair! (append stack value)
+		set value pair! (append stack value)
+		(
+			width: stack/2/x - stack/1/x - 1
+			height: stack/2/y - stack/1/y - 1
+			repend dialect ['at stack/1 + 1x0 append/dup copy "" #"─" width] 	; top line
+			repend dialect ['at stack/1 + (height + 1 * 0x1) + 1x0 append/dup copy "" #"─" width] 	; bottom line
+			append dialect vline probe stack/1 height
+			append dialect vline stack/1 + 1x0 + (width * 1x0) height
+			repend dialect ['at stack/1 "┌"] 							; top-left copner
+			repend dialect ['at stack/1 + (width + 1 * 1x0) "┐"]		; top-right corner
+			repend dialect ['at stack/1 + (height + 1 * 0x1) "└"]		; bottom-left copner
+			repend dialect ['at stack/2 "┘"] 							; bottom-right copner
+		)
+	]
+	parse data [
+		some [
+			box-rule
+		]
+	]
+	dialect
 ]
 
 ; -- end of context
