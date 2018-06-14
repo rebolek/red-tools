@@ -221,8 +221,14 @@ make-commit: func [
 
 get-commits: func [
 	repo [path!] "Repository in format owner/repo"
+	/page "Get different page (first by default)"
+		page-id
 ] [
-	send [%repos repo %commits]
+	link: [%repos repo %commits]
+	if page [
+		append/only link compose [page: (page-id)]
+	]
+	send link
 ]
 
 ; --- TREES ---
