@@ -378,27 +378,24 @@ get-issues: function [
 		filter
 ] [
 	count: none
-	filter: copy []
 	link: copy case [
 		user 	[[%issues]]
 		org 	[[%orgs org-name %issues]]
 		repo 	[[%repos repo-name %issues]]
 		true 	[[%user %issues]]
 	]
-	either page [
+	if page [
 		append/only link compose [page: (page-id)]
-	] [
-		insert head filter '?
 	]
-	if with [append link filter]
+	if with [append/only link filter]
 	ret: send/full link
 
 	either total [
-		parse ret/2/link [thru "next" thru "page=" copy count to #">"]
+		; FIXME: this doesn't work at all
+		parse ret/link [thru "next" thru "page=" copy count to #">"]
 		to integer! count
 	] [
-	;	third ret
-		response/data
+		ret/data
 	]
 ]
 
