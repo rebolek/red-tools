@@ -386,7 +386,7 @@ get-issues: function [
 		true 	[[%user %issues]]
 	]
 	either page [
-		append link compose [? page: (page-id)]
+		append/only link compose [page: (page-id)]
 	] [
 		insert head filter '?
 	]
