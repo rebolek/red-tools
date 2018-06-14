@@ -398,7 +398,7 @@ get-issues: function [
 		to integer! count
 	] [
 	;	third ret
-		response
+		response/data
 	]
 ]
 
