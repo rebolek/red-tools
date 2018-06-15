@@ -106,7 +106,6 @@ get-aoiltf: func [
 				authors/:author: reduce [id]
 			]
 		]
-
 	]
 	authors
 ]

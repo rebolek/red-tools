@@ -129,7 +129,7 @@ tui: func [
 			height: stack/2/y - stack/1/y - 1
 			repend dialect ['at stack/1 + 1x0 append/dup copy "" #"─" width] 	; top line
 			repend dialect ['at stack/1 + (height + 1 * 0x1) + 1x0 append/dup copy "" #"─" width] 	; bottom line
-			append dialect vline probe stack/1 height
+			append dialect vline stack/1 height
 			append dialect vline stack/1 + 1x0 + (width * 1x0) height
 			repend dialect ['at stack/1 "┌"] 							; top-left copner
 			repend dialect ['at stack/1 + (width + 1 * 1x0) "┐"]		; top-right corner
@@ -137,9 +137,13 @@ tui: func [
 			repend dialect ['at stack/2 "┘"] 							; bottom-right copner
 		)
 	]
+	pass-rule: [
+		set value skip (append dialect value)
+	]
 	parse data [
 		some [
 			box-rule
+		|	pass-rule
 		]
 	]
 	dialect
