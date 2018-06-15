@@ -1,7 +1,22 @@
 Red[]
 
-query: func [
+select-deep: func [
+	series
+	value
+][
+	either word? value [
+		select series value
+	][
+		; path
+		foreach elem value [
+			series: select series elem
+		]
+	]
+]
+
+qobom: func [
 	"Simple query dialect for filtering messages"
+	data
 	dialect
 	/local
 		name-rule room-rule match-rule
@@ -10,27 +25,35 @@ query: func [
 	conditions: clear []
 	value: none
 
-	name-rule: ['name ['is | '=] set value string! (
-		append conditions compose [equal? message/fromUser/username (value)]
-	)]
-	room-rule: ['room ['is | '=] set value string! (
-		append conditions compose [equal? message/room-name (value)]
-	)]
-	match-rule: [set value string!(
-		append conditions compose [find message/text (value)]
-	)]
+	col-rule: [
+		set column [lit-word! | lit-path!]
+		['is | '=]
+		set value skip (
+			append conditions compose [
+				equal? select-deep item (column) (value)
+			]
+		)
+	]
+	match-rule: [
+		set column [lit-word! | lit-path!]
+		'contains
+		set value skip (
+			append conditions compose [
+				find select-deep item (column) (value)
+			]
+		)
+	]
 
 	parse dialect [
 		some [
-			name-rule
-		|	room-rule
+			col-rule
 		|	match-rule
 		]
 	]
 
 	collect [
-		foreach message messages [
-			if all conditions [keep message]
+		foreach item data [
+			if all conditions [keep item]
 		]
 	]
 ]
