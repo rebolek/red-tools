@@ -67,6 +67,7 @@ send: func [
 		request: json/encode request
 	]
 	response: send-request/data/with/auth link method request header 'Basic reduce [form user pass]
+	unless equal? response/code 200 [do make error! response/data/message]
 	either full [response] [response/data]
 ]
 
@@ -209,7 +210,7 @@ make-commit: func [
 	message
 	tree
 	parents
-	; TODO: optional args author and commiter
+	; TODO: optional args author and committer
 ] [
 	unless block? parents [parents: reduce [parents]]
 	send/method [%repos repo %git %commits] 'POST make map! reduce [
@@ -598,26 +599,6 @@ load-gist: function [
 	load select select gist first keys-of gist 'content
 ]
 
+; Try to load settings, if exists
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+if exists? %github-options.red [do %github-options.red]
