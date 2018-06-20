@@ -1,4 +1,11 @@
-Red[]
+Red[
+	Title: "QOBOM - Query over block of maps"
+	Author: "Boleslav Březovský"
+	Usage: {
+<column> is <value>
+<column> contains <value>
+	}
+]
 
 select-deep: func [
 	series
@@ -34,7 +41,7 @@ qobom: func [
 			]
 		)
 	]
-	match-rule: [
+	find-rule: [
 		set column [lit-word! | lit-path!]
 		'contains
 		set value skip (
@@ -43,10 +50,21 @@ qobom: func [
 			]
 		)
 	]
+	match-rule: [
+		set column [lit-word! | lit-path!]
+		'matches
+		set value skip (
+			append conditions compose/deep [
+				parse select-deep item (column) [(value)]
+			]
+		)
+	]
+
 
 	parse dialect [
 		some [
 			col-rule
+		|	find-rule
 		|	match-rule
 		]
 	]
