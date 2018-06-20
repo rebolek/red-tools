@@ -64,7 +64,7 @@ qobom: func [
 	keep-rule: [
 		; TODO: support multiple selectors
 		'keep
-		set selector [lit-word! | lit-path!]
+		set selector [block! | lit-word! | lit-path!]
 		'where
 	]
 
@@ -80,7 +80,15 @@ qobom: func [
 	collect [
 		foreach item data [
 			if all conditions [
-				keep either selector [select-deep item to path! selector][item]
+				keep switch type?/word selector [
+					none! [item]
+					lit-word! lit-path! [select-deep item to path! selector]
+					block! [
+						collect [
+							foreach key selector [keep select-deep item to path! key]
+						]
+					]
+				]
 			]
 		]
 	]
