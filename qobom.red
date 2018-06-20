@@ -2,8 +2,10 @@ Red[
 	Title: "QOBOM - Query over block of maps"
 	Author: "Boleslav Březovský"
 	Usage: {
+keep <column> where
 <column> is <value>
 <column> contains <value>
+<column> matches <parse rule>
 	}
 ]
 
@@ -25,9 +27,9 @@ qobom: func [
 	"Simple query dialect for filtering messages"
 	data
 	dialect
-	/local
-		name-rule room-rule match-rule
-		value
+;	/local
+;		name-rule room-rule match-rule
+;		conditions value selector
 ][
 	conditions: clear []
 	value: none
@@ -59,9 +61,15 @@ qobom: func [
 			]
 		)
 	]
-
+	keep-rule: [
+		; TODO: support multiple selectors
+		'keep
+		set selector [lit-word! | lit-path!]
+		'where
+	]
 
 	parse dialect [
+		opt keep-rule
 		some [
 			col-rule
 		|	find-rule
@@ -71,7 +79,9 @@ qobom: func [
 
 	collect [
 		foreach item data [
-			if all conditions [keep item]
+			if all conditions [
+				keep either selector [select-deep item to path! selector][item]
+			]
 		]
 	]
 ]
