@@ -66,7 +66,7 @@ send: func [
 		]
 		request: json/encode request
 	]
-	response: send-request/data/with/auth link method request header 'Basic reduce [user pass]
+	response: send-request/data/with/auth link method request header 'Basic reduce [form user pass]
 	either full [response] [response/data]
 ]
 
@@ -104,7 +104,7 @@ comment {
 
 	make-gist %my-script.red "Super thing" ; loads %my-script.red
 
-	}	
+	}
 
 ; --- GIST ---
 
@@ -114,7 +114,7 @@ comment {
     List a user's gists 				- GET-GISTS
     List all public gists 				- N/A
     List starred gists 					- N/A
-    Get a single gist 					- GET-GIST 
+    Get a single gist 					- GET-GIST
     Get a specific revision of a gist 	- GET-GIST/REVISION
     Create a gist 						- MAKE-GIST
     Edit a gist 						- MAKE-GIST/UPDATE
@@ -170,7 +170,7 @@ make-gist: func [
 	]
 
 	link: either update [reduce [%gists id]] [%gist]
-	send/method link 'POST gist 
+	send/method link 'POST gist
 	; TODO: error handling
 	response/id
 ]
@@ -183,7 +183,7 @@ get-git-forks: func [id] [send [%gists id %forks]]
 
 ; --- COMMITS ---
 
-comment {	
+comment {
     Get a Commit 					- GET-COMMIT
     Create a Commit  				- MAKE-COMMIT
     Commit signature verification 	- N/A
@@ -221,13 +221,19 @@ make-commit: func [
 
 get-commits: func [
 	repo [path!] "Repository in format owner/repo"
+	/page "Get different page (first by default)"
+		page-id
 ] [
-	send [%repos repo %commits]
+	link: [%repos repo %commits]
+	if page [
+		append/only link compose [page: (page-id)]
+	]
+	send link
 ]
 
 ; --- TREES ---
 
-comment {	
+comment {
     Get a Tree 				- GET-TREE
     Get a Tree Recursively	- GET-TREE/DEEP
     Create a Tree 			- MAKE-TREE
@@ -269,7 +275,7 @@ get-blob: func [
 
 make-blob: func [
 	repo [path!] 	"Repository in format owner/repo"
-	content 		
+	content
 	/encoding 		"Select encoding: base-64 or utf8 (default)"
 		enc-type
 ] [
@@ -296,7 +302,7 @@ make-reference: function [
 update-reference: function [
 	repo [path!] 	"Repository in format owner/repo"
 	name [path!]	"Reference in format heads/branch"
-	sha	
+	sha
 	/force
 ] [
 ;PATCH /repos/:owner/:repo/git/refs/:ref
@@ -314,7 +320,7 @@ get-reference: function [
 	/all
 ] [
 ;GET /repos/:owner/:repo/git/refs/heads/skunkworkz/featureA
-; GET /repos/:owner/:repo/git/refs	
+; GET /repos/:owner/:repo/git/refs
 	send either all [
 		[%repos repo %git %refs]
 	] [
@@ -322,7 +328,7 @@ get-reference: function [
 	]
 ]
 
-; --- 
+; ---
 
 comment {
     List issues 					- GET-ISSUES
@@ -376,29 +382,26 @@ get-issues: function [
 		page-id
 	/with ; TODO
 		filter
-] [ 
+] [
 	count: none
-	filter: copy []
 	link: copy case [
 		user 	[[%issues]]
 		org 	[[%orgs org-name %issues]]
 		repo 	[[%repos repo-name %issues]]
 		true 	[[%user %issues]]
 	]
-	either page [
-		append link compose [? page: (page-id)]
-	] [
-		insert head filter '?
+	if page [
+		append/only link compose [page: (page-id)]
 	]
-	if with [append link filter]
+	if with [append/only link filter]
 	ret: send/full link
 
 	either total [
-		parse ret/2/link [thru "next" thru "page=" copy count to #">"] 
+		; FIXME: this doesn't work at all
+		parse ret/link [thru "next" thru "page=" copy count to #">"]
 		to integer! count
 	] [
-	;	third ret
-		response
+		ret/data
 	]
 ]
 
@@ -490,14 +493,14 @@ comment {
 		type 			string 	Can be one of all, owner, public, private, member. Default: all
 								Will cause a 422 error if used in the same request as visibility or affiliation.
 		sort 			string 	Can be one of created, updated, pushed, full_name. Default: full_name
-		direction 		string 	Can be one of asc or desc. Default: when using full_name: asc; otherwise desc	
+		direction 		string 	Can be one of asc or desc. Default: when using full_name: asc; otherwise desc
 
 }
 
 get-repos: function [
 
 ] [
-	
+
 ]
 
 get-repo: function [
@@ -526,7 +529,7 @@ find-file: function [
 		all [
 			equal? "blob" obj/type
 			equal? form file obj/path
-			return obj	
+			return obj
 		]
 	]
 ]
@@ -536,7 +539,7 @@ commit: func [
 	files
 	message
 ] [
-{	
+{
     1. get the current commit object
     2. retrieve the tree it points to
     3. retrieve the content of the blob object that tree has for that particular file path
@@ -550,7 +553,7 @@ commit: func [
 	; -- 1. get the current commit object
 	; TODO: should be done by PULL
 	commits: list-commits repo
-	_commit: first commits ; I hope order is guaranteed 
+	_commit: first commits ; I hope order is guaranteed
 	; -- 2. retrieve the tree it points to
 	tree: get-tree repo _commit/commit/tree/sha
 
@@ -568,7 +571,7 @@ commit: func [
 	; -- 5. post a new tree object with that file path pointer replaced with your new blob SHA getting a tree SHA back
 	tree/base_tree: tree/sha
 	tree/sha: none
-	tree/url: none	
+	tree/url: none
 	tree: make-tree repo tree
 	; -- 6. create a new commit object with the current commit SHA as the parent and the new tree SHA, getting a commit SHA back
 	new-commit: make-commit repo message tree/sha _commit/sha
