@@ -56,6 +56,7 @@ qobom: func [
 		set column [lit-word! | lit-path!]
 		'matches
 		set value skip (
+			append value [to end]
 			append conditions compose/deep [
 				parse select-deep item (column) [(value)]
 			]
