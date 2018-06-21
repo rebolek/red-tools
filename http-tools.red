@@ -145,6 +145,8 @@ make-url: function [
 	"Make URL from simple dialect"
 	data
 ] [
+	; preprocess (NOTE: support object! too?)
+	forall data [if map? data/1 [data/1: to block! data/1]] ; this can be probably simplified to change only last value in data
 	; this is basically like to-url, with some exceptions:
 	; WORD! - gets value
 	; BLOCK! - treated as key/value storage
