@@ -2,6 +2,21 @@ Red[]
 
 do %github-v3.red
 do %github-options.red
+do %qobom.red
+
+; --- support
+
+numbers: charset "0123456789"
+
+; --- loading functions
+
+init: does [
+	issues: get-issues
+	commits: get-commits
+	; Cache downloaded data
+	save %issues.red issues
+	save %commits.red commits
+]
 
 get-issues: func [
 	/local page issues repo
@@ -15,7 +30,7 @@ get-issues: func [
 	pages: page/1/number / 30
 	append issues page
 	repeat page pages [
-		print ["page" page]
+		print ["Issues - page" page #"/" pages]
 		append issues github/get-issues/repo/page/with repo page + 1 [state: 'all]
 	]
 	issues
@@ -28,7 +43,8 @@ get-commits: func [
 	page: 1
 	repo: 'red/red
 	until [
-		data: github/get-commits/page repo probe page
+		data: github/get-commits/page repo page
+		print ["Commits - page" page]
 		append commits data
 		page: page + 1
 		empty? data
@@ -69,13 +85,19 @@ get-fixes: func [
 	/local fixes
 ][
 	fixes: copy []
-	numbers: charset "0123456789"
 	foreach commit commits [
 		issue: none
 		parse commit/commit/message [thru #"#" copy issue some numbers]
 		if issue [repend fixes [issue commit]]
 	]
 	fixes
+]
+
+qget-fixes: func [
+	"Return commits that are fixes to issues (message contains #XXXX)"
+	commits
+][
+	qobom commits ['commit/message matches [thru #"#" some numbers to end]]
 ]
 
 get-issue-by-number: func [
@@ -106,7 +128,6 @@ get-aoiltf: func [
 				authors/:author: reduce [id]
 			]
 		]
-
 	]
 	authors
 ]
