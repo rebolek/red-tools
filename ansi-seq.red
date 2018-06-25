@@ -29,10 +29,9 @@ print-seq: func [
 ][
 	set 't data
 	foreach value data [
-		switch type?/word value [
-			string! [prin value]
+		switch/default type?/word value [
 			binary! [print-esc value]
-		]
+		][prin value]
 	]
 ]
 
