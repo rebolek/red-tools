@@ -48,7 +48,7 @@ parse-apache-time: func [
 
 parse-logs: func [
 	dir
-	/local result file files maximum id data
+;	/local result file files maximum id data
 ][
 	result: copy []
 	files: read dir
@@ -63,17 +63,20 @@ parse-logs: func [
 	maximum: 0
 	; find max ID
 	foreach file files [
-		id: to integer! third split file dot
-		if id > maximum [maximum: id]
+		all [
+			id: third split file dot
+			id: try [to integer! id]
+			if id > maximum [maximum: id]
+		]
 	]
 	until [
-		data: decompress read/binary rejoin [dir %access.log. maximum %.gz]
+		data: to string! decompress read/binary rejoin [dir %access.log. maximum %.gz]
 		append result parse-log data
 		maximum: maximum - 1
 		1 = maximum
 	]
-	append result parse-log read/binary rejoin [dir %access.log.1]
-	append result parse-log read/binary rejoin [dir %access.log]
+	append result parse-log read rejoin [dir %access.log.1]
+	append result parse-log read rejoin [dir %access.log]
 	result
 ]
 
@@ -98,7 +101,7 @@ parse-line: func [
 		copy identd to space skip (identd: load identd)
 		copy userid to space skip (userid: load userid)
 		copy date thru #"]" skip (date: parse-apache-time date)
-		skip copy request to #"^"" 2 skip ; TODO: split request to [method address version] or smt like that
+		skip copy request to {" } 2 skip ; TODO: split request to [method address version] or smt like that
 		copy status to space skip (status: to integer! status)
 		copy size to space skip (size: to integer! size)
 		copy referrer to space skip (referrer: load referrer)
