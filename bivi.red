@@ -36,32 +36,40 @@ bivi!: context [
 		ret: line
 		parse ask ":" [
 			#"q" (ret: none)
+		|	#"e" (ret: line + 1) ; NEXT lINE
+		|	#"y" (ret: max 0 line - 1) ; PREV LINE
 		|	#"f" (ret: line + lines-per-page) ; TODO: limit at maximum ; NEXT PAGE - default action
 		|	#"b" (ret: max 0 line - lines-per-page) ; PREV PAGE - line was already updated, so subtract it twice
 		|	#"/" copy pattern to end (last-match: none ret: find-pattern) ; FIND <pattern>
 		|	#"n" (ret: find-pattern) ; FIND NEXT
 		|	#"l" copy value some numbers (lines-per-page: to integer! value) ; SET LINES PER PAGE
+		|	#"h" (print-help)
 		]
 		ret
 	]
 	print-line: func [
 		"return line of 16 values"
 		data position
-		/local line
+		/local line hilite?
 	][
+		hilite?: false
 		line: copy/part at data position 16
 		bin-part: copy []
 		char-part: copy []
 		repeat i 16 [
 			char: to integer! line/:i
+			; -- highlight mark
 			if all [
 				not zero? mark-start
 				(position + i - 1) >= mark-start
 				(position + i - 1) <= mark-end
 			][
-				append bin-part 'bold
-				append char-part 'bold
+				; TODO: turn on hilite only on mark start
+				hilite?: true
+				append bin-part 'inverse
+				append char-part 'inverse
 			]
+			; -- add character
 			append bin-part rejoin [form to-hex/size char 2 space]
 			append char-part case [
 				all [char > 31 char < 128][form to char! char]
@@ -69,14 +77,19 @@ bivi!: context [
 				char = 9 ["⇥"]
 				'default [dot]
 			]
-			append bin-part 'reset ; TODO: reset only when needed
-			append char-part 'reset
+			; -- end highlighting
+			if hilite? [
+				; TODO: turn off hilite only after mark end
+				append bin-part 'reset
+				append char-part 'reset
+				hilite?: false
+			]
 			if i = 8 [
 				append bin-part space
 				append char-part space
 			]
 		]
-		t: compose [(form to-hex/size position 4) " | " (bin-part) "| " (char-part) "^/"]
+		compose [(form to-hex/size position 4) " | " (bin-part) "| " (char-part) "^/"]
 	]
 	find-pattern: func [
 	][
@@ -93,6 +106,20 @@ bivi!: context [
 			if pattern [addout: reduce ['bold pattern 'reset space "not found." 'reset]]
 		]
 		index
+	]
+	print-help: does [
+		ansi/do [
+			cls
+			at 1x1
+			bold "f^-ENTER" reset "^-next page^/"
+			bold "b" reset "^-^-previous page^/"
+			bold "e" reset "^-^-next line^/"
+			bold "y" reset "^-^-previous line^/^/"
+			bold "/" reset "<pattern>" "^-search for <pattern>^/"
+			bold "n" reset "^-^-repeat previous search^/"
+			"^/^/Press ENTER to continue^/"
+		]
+		input
 	]
 	set 'bivi func [file][
 		data: file
