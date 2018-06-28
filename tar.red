@@ -1,0 +1,173 @@
+Red[]
+
+untar: func [
+	data
+	/local
+;		filename filemode owner-id group-id filesize
+][
+	files: #()
+
+
+	load-octal: func [
+		data
+	;	/local result mult
+	][
+		mult: 1
+		result: 0
+		foreach digit reverse copy data [
+			result: result + (mult * to integer! form digit)
+			try [mult: mult * 8]
+		]
+		result
+	]
+
+	load-bin: func [binary][
+		binary: to string! binary
+		take/last binary
+		binary
+	]
+
+	get-type: func [type][
+		switch/default [
+			"1" ['hard]
+			"2" ['symbolic]
+			"3" ['character]
+			"4" ['block]
+			"5" ['directory]
+			"6" ['FIFO]
+			"7" ['contiguous-file]
+			"g" ['global-ext-header]
+			"x" ['ext-header]
+			; TODO: "A" - "Z"
+		]
+	]
+
+	name-rule: [
+		copy name 100 skip
+		(name: load-bin name)
+	]
+	filename-rule: [
+		name-rule
+		(filename: first parse name [collect [keep to #"^@"]]) ; TODO: to file! ?
+	]
+	linked-filename-rule: [
+		name-rule
+		(linked-filename: name) ; TODO: to file! ?
+	]
+	filemode-rule: [
+		copy filemode 8 skip
+		(filemode: load-bin filemode)
+	]
+	owner-id-rule: [
+		copy owner-id 8 skip
+		(owner-id: load-bin owner-id)
+	]
+	group-id-rule: [
+		copy group-id 8 skip
+		(group-id: load-bin group-id)
+	]
+	filesize-rule: [
+		copy filesize 12 skip
+		(filesize: to integer! load-bin filesize)
+	]
+	modification-date-rule: [
+		copy modification-date 12 skip
+		(modification-date: to date! load-octal load-bin modification-date)
+	]
+	checksum-rule: [
+		copy checksum 8 skip
+		(checksum: load-bin checksum)
+	]
+	link-indicator-rule: [
+		copy link-indicator skip
+		(link-indicator: switch/default load-bin link-indicator ["1" ['hard] "2" ['symbolic]]['normal])
+	]
+	ustar-rule: [
+		#{757374617220} ;"ustar "
+		copy ustar-version 2 skip
+	]
+	owner-name-rule: [
+		copy name 32 skip
+		(owner-name: load-bin name)
+	]
+	group-name-rule: [
+		copy name 32 skip
+		(group-name: load-bin name)
+	]
+	device-number-rule: [
+		copy number 8 skip
+		(device-major-number: load-bin number)
+		copy number 8 skip
+		(device-minor-number: load-bin number)
+	]
+	filename-prefix-rule: [
+		copy name 155 skip
+		(filename-prefix: load-bin name)
+	]
+	filedata-rule: [
+	;	(size: probe either zero? filesize [12][filesize])
+		i: (print index? i)
+		(pad: 513 - ((index? i) // 512))
+		pad skip
+		copy content filesize skip x:
+		(files/:filename: content)
+		j: (print "j" pad: (513 - ((index? j) // 512) // 512))
+		pad skip
+	]
+
+
+	file-rule: [
+		filename-rule
+		filemode-rule
+		owner-id-rule
+		group-id-rule
+		filesize-rule
+		modification-date-rule
+		checksum-rule
+		link-indicator-rule
+		linked-filename-rule
+		ustar-rule
+		owner-name-rule
+		group-name-rule
+		device-number-rule
+		t1:
+		filename-prefix-rule
+		t2:
+		(print-file-info)
+		; ---
+		filedata-rule
+		t:
+	]
+
+	parse data [
+		some file-rule
+	]
+
+	print-file-info: does [
+		print [
+			"Filename: " mold filename newline
+			"Filemode: " filemode newline
+			"Owner ID: " owner-id newline
+			"Group ID: " group-id newline
+			"Filesize: " filesize newline
+			"Mod.date: " modification-date newline
+			"Checksum: " checksum newline
+			"Link ind: " link-indicator newline
+			"Linkfile: " linked-filename newline
+			"Owner nm: " owner-name newline
+			"Group nm: " group-name newline
+			"Devmajor: " device-major-number newline
+			"Devmijor: " device-minor-number newline
+			"Fileprfx: " filename-prefix newline
+		]
+	]
+;	print-file-info
+]
+
+
+test: [
+	data: read/binary %sint.tar
+	untar data
+]
+
+do test
