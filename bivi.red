@@ -20,7 +20,7 @@ bivi!: context [
 
 	print-page: func [
 		line
-		/local value ret
+		/local value ret count
 	][
 
 		infoline: reduce [
@@ -34,17 +34,24 @@ bivi!: context [
 			ansi/do print-line data line - 1 + j * 16
 		]
 		ret: line
-		parse ask ":" [
+		count: 1
+		count-rule: [
+			(count: 1 value: none)
+			copy value any numbers
+			(unless empty? value [count: to integer! value])
+		]
+		main-rule: [
 			#"q" (ret: none)
-		|	#"e" (ret: line + 1) ; NEXT lINE
-		|	#"y" (ret: max 0 line - 1) ; PREV LINE
-		|	#"f" (ret: line + lines-per-page) ; TODO: limit at maximum ; NEXT PAGE - default action
-		|	#"b" (ret: max 0 line - lines-per-page) ; PREV PAGE - line was already updated, so subtract it twice
+		|	#"e" count-rule (ret: line + count) ; NEXT lINE ; TODO - check max value
+		|	#"y" count-rule (ret: max 0 line - count) ; PREV LINE
+		|	#"f" count-rule (ret: lines-per-page * count + line ) ; TODO: limit at maximum ; NEXT PAGE - default action
+		|	#"b" count-rule (ret: max 0 line - ( * countlines-per-page)) ; PREV PAGE - line was already updated, so subtract it twice
 		|	#"/" copy pattern to end (last-match: none ret: find-pattern) ; FIND <pattern>
 		|	#"n" (ret: find-pattern) ; FIND NEXT
 		|	#"l" copy value some numbers (lines-per-page: to integer! value) ; SET LINES PER PAGE
 		|	#"h" (print-help)
 		]
+		parse ask ":" main-rule
 		ret
 	]
 	print-line: func [
@@ -111,6 +118,8 @@ bivi!: context [
 		ansi/do [
 			cls
 			at 1x1
+			bold "^-NAVIGATION^/^/" reset
+			"Navigation commands can be followed by numbers to to skip more lines/pages."
 			bold "f^-ENTER" reset "^-next page^/"
 			bold "b" reset "^-^-previous page^/"
 			bold "e" reset "^-^-next line^/"
