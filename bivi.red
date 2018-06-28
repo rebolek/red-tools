@@ -16,10 +16,11 @@ bivi!: context [
 	mark-end: 0
 	last-match: none
 	pattern: none
+	numbers: charset "1234567890"
 
 	print-page: func [
 		line
-		/local none ret
+		/local value ret
 	][
 
 		infoline: reduce [
@@ -32,13 +33,14 @@ bivi!: context [
 		repeat j lines-per-page [
 			ansi/do print-line data line - 1 + j * 16
 		]
-		ret: line + lines-per-page ; TODO: limit at maximum
+		ret: line
 		parse ask ":" [
-			"q" (ret: none)
-		|	"f" () ; default action
-		|	"b" (ret: max 0 line - (2 * lines-per-page)) ; line was already updated, so subtract it twice
-		|	"/" copy pattern to end (last-match: none ret: find-pattern)
-		|	"n" (ret: find-pattern)
+			#"q" (ret: none)
+		|	#"f" (ret: line + lines-per-page) ; TODO: limit at maximum ; NEXT PAGE - default action
+		|	#"b" (ret: max 0 line - lines-per-page) ; PREV PAGE - line was already updated, so subtract it twice
+		|	#"/" copy pattern to end (last-match: none ret: find-pattern) ; FIND <pattern>
+		|	#"n" (ret: find-pattern) ; FIND NEXT
+		|	#"l" copy value some numbers (lines-per-page: to integer! value) ; SET LINES PER PAGE
 		]
 		ret
 	]
