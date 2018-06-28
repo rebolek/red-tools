@@ -68,7 +68,7 @@ untar: func [
 	]
 	filesize-rule: [
 		copy filesize 12 skip
-		(filesize: to integer! load-bin filesize)
+		(filesize: load-octal load-bin filesize)
 	]
 	modification-date-rule: [
 		copy modification-date 12 skip
@@ -106,15 +106,15 @@ untar: func [
 	]
 	filedata-rule: [
 	;	(size: probe either zero? filesize [12][filesize])
-		i: (print index? i)
-		(pad: 513 - ((index? i) // 512))
+		i: (pad: 513 - ((index? i) // 512))
 		pad skip
 		copy content filesize skip x:
 		(files/:filename: content)
-		j: (print "j" pad: (513 - ((index? j) // 512) // 512))
+		j: (pad: (513 - ((index? j) // 512) // 512))
 		pad skip
 	]
 
+	empty-block: [512 #"^@"]
 
 	file-rule: [
 		filename-rule
@@ -140,7 +140,10 @@ untar: func [
 	]
 
 	parse data [
-		some file-rule
+		some [
+			2 empty-block to end
+		|	file-rule
+		]
 	]
 
 	print-file-info: does [
@@ -162,11 +165,12 @@ untar: func [
 		]
 	]
 ;	print-file-info
+	files
 ]
 
 
 test: [
-	data: read/binary %sint.tar
+	data: read/binary %openvpn.tar
 	untar data
 ]
 
