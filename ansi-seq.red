@@ -62,8 +62,10 @@ do: func [
 		keep (rejoin [esc-main form value #"@" + index? find [up down left right] type])
 	]
 	style-rule: [
-		set type ['bold | 'italic | 'underline]
-		keep (rejoin [esc-main form index? find [bold none italic underline] type #"m"])
+		set type ['bold | 'italic | 'underline | 'inverse]
+		keep (
+			rejoin [esc-main form select [bold 1 italic 3 underline 4 inverse 7] type #"m"]
+		)
 	]
 
 	print-seq parse data [
