@@ -7,6 +7,13 @@ untar: func [
 ][
 	files: #()
 
+	make-checksum: func [data /local result][
+		result: 0
+		data: copy/part data 148
+		append/dup data #" " 8
+		foreach byte data [result: result + to integer! byte]
+		result
+	]
 
 	load-octal: func [
 		data
@@ -76,7 +83,12 @@ untar: func [
 	]
 	checksum-rule: [
 		copy checksum 8 skip
-		(checksum: load-bin checksum)
+		(
+			checksum: load-bin checksum
+			take/last checksum  ; remove space at end
+			checksum: load-octal checksum
+			computed-checksum: make-checksum header-start
+		)
 	]
 	link-indicator-rule: [
 		copy link-indicator skip
@@ -117,6 +129,7 @@ untar: func [
 	empty-block: [512 #"^@"]
 
 	file-rule: [
+		header-start:
 		filename-rule
 		filemode-rule
 		owner-id-rule
@@ -154,7 +167,7 @@ untar: func [
 			"Group ID: " group-id newline
 			"Filesize: " filesize newline
 			"Mod.date: " modification-date newline
-			"Checksum: " checksum newline
+			"Checksum: " checksum tab computed-checksum tab checksum - computed-checksum newline
 			"Link ind: " link-indicator newline
 			"Linkfile: " linked-filename newline
 			"Owner nm: " owner-name newline
