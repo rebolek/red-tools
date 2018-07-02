@@ -52,15 +52,17 @@ send: func [
 		req-type
 		request
 	/full "Return raw data" ; TODO: rename
+	/preview "Support preview features"
 	/local link args-rule header-data header
 ] [
 	method: either method [req-type] ['GET]
 	link: make-url compose [https://api.github.com/ (data)]
-	header: [
+	header: copy [
 		Accept: "application/vnd.github.v3+json"
 		User-Agent: "Red-GitHub-API-v3"
 	]
-	unless equal? 'GET req-type [
+	if preview [header/Accept: "application/vnd.github.mercy-preview+json"]
+	unless equal? 'GET method [
 		insert header [
 			Content-Type: "application/json"
 		]
