@@ -66,7 +66,11 @@ send: func [
 		]
 		request: json/encode request
 	]
-	response: send-request/data/with/auth link method request header 'Basic reduce [form user pass]
+	response: either verbose? [
+		send-request/verbose/data/with/auth link method request header 'Basic reduce [form user pass]
+	][
+		send-request/data/with/auth link method request header 'Basic reduce [form user pass]
+	]
 	either full [response] [response/data]
 ]
 
@@ -75,6 +79,7 @@ send: func [
 user: none
 pass: none
 response: none
+verbose?: false
 
 login: func [
 	username
