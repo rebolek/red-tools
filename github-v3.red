@@ -56,7 +56,7 @@ send: func [
 	/local link args-rule header-data header
 ] [
 	method: either method [req-type] ['GET]
-	link: make-url compose [https://api.github.com/ (data)]
+	link: make-url repend copy [https://api.github.com/] data
 	header: copy [
 		Accept: "application/vnd.github.v3+json"
 		User-Agent: "Red-GitHub-API-v3"
@@ -81,7 +81,7 @@ send: func [
 user: none
 pass: none
 response: none
-verbose?: false
+verbose?: true
 
 login: func [
 	username
@@ -585,6 +585,12 @@ commit: func [
 	; -- 7. update the reference of your branch to point to the new commit SHA
 	update-reference repo 'heads/master new-commit/sha ; TODO: support other branches
 
+]
+
+search: func [
+	query
+][
+	send compose/deep [%search %repositories [q: (query)]]
 ]
 
 ; --- end of context
