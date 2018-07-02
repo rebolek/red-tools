@@ -589,16 +589,21 @@ commit: func [
 
 search: func [
 	query
+	type "repositories, commits, code, issues, topics, labels"
 	/sort
 		sorting "stars, forks, updated"
 	/order
 		ordering "asc, desc"
 	/local data
 ][
+	unless find [repositories commits code issues topics labels] type [
+		do make error! "Searching for unsupported type of information"
+	]
+	type: to file! type
 	data: [q: query]
-	if find sorting [stars forks updated] [append data [sort: sorting]]
-	if find order [asc desc] [append data [order: ordering]]
-	send [%search %repositories data]
+	if find [stars forks updated] sorting [append data [sort: sorting]]
+	if find [asc desc] order [append data [order: ordering]]
+	send [%search type data]
 ]
 
 licenses: [
