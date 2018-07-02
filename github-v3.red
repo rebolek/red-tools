@@ -52,7 +52,7 @@ send: func [
 		req-type
 		request
 	/full "Return raw data" ; TODO: rename
-	/local link args-rule header-data
+	/local link args-rule header-data header
 ] [
 	method: either method [req-type] ['GET]
 	link: make-url compose [https://api.github.com/ (data)]
