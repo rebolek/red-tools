@@ -98,7 +98,7 @@ headers!: context [
 	other-headers: none
 ]
 
-parse-headers: func [query] [
+parse-headers: func [query /local headers raw key value keys] [
 	headers: make headers! []
 	raw: make map! 50
 	key: value: none
@@ -122,11 +122,22 @@ parse-headers: func [query] [
 		"GATEWAY_INTERFACE" gateway-interface
 		"SERVER_PROTOCOL" server-protocol
 		"REQUEST_METHOD" request-method
+		"PATH_INFO" path-info
+		"PATH_TRANSLATED" path-translated
 		"QUERY_STRING" query-string
 		"CONTENT_TYPE" Content-Type
+		"CONTENT_LENGTH" content-length
+		"AUTH_TYPE" auth-type
 	] [
 		headers/:red-key: raw/:cgi-key
 		raw/:cgi-key: none
+	]
+	keys: keys-of raw
+	while [not tail? keys] [
+		if not parse key: first keys [["HTTP_" | "HTTPS_" | "AUTH_" | "CERT_"] thru end] [
+			raw/:key: none
+		]
+		keys: next keys
 	]
 	headers/other-headers: raw
 	headers
