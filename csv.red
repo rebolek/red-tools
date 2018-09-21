@@ -81,19 +81,56 @@ csv: object [
 		value
 	]
 
-	encode: function [
+	encode: func [
 		"Make CSV data from input value"
 		data
 		/with
 			delimiter
+		/local
+			types value line columns
 	] [
 		unless with [delimiter: comma]
 		unless block? data [data: reduce [data]] ; Only one line
-		collect/into [
-			foreach line data [
-				keep to-csv-line/with line delimiter
-				keep newline
-			]
-		] make string! 1000
+		; check if it's block of maps/objects
+		types: unique collect [foreach value data [keep type? value]]
+		either all [
+			1 = length? types any [equal? map! types/1 equal? object! types/1]
+		][
+			; this is block of maps/objects
+			columns: get-columns data
+			output: to-csv-line/with columns delimiter
+			append output newline
+			append output collect/into [
+				foreach value data [
+					; construct block
+					line: collect [
+						foreach column columns [
+							keep value/:column ; FIXME: this can be problematic when key isn't in object
+						]
+					]
+					keep to-csv-line/with line delimiter
+					keep newline
+				]		
+			] make string! 1000		
+		][
+			; this is block of blocks	
+			collect/into [
+				foreach line data [
+					keep to-csv-line/with line delimiter
+					keep newline
+				]
+			] make string! 1000
+		]
+	]
+	get-columns: func [
+		"Return all keywords from maps or objects"
+		data "Data must block of maps or objects"
+		/local columns
+	][
+		columns: words-of data/1
+		foreach value data [
+			append columns difference columns words-of value 
+		]
+		columns
 	]
 ]
