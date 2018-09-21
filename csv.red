@@ -51,6 +51,7 @@ csv: object [
 		data
 		/with
 			delimiter
+		/only "Do not add newline"
 	] [
 		unless with [delimiter: comma]
 		collect/into [
@@ -59,6 +60,8 @@ csv: object [
 			]
 		] output: make string! 1000
 		head remove back tail output ; TODO: expects delimiter to be of size 1
+		unless only [append output newline]
+		output
 	]
 	escape-value: function [
 		value
@@ -99,7 +102,6 @@ csv: object [
 			; this is block of maps/objects
 			columns: get-columns data
 			output: to-csv-line/with columns delimiter
-			append output newline
 			append output collect/into [
 				foreach value data [
 					; construct block
@@ -109,7 +111,6 @@ csv: object [
 						]
 					]
 					keep to-csv-line/with line delimiter
-					keep newline
 				]		
 			] make string! 1000		
 		][
@@ -117,7 +118,6 @@ csv: object [
 			collect/into [
 				foreach line data [
 					keep to-csv-line/with line delimiter
-					keep newline
 				]
 			] make string! 1000
 		]
