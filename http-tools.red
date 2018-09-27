@@ -19,7 +19,7 @@ Red [
 	3) Query decoding
 
 	`query-string` for GET or `input` for POST provide raw data,
-	but it would nice to have Red form of the data available,
+	but it would nice to have Red form of the data available, 
 	regardless of the request method.
 }
 	]
@@ -58,7 +58,7 @@ map: function [
 	parse data: copy data [
 		some [
 			change set value set-word! (reduce ['quote value])
-		|	skip
+		|	skip	
 		]
 	]
 	make map! reduce data
@@ -104,7 +104,7 @@ parse-headers: func [query] [
 	key: value: none
 	parse query [
 		some [
-			copy key to #"="
+			copy key to #"=" 
 			skip
 			copy value to newline
 			skip
@@ -134,7 +134,7 @@ parse-headers: func [query] [
 
 get-headers: func [/local o] [
 	call/wait/output "printenv" o: ""
-	http-headers: parse-headers o
+	http-headers: parse-headers o	
 ]
 
 get-headers
@@ -145,11 +145,9 @@ make-url: function [
 	"Make URL from simple dialect"
 	data
 ] [
-	; preprocess (NOTE: support object! too?)
-	forall data [if map? data/1 [data/1: to block! data/1]] ; this can be probably simplified to change only last value in data
 	; this is basically like to-url, with some exceptions:
 	; WORD! - gets value
-	; BLOCK! - treated as key/value storage
+	; BLOCK! - treated as key/value storage of after "?" parameters
 	value: none
 	args: clear []
 	link: make url! 80
@@ -168,14 +166,14 @@ make-url: function [
 		some [
 			args-rule
 		|	set value [set-word! | any-string! | refinement!] (append link dirize form value)
-		|	set value [word! | path!] (append link dirize form get :value)
+		|	set value [word! | path!] (append link dirize form get :value)	
 		]
 	]
 	unless empty? args [
 		change back tail link #"?"
 		append link args
 	]
-	head remove back tail link
+	head remove back tail link	
 ]
 
 send-request: function [
@@ -197,7 +195,7 @@ send-request: function [
 		print ["SEND-REQUEST to" link ", method:" method]
 		print ["header:" mold args]
 	]
-	header: copy #() ; NOTE: CLEAR causes crash later!!!
+	header: copy #() ; NOTE: CLEAR causes crash later!!! 
 	if with [extend header args]
 	if auth [
 		if verbose [print [auth-type mold auth-data]]
@@ -261,7 +259,7 @@ www-form: object [
 			foreach [key value] data [
 				if any [not only all [only value]] [
 					keep rejoin bind pattern 'key
-				]
+				] 
 			]
 		] make string! 1000
 		cut-tail/part output either only [length? form last pattern] [2]
@@ -280,6 +278,7 @@ mime-decoder: function [
 	string
 	type
 ] [
+	unless string [return string]
 	switch type [
 		"application/json" [json/decode string]
 		"application/x-www-form-urlencoded" [www-form/decode string]
@@ -323,7 +322,7 @@ percent: context [
 			collect [
 				some [
 					keep some chars
-				|	space keep #"+"
+				|	space keep #"+"	
 				|	set value skip keep (head insert enbase/base form value 16 "%")
 				]
 			]
@@ -337,7 +336,7 @@ percent: context [
 			parse string [
 				some [
 					#"+" (keep space) ; should be here? or add some switch?
-				|	#"%"
+				|	#"%" 
 					copy value 2 skip (
 						keep to integer! append value #"h"
 					)
@@ -361,10 +360,10 @@ percent: context [
 					copy value to "%3B" 3 skip keep (
 						to char! to integer! value
 					)
-				|	#"%"
+				|	#"%" 
 					copy value 2 skip keep (
 						to char! to integer! append value #"h"
-					)
+					) 
 				| 	keep skip
 				]
 			]
