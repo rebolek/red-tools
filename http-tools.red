@@ -50,7 +50,7 @@ do %json.red
 
 ; --- support tools ----------------------------------------------------------
 
-map: function [
+map-set: function [
 	"Make map with reduce/no-set emulation"
 	data
 ] [
@@ -241,7 +241,7 @@ send-request: function [
 	if verbose [
 		print ["Return type:" type]
 	]
-	reply: map [
+	reply: map-set [
 		code: reply/1
 		headers: reply/2
 		raw: reply/3
