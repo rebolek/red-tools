@@ -176,10 +176,10 @@ make-gist: func [
 		quote public: true
 	]
 
-	link: either update [reduce [%gists id]] [%gist]
+	link: either update [reduce [%gists id]] [%gists]
 	send/method link 'POST gist
 	; TODO: error handling
-	response/id
+	to url! response/Location
 ]
 
 gist-commits: func ["Get gist commits" id] [send [%gists id %commits]]
