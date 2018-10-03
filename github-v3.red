@@ -155,7 +155,7 @@ get-gist: func [
 ]
 
 make-gist: func [
-	"Make new or update Gist on GitHub. Returns Gits's ID."
+	"Make new or update Gist on GitHub. Returns Gists' ID."
 	data "Filename, or block of filenames"
 	description "Gist description"
 	/private "Should Gist be created as private?"
@@ -177,9 +177,14 @@ make-gist: func [
 	]
 
 	link: either update [reduce [%gists id]] [%gists]
-	send/method link 'POST gist
+	; NOTE: It really doesn't matter if we use PATCH or POST for update(edit), but let's be nice
+	send/method link either update ['PATCH]['POST] gist
 	; TODO: error handling
-	to url! response/Location
+	either update [
+		id
+	][
+		last split response/Location #"/"
+	]
 ]
 
 gist-commits: func ["Get gist commits" id] [send [%gists id %commits]]
