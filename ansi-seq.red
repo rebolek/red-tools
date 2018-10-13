@@ -25,9 +25,10 @@ clear-screen: append copy esc-main "2J"
 print-esc: func [data][foreach char data [prin to char! char]]
 print-seq: func [
 	"Print combination of text and ANSI sequences"
-	data [block!] "Block of binary! and string! values"
+	data [string! block!] "Block of binary! and string! values"
 ][
 	set 't data
+	if string? data [print data exit]
 	foreach value data [
 		switch/default type?/word value [
 			binary! [print-esc value]
@@ -54,14 +55,14 @@ as-rule: func [block][
 
 colors-list: as-rule colors
 
-do: func [
+trans: func [
 	data
 	/local type value
 		move-rule
 		color-rule
 		style-rule
 ][
-	append data 'reset
+	;append data 'reset
 	color-rule: compose/deep [
 		set type ['fg | 'bg]
 		set value [(colors-list)]
@@ -84,7 +85,7 @@ do: func [
 		)
 	]
 
-	print-seq parse data [
+	parse data [
 		collect [
 			some [
 				'reset keep (rejoin [esc-main "0m"])
@@ -96,10 +97,15 @@ do: func [
 
 			|   'at set value pair! keep (set-position value)
 		;    |    set type ['fg | 'bg] set value word! keep (set-color type value)
-			|   keep [string! | char!]
+			|   keep [word! | string! | char!]
 			]
 		]
 	]
+]
+
+do: func [data][
+	if block? data [data: trans data]
+	print-seq data
 ]
 
 vline: func [

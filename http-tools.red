@@ -224,7 +224,7 @@ send-request: function [
 	if any [
 		not content
 		method = 'GET
-	] [content: ""]
+	] [content: clear ""]
 	append data content
 	if verbose [
 		print [
