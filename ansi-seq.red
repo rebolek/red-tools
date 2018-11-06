@@ -19,29 +19,14 @@ RESET     - reset all styles
 
 ansi: context [
 
-esc-main: #{1B5B} ; ESC+[
+esc-main: "^[["
 clear-screen: append copy esc-main "2J"
-
-print-esc: func [data][foreach char data [prin to char! char]]
-print-seq: func [
-	"Print combination of text and ANSI sequences"
-	data [string! block!] "Block of binary! and string! values"
-][
-	set 't data
-	if string? data [print data exit]
-	foreach value data [
-		switch/default type?/word value [
-			binary! [print-esc value]
-		][prin value]
-	]
-]
-
 set-position: func [position][
 	rejoin [esc-main form position/y #";" form position/x #"H"]
 ]
 
 demo: does [
-	do [cls at 1x1 fg red "Welcome to " fg black bg white "A" bg yellow "N" bg red "S" bg magenta "I" reset bold underline " console" reset]
+	do [cls at 1x1 fg red "Welcome to " fg black bg white "A" bg yellow "N" bg red "S" bg magenta "I" reset bold space underline "console" reset]
 ]
 
 colors: [black red green yellow blue magenta cyan white none default]
@@ -62,13 +47,12 @@ trans: func [
 		color-rule
 		style-rule
 ][
-	;append data 'reset
 	color-rule: compose/deep [
 		set type ['fg | 'bg]
 		set value [(colors-list)]
 		keep (to paren! [
 			type: form pick [3 4] equal? 'fg type
-			value: 47 + index? find colors value
+			value: index? find colors value
 			rejoin [esc-main type value #"m"]
 		])
 	]
@@ -105,7 +89,7 @@ trans: func [
 
 do: func [data][
 	if block? data [data: trans data]
-	print-seq data
+	print rejoin data
 ]
 
 vline: func [
