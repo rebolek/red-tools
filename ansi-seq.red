@@ -19,29 +19,14 @@ RESET     - reset all styles
 
 ansi: context [
 
-esc-main: #{1B5B} ; ESC+[
+esc-main: "^[["
 clear-screen: append copy esc-main "2J"
-
-print-esc: func [data][foreach char data [prin to char! char]]
-print-seq: func [
-	"Print combination of text and ANSI sequences"
-	data [string! block!] "Block of binary! and string! values"
-][
-	set 't data
-	if string? data [print data exit]
-	foreach value data [
-		switch/default type?/word value [
-			binary! [print-esc value]
-		][prin value]
-	]
-]
-
 set-position: func [position][
 	rejoin [esc-main form position/y #";" form position/x #"H"]
 ]
 
 demo: does [
-	do [cls at 1x1 fg red "Welcome to " fg black bg white "A" bg yellow "N" bg red "S" bg magenta "I" reset bold underline " console" reset]
+	do [cls at 1x1 fg red "Welcome to " fg black bg white "A" bg yellow "N" bg red "S" bg magenta "I" reset bold space underline fg bright green "con" reset fg green italic "sole" reset]
 ]
 
 colors: [black red green yellow blue magenta cyan white none default]
@@ -54,37 +39,36 @@ as-rule: func [block][
 ]
 
 colors-list: as-rule colors
+color-rule: [
+	set type ['fg | 'bg]
+	(bright?: false)
+	opt ['bright (bright?: true)]
+	set value colors-list
+	keep (
+		type: pick [3 4] equal? 'fg type
+		if bright? [type: type + 6]
+		set 'vv value
+		value: -1 + index? find colors value
+		rejoin [esc-main form type value #"m"]
+	)
+]
+move-rule: [
+	(value: 1)
+	set type ['up | 'down | 'left | 'right]
+	opt [set value integer!]
+	keep (rejoin [esc-main form value #"@" + index? find [up down left right] type])
+]
+style-rule: [
+	set type ['bold | 'italic | 'underline | 'inverse]
+	keep (
+		rejoin [esc-main form select [bold 1 italic 3 underline 4 inverse 7] type #"m"]
+	)
+]
+type: value: bright?: none
 
 trans: func [
 	data
-	/local type value
-		move-rule
-		color-rule
-		style-rule
 ][
-	;append data 'reset
-	color-rule: compose/deep [
-		set type ['fg | 'bg]
-		set value [(colors-list)]
-		keep (to paren! [
-			type: form pick [3 4] equal? 'fg type
-			value: 47 + index? find colors value
-			rejoin [esc-main type value #"m"]
-		])
-	]
-	move-rule: [
-		(value: 1)
-		set type ['up | 'down | 'left | 'right]
-		opt [set value integer!]
-		keep (rejoin [esc-main form value #"@" + index? find [up down left right] type])
-	]
-	style-rule: [
-		set type ['bold | 'italic | 'underline | 'inverse]
-		keep (
-			rejoin [esc-main form select [bold 1 italic 3 underline 4 inverse 7] type #"m"]
-		)
-	]
-
 	parse data [
 		collect [
 			some [
@@ -96,7 +80,6 @@ trans: func [
 			|   color-rule
 
 			|   'at set value pair! keep (set-position value)
-		;    |    set type ['fg | 'bg] set value word! keep (set-color type value)
 			|   keep [word! | string! | char!]
 			]
 		]
@@ -105,7 +88,7 @@ trans: func [
 
 do: func [data][
 	if block? data [data: trans data]
-	print-seq data
+	print rejoin data
 ]
 
 vline: func [
