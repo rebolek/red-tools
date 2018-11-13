@@ -52,7 +52,7 @@ trans: func [
 		set value [(colors-list)]
 		keep (to paren! [
 			type: form pick [3 4] equal? 'fg type
-			value: index? find colors value
+			value: -1 + index? find colors value
 			rejoin [esc-main type value #"m"]
 		])
 	]
@@ -80,7 +80,6 @@ trans: func [
 			|   color-rule
 
 			|   'at set value pair! keep (set-position value)
-		;    |    set type ['fg | 'bg] set value word! keep (set-color type value)
 			|   keep [word! | string! | char!]
 			]
 		]
