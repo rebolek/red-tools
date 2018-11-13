@@ -26,7 +26,7 @@ set-position: func [position][
 ]
 
 demo: does [
-	do [cls at 1x1 fg red "Welcome to " fg black bg white "A" bg yellow "N" bg red "S" bg magenta "I" reset bold space underline "console" reset]
+	do [cls at 1x1 fg red "Welcome to " fg black bg white "A" bg yellow "N" bg red "S" bg magenta "I" reset bold space underline fg bright green "con" reset fg green italic "sole" reset]
 ]
 
 colors: [black red green yellow blue magenta cyan white none default]
@@ -39,36 +39,36 @@ as-rule: func [block][
 ]
 
 colors-list: as-rule colors
+color-rule: [
+	set type ['fg | 'bg]
+	(bright?: false)
+	opt ['bright (bright?: true)]
+	set value colors-list
+	keep (
+		type: pick [3 4] equal? 'fg type
+		if bright? [type: type + 6]
+		set 'vv value
+		value: -1 + index? find colors value
+		rejoin [esc-main form type value #"m"]
+	)
+]
+move-rule: [
+	(value: 1)
+	set type ['up | 'down | 'left | 'right]
+	opt [set value integer!]
+	keep (rejoin [esc-main form value #"@" + index? find [up down left right] type])
+]
+style-rule: [
+	set type ['bold | 'italic | 'underline | 'inverse]
+	keep (
+		rejoin [esc-main form select [bold 1 italic 3 underline 4 inverse 7] type #"m"]
+	)
+]
+type: value: bright?: none
 
 trans: func [
 	data
-	/local type value
-		move-rule
-		color-rule
-		style-rule
 ][
-	color-rule: compose/deep [
-		set type ['fg | 'bg]
-		set value [(colors-list)]
-		keep (to paren! [
-			type: form pick [3 4] equal? 'fg type
-			value: -1 + index? find colors value
-			rejoin [esc-main type value #"m"]
-		])
-	]
-	move-rule: [
-		(value: 1)
-		set type ['up | 'down | 'left | 'right]
-		opt [set value integer!]
-		keep (rejoin [esc-main form value #"@" + index? find [up down left right] type])
-	]
-	style-rule: [
-		set type ['bold | 'italic | 'underline | 'inverse]
-		keep (
-			rejoin [esc-main form select [bold 1 italic 3 underline 4 inverse 7] type #"m"]
-		)
-	]
-
 	parse data [
 		collect [
 			some [
