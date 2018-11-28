@@ -222,7 +222,6 @@ send-request: function [
 	body: body-of header
 	forall body [body: next body body/1: form body/1]
 	data: reduce [method body]
-;	if content [append data content]
 	if any [
 		not content
 		method = 'GET
@@ -234,8 +233,12 @@ send-request: function [
 			"Data:" mold data newline
 		]
 	]
-	reply: write/info link data
-	set 'raw-reply reply
+	set 'req [link data]
+	reply: write/binary/info link data
+	set 'raw-reply copy/deep reply
+	; Red strictly requires UTF-8 data, but we'll be bit more tolerant and allow anything
+	if error? try [reply/3: to string! reply/3][reply/3: load-non-utf reply/3]
+	set 'rr reply
 	if raw [return reply]
 	type: first split reply/2/Content-Type #";"
 	if verbose [
