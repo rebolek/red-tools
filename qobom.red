@@ -29,6 +29,7 @@ NOTE: expression must return number to be counted (probably should add some chec
 ]
 
 qobom!: context [
+time: none
 select-deep: func [
 	series
 	value
@@ -75,7 +76,7 @@ do-conditions: func [
 				case [
 					equal? '* selector 	[keep/only either type [item][values-of item]]
 					block? selector		[
-						value: to map! collect [foreach s selector [keep reduce [s select-key item s]]]
+						value: to map! collect [foreach s selector [keep reduce [s select-key item to lit-word! s]]]
 						keep/only either type [value][values-of value]
 					]
 					'default			[
@@ -123,21 +124,86 @@ count-values: func [
 	]
 	to map! sort/skip/compare/reverse to block! result 2 2
 ]
-
+select-key: func [
+	"Deep select key"
+	value
+	key
+	/local item elem
+][
+	item: either lit-path? key [
+		item: value
+		foreach elem key [item: select item elem]
+		item
+	][select value key]
+]
+clean-word: func [
+	"Remove punctuation from a word"
+	word
+][
+	; TODO clean punctuation only if it's last letter?
+	parse word [
+		some [
+			change #"." ""
+		|	change #"," ""
+		|	change #"?" ""
+		|	change #"." ""
+		|	skip
+		]
+	]
+	word
+]
+count-frequency: func [
+	"Count frequency of keys or words in keys"
+	type "BY for counting keys, IN for counting words in keys"
+	key
+	/local result
+][
+	result: #()
+	switch type [
+		by [
+			foreach value data-block [
+				item: select-key value key
+				result/:item: either result/:item [
+					result/:item + 1
+				][1]
+			]
+		]
+		in [
+			foreach value data-block [
+				set 'v value
+				item: select-key value key
+				foreach word split item space [
+					word: clean-word word
+					result/:word: either result/:word [
+						result/:word + 1
+					][1]
+				]
+			]
+		]
+	]
+	result: make map! sort/skip/compare/reverse to block! result 2 2
+]
 add-condition: func [
 	condition
 ][
 	append group condition
 ]
 
+lits: [lit-word! | lit-path!]
 value-rule: [
 	set value skip (
 		if paren? value [value: compose value]
 	)
 ]
-
+reflector-rule: [
+	(reflector: none)
+	set value skip 'in (
+		reflector: value
+	)
+]
 col-rule: [
-	set key [lit-word! | lit-path!]
+	opt reflector-rule
+	set key lits
 	[
 		'is 'from set value block! (
 			add-condition compose/deep [
@@ -145,8 +211,14 @@ col-rule: [
 			]
 		)
 	|	['is | '=] value-rule (
-			add-condition compose [
-				equal? select-deep item (key) (value)
+			either reflector [
+				add-condition compose [
+					equal? (to paren! compose [t: select-deep item (key)]) (value)
+				]
+			][
+				add-condition compose [
+					equal? select-deep item (key) (value)
+				]
 			]
 		)
 	|	set symbol ['< | '> | '<= | '>=] value-rule (
@@ -157,7 +229,7 @@ col-rule: [
 	]
 ]
 find-rule: [
-	set key [lit-word! | lit-path!]
+	set key lits
 	'contains
 	value-rule (
 		add-condition compose [
@@ -166,7 +238,7 @@ find-rule: [
 	)
 ]
 match-rule: [
-	set key [lit-word! | lit-path!]
+	set key lits
 	'matches
 	value-rule (
 		append value [to end]
@@ -207,13 +279,42 @@ do-cond-rule: [(
 	repend conditions ['all group]
 	result: do-conditions data-block conditions selector keep-type
 )]
-
+basic-rule: [
+	keep-rule
+	conditions-rule
+	any [
+		['and conditions-rule]
+	|	[
+			'or (
+				repend conditions ['all group]
+				group: copy []
+			)
+			conditions-rule
+		]
+	]
+	do-cond-rule
+	opt count-rule
+]
+frequency-rule: [
+	'frequency [
+		set type ['by | 'in]
+		set key lits
+	]
+	(count-frequency type key)
+]
+main-rule: [
+	frequency-rule
+|	basic-rule
+]
 conditions: []
 group: none
 data-block: none
 result: none
 value: none
 key: none
+type: none
+reflector: none
+t: none
 
 set 'qobom func [
 	"Simple query dialect for filtering messages"
@@ -222,28 +323,16 @@ set 'qobom func [
 	/local
 		selector
 		keep-type count-by?
+		t
 ][
+	t: now/time/precise
 	data-block: data
 	clear conditions 
 	value: result: none
 	group: copy []
 
-	parse dialect [
-		keep-rule
-		conditions-rule
-		any [
-			['and conditions-rule]
-		|	[
-				'or (
-					repend conditions ['all group]
-					group: copy []
-				)
-				conditions-rule
-			]
-		]
-		do-cond-rule
-		opt count-rule
-	]
+	parse dialect main-rule
+	time: now/time/precise - t
 	result
 ]
 ; -- end of context
