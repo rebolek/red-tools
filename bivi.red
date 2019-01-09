@@ -96,7 +96,7 @@ bivi!: context [
 				append char-part space
 			]
 		]
-		compose [(form to-hex/size position 4) " | " (bin-part) "| " (char-part) "^/"]
+		compose [(form to-hex/size position 4) " | " (bin-part) "| " (char-part)]
 	]
 	find-pattern: func [
 	][
@@ -119,7 +119,7 @@ bivi!: context [
 			cls
 			at 1x1
 			bold "^-NAVIGATION^/^/" reset
-			"Navigation commands can be followed by numbers to to skip more lines/pages."
+			"Navigation commands can be followed by numbers to skip more lines/pages.^/"
 			bold "f^-ENTER" reset "^-next page^/"
 			bold "b" reset "^-^-previous page^/"
 			bold "e" reset "^-^-next line^/"
