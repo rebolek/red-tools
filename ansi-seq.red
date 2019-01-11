@@ -139,5 +139,48 @@ tui: func [
 	dialect
 ]
 
+; --- DECODER
+
+octet: charset "01234567"
+
+set-color: func [color][
+	if char? color [color: to integer! color - 48]
+	pick colors color + 1
+]
+
+ansi-seqs: [
+	"2J" 														; clear screen
+|	#"3" set value octet (cmd: reduce ['fg set-color value] emit)	; foreground
+|	#"4" set value octet (cmd: reduce ['bg set-color value] emit)	; background
+]
+
+decode-rules: [
+	some [
+		esc-main ansi-seqs
+	|	set value skip (append str value)
+	]
+]
+
+emit: does [
+	append result copy str
+	if cmd [append result cmd]
+	clear str
+	cmd: none
+]
+
+result: []
+str: ""
+cmd: none
+
+decode: func [
+	string
+][
+	clear str
+	clear result
+	parse string decode-rules
+	emit
+	result
+]
+
 ; -- end of context
 ]
