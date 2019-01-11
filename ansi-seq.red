@@ -47,7 +47,6 @@ color-rule: [
 	keep (
 		type: pick [3 4] equal? 'fg type
 		if bright? [type: type + 6]
-		set 'vv value
 		value: -1 + index? find colors value
 		rejoin [esc-main form type value #"m"]
 	)
@@ -142,6 +141,7 @@ tui: func [
 ; --- DECODER
 
 octet: charset "01234567"
+m: #"m"
 
 set-color: func [color][
 	if char? color [color: to integer! color - 48]
@@ -150,8 +150,12 @@ set-color: func [color][
 
 ansi-seqs: [
 	"2J" 														; clear screen
-|	#"3" set value octet (cmd: reduce ['fg set-color value] emit)	; foreground
-|	#"4" set value octet (cmd: reduce ['bg set-color value] emit)	; background
+|	#"3" set value octet m (cmd: reduce ['fg set-color value] emit)	; foreground
+|	#"4" set value octet m (cmd: reduce ['bg set-color value] emit)	; background
+|	"0m" (cmd: 'reset emit)
+|	"1m" (cmd: 'bold emit)
+|	"3m" (cmd: 'italic emit)
+|	"4m" (cmd: 'underline emit)
 ]
 
 decode-rules: [
