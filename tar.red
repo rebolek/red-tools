@@ -186,9 +186,3 @@ tar!: context [
 
 ]
 
-test: [
-	data: read/binary %openvpn.tar
-	untar data
-]
-
-do test
