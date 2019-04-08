@@ -94,7 +94,8 @@ json: context [
 	number: [
 		s: opt #"-"
 		some digit
-		opt [dot some digit opt [exponent sign 1 3 digit]]
+		opt [dot some digit] 
+		opt [exponent opt sign 1 3 digit]
 		e:
 	]
 

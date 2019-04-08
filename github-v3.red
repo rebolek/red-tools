@@ -381,7 +381,7 @@ direction 	string 	The direction of the sort. Can be either asc or desc. Default
 since 	string 	Only issues updated at or after this time are returned. This is a timestamp in ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ.
 }
 
-get-issues: function [
+get-issues: func [
 	; TODO: see docs for difference between GET /issues and GET /user/issues
 	"Get all user's issues"
 	/user "Get all assigned issues"
@@ -394,12 +394,13 @@ get-issues: function [
 		page-id
 	/with ; TODO
 		filter
-] [
+	/local count link 
+][
 	count: none
 	link: copy case [
 		user 	[[%issues]]
 		org 	[[%orgs org-name %issues]]
-		repo 	[[%repos repo-name %issues]]
+		repo 	[[%repos form repo-name %issues]]
 		true 	[[%user %issues]]
 	]
 	if page [
@@ -409,8 +410,9 @@ get-issues: function [
 	ret: send/full link
 
 	either total [
+		Link: {<https://api.github.com/repositories/1449773/issues?page=2>; rel="next", <https://api.github.com/repositories/1449773/issues?page=14>; rel="last"}   
 		; FIXME: this doesn't work at all
-		parse ret/link [thru "next" thru "page=" copy count to #">"]
+		parse ret/headers/link [thru "next" thru "page=" copy count to #">"]
 		to integer! count
 	] [
 		ret/data
