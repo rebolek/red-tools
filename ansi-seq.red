@@ -12,7 +12,8 @@ ANSI/TRANS block! - convert dialect to string!
 CLS				- clear screen
 CLEAR			- clear screen
 CLEAR LINE		- clear whole line
-CLEAR LINE LEFT - clear line from cursor to left
+CLEAR LINE LEFT - clear line from cursor to line start
+CLEAR LINE RIGHT - clear line from cursor to line end
 CLEAR SCREEN	- clear screen
 CLEAR SCREEN UP	- clear screen from cursor to top of screen
 CLEAR SCREEN DOWN - clear screen from cursor to bottom of screen
