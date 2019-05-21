@@ -41,7 +41,8 @@ csv: object [
 		line-rule: [values single-value newline add-line]
 		; main code
 		parse data [
-			some line-rule
+			any line-rule
+			(clear line)
 			values single-value add-line
 		]
 		output
