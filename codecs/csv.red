@@ -7,6 +7,7 @@ Red [
 ]
 
 csv: object [
+	ignore-empty?: true ; If line ends with delimiter, do not add empty string
 	decode: function [
 		data [string! file! url!] "Text CSV data to load"
 		/with
@@ -34,6 +35,11 @@ csv: object [
 		add-line: [
 			add-value ; add last value on line
 			(
+				all [
+					not ignore-empty?
+					empty? last line
+					take/last line
+				]
 				append/only output copy line
 				clear line
 			)
