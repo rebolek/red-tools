@@ -8,15 +8,20 @@ Red [
 
 csv: object [
 	ignore-empty?: true ; If line ends with delimiter, do not add empty string
+	parsed?: none		; Keep state of parse result (for debugging purposes)
 	decode: function [
 		data [string! file! url!] "Text CSV data to load"
 		/with
 			delimiter "Delimiter to use (default is comma)"
+		/header	"Treat first line as header (returns map!)"
+		/map	"Return map! (keys are named by letters A-Z, AA-ZZ, ...)"
 	] [
 		; initialization
+		if header [map: true]
 		unless with [delimiter: #","]
 		if any [file? data url? data] [data: read data]
 		output: make block! (length? data) / 80
+		out-map: make map! []
 		line: make block! 20
 		value: make string! 200
 		quot: #"^""
@@ -49,10 +54,23 @@ csv: object [
 		]
 		line-rule: [values single-value newline add-line]
 		; main code
-		parse data [
+		parsed?: parse data [
+			if (header) [
+				values single-value add-value newline
+				(header: copy line)
+				(clear line)
+			]
 			any line-rule
 			(clear line)
 			values single-value add-line
+			opt newline
+		]
+		; adjust output, when needed
+		if map [
+			unless header [
+
+			]
+
 		]
 		output
 	]
@@ -73,6 +91,7 @@ csv: object [
 		unless only [append output newline]
 		output
 	]
+
 	escape-value: function [
 		value
 		/with
@@ -92,6 +111,38 @@ csv: object [
 			append value quot
 		]
 		value
+	]
+
+	make-header: func [
+		"Return default header (A-Z, AA-ZZ, ...)"
+		length
+	][
+		key: copy "A"
+		collect [
+			loop length [
+				key-length: length? key
+				keep copy key
+				key/:key-length: key/:key-length + 1
+				repeat i key-length [
+					position: key-length - i + 1
+					print [i position key key-length]
+					; last char reached?
+					if equal? #"[" key/:position [
+						either key/1 > #"Y" [
+							print "insert"
+							key/:position: #"A"
+							key/1: #"A"
+							insert head key #"A"
+						][
+							print "rotate"
+							key/:position: #"A"
+							key/(position - 1): key/(position - 1) + 1
+							i: i + 1
+						]
+					]
+				]
+			]
+		]
 	]
 
 	encode: func [
