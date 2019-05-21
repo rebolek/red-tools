@@ -125,7 +125,7 @@ csv: object [
 		value
 	]
 
-	make-header: func [
+	make-header: function [
 		"Return default header (A-Z, AA-ZZ, ...)"
 		length
 	][
@@ -154,6 +154,15 @@ csv: object [
 		]
 	]
 
+
+; TODO
+	encode-map: func [
+		"Make CSV data from map! of columns"
+		data
+	][
+		data
+	]
+
 	encode: func [
 		"Make CSV data from input value"
 		data
@@ -163,11 +172,12 @@ csv: object [
 			types value line columns
 	] [
 		unless with [delimiter: comma]
-		unless block? data [data: reduce [data]] ; Only one line
+		unless block? first data [data: reduce [data]] ; Only one line
 		; check if it's block of maps/objects
 		types: unique collect [foreach value data [keep type? value]]
 		either all [
-			1 = length? types any [equal? map! types/1 equal? object! types/1]
+			1 = length? types
+			any [equal? map! types/1 equal? object! types/1]
 		][
 			; this is block of maps/objects
 			columns: get-columns data
@@ -182,9 +192,9 @@ csv: object [
 					]
 					keep to-csv-line/with line delimiter
 				]		
-			] make string! 1000		
+			] make string! 1000
 		][
-			; this is block of blocks	
+			; this is block of blocks
 			collect/into [
 				foreach line data [
 					keep to-csv-line/with line delimiter
