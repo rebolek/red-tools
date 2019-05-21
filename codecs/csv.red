@@ -32,7 +32,13 @@ csv: object [
 			(clear value) [
 				quot quot
 			|	quot
-				some [set char quotchars (append value char)]
+				some [
+					[
+						set char quotchars
+					|	quot quot (char: #"^"")
+					]
+					(append value char)
+				]
 				quot
 			]
 		]
