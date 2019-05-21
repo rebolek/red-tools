@@ -16,9 +16,14 @@ csv: object [
 		/header	"Treat first line as header (returns map!)"
 		/map	"Return map! (keys are named by letters A-Z, AA-ZZ, ...)"
 		; TODO: support block of maps
+		/block	"Return block of maps (first line is treated as header)"
 	] [
 		; initialization
+		if all [map block][
+			return make error! "Cannot use /map and /block refinements together."
+		]
 		if header [map: true]
+		if block [header: true]
 		unless with [delimiter: #","]
 		if any [file? data url? data] [data: read data]
 		output: make block! (length? data) / 80
@@ -55,7 +60,10 @@ csv: object [
 					empty? last line
 					take/last line
 				]
-				append/only output copy line
+				either block [
+				][
+					append/only output copy line
+				]
 				clear line
 			)
 		]
