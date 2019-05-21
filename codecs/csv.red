@@ -24,9 +24,12 @@ csv: object [
 		quotchars: charset reduce ['not quot]
 		; parse rules
 		quoted-value: [
-			quot (clear value)
-			some [set char [{""} | quotchars] (append value char)]
-			quot
+			(clear value) [
+				quot quot
+			|	quot
+				some [set char quotchars (append value char)]
+				quot
+			]
 		]
 		normal-value: [s: any valchars e: (value: copy/part s e)]
 		single-value: [quoted-value | normal-value]
@@ -36,7 +39,7 @@ csv: object [
 			add-value ; add last value on line
 			(
 				all [
-					not ignore-empty?
+					ignore-empty?
 					empty? last line
 					take/last line
 				]
