@@ -15,6 +15,7 @@ csv: object [
 			delimiter "Delimiter to use (default is comma)"
 		/header	"Treat first line as header (returns map!)"
 		/map	"Return map! (keys are named by letters A-Z, AA-ZZ, ...)"
+		; TODO: support block of maps
 	] [
 		; initialization
 		if header [map: true]
@@ -89,17 +90,15 @@ csv: object [
 
 	to-csv-line: function [
 		data
-		/with
-			delimiter
+		delimiter
 		/only "Do not add newline"
 	] [
-		unless with [delimiter: comma]
 		collect/into [
 			foreach value data [
 				keep rejoin [escape-value/with value delimiter delimiter]
 			]
 		] output: make string! 1000
-		head remove back tail output ; TODO: expects delimiter to be of size 1
+		take/part/last output length? form delimiter
 		unless only [append output newline]
 		output
 	]
@@ -154,34 +153,45 @@ csv: object [
 		]
 	]
 
-
-; TODO
-	encode-map: func [
+	encode-map: function [
 		"Make CSV data from map! of columns"
 		data
+		delimiter
 	][
-		data
+		output: make string! 1000
+		keys: keys-of data
+		append output to-csv-line keys delimiter
+		repeat index length? select data first keys [
+			line: make string! 100
+			append output to-csv-line collect [
+				foreach key keys [keep data/:key/:index]
+			] delimiter
+		]
+		output
 	]
 
-	encode: func [
+	encode: function [
 		"Make CSV data from input value"
 		data
 		/with
 			delimiter
-		/local
-			types value line columns
-	] [
+	][
 		unless with [delimiter: comma]
-		unless block? first data [data: reduce [data]] ; Only one line
+		if any [map? data object? data][return encode-map data delimiter]
+		keyval?: any [map? first data object? first data]
+		unless any [
+			block? first data
+			keyval?
+		][data: reduce [data]] ; Only one line
 		; check if it's block of maps/objects
 		types: unique collect [foreach value data [keep type? value]]
 		either all [
 			1 = length? types
-			any [equal? map! types/1 equal? object! types/1]
+			keyval?
 		][
 			; this is block of maps/objects
 			columns: get-columns data
-			output: to-csv-line/with columns delimiter
+			output: to-csv-line columns
 			append output collect/into [
 				foreach value data [
 					; construct block
