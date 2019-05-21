@@ -55,7 +55,8 @@ csv: object [
 		line-rule: [values single-value newline add-line]
 		; main code
 		parsed?: parse data [
-			if (header) [
+			opt [
+				if (header) 
 				values single-value add-value newline
 				(header: copy line)
 				(clear line)
@@ -65,12 +66,17 @@ csv: object [
 			values single-value add-line
 			opt newline
 		]
-		; adjust output, when needed
+		; adjust output when needed
 		if map [
-			unless header [
-
+			; TODO: do not use first, but longest line
+			header: any [header make-header length? first output]
+			key-index: 0
+			foreach key header [
+				key-index: key-index + 1
+				out-map/:key: make block! length? output
+				foreach line output [append out-map/:key line/:key-index]
 			]
-
+			output: out-map
 		]
 		output
 	]
@@ -125,16 +131,13 @@ csv: object [
 				key/:key-length: key/:key-length + 1
 				repeat i key-length [
 					position: key-length - i + 1
-					print [i position key key-length]
 					; last char reached?
 					if equal? #"[" key/:position [
 						either key/1 > #"Y" [
-							print "insert"
 							key/:position: #"A"
 							key/1: #"A"
 							insert head key #"A"
 						][
-							print "rotate"
 							key/:position: #"A"
 							key/(position - 1): key/(position - 1) + 1
 							i: i + 1
