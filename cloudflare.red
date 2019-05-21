@@ -2,6 +2,11 @@ Red[
 	Title: "Cloudflare API"
 	Author: "Boleslav Březovský"
 	Url: https://api.cloudflare.com
+	
+	Options: [
+		api-key: "your-api-key-here"
+		email: your@email.here	
+	]
 
 	Usage: [
 		do %cloudflare.red
@@ -36,6 +41,7 @@ cloudflare!: context [
 		header: make map! compose [
 			X-Auth-Key: (form self/api-key)
 			X-Auth-Email: (form self/email)
+			Content-Type: "application/json"
 			; TODO: X-Auth-User-Service-Key
 		]
 		self/reply: either equal? method 'get [
@@ -45,7 +51,13 @@ cloudflare!: context [
 			send-request/with/data link method header data
 		]
 		; TODO: error handling
-		self/reply/data
+		either reply/code = 200 [
+			reply/data
+		][
+			make error! rejoin [
+				reply/data/errors/1/code ": " reply/data/errors/1/message
+			]
+		]
 	]
 
 	; --- support functions
