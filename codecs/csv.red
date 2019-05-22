@@ -1,18 +1,63 @@
 Red [
-	Title: "CSV Parser"
+	Title: "CSV codec"
 	Author: "Boleslav Březovský"
 	Date: "21-3-2017"
 	Rights:  "Copyright © 2017-2019 Boleslav Březovský. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 	To-Do: [
-		{`decode/map`: if record is longer than header, surplus values are ignored}
+		{`decode/map`: if record is longer than header, surplus fields are ignored}
+		{optional error on inconsistent number of fields in record}
+		{/block mode should support /header}
 	]
+	Documentation: {
+# Introduction
+
+CSV codec implements CSV/DSV parser and emmiter for Red language. It implements
+RFC 4180 support with extension to support non-standard data.
+
+## DECODE
+
+Decode converts `string!` of CSV data to Red `block!` or `map!`, depending on
+the mode. Usage is simple:
+
+	csv/decode csv-data
+
+There are some refinements to modify function behaviour:
+
+* /with delimiter - Use different delimiter. Comma is default.
+
+* /header - Treat first line as header. Will return `map!` with columns as keys.
+
+* /map - Return `map!` of columns. If `/header` is not used, columns are named
+automatically from A to Z, then from AA to ZZ etc. `/map/header` is same as
+`/header`.
+
+* /block - Return `block!` of `map!`s. Keys are named by columns using same
+rules as with `/map` refinement.
+
+NOTE: `/block` and `map` cannot be used together.
+
+* /align - if records have different length, align shorted records with `none`.
+
+There is also `ignore-empty?` value in `CSV` object that switches automatical
+removal of last field, when it's empty (some software adds comma to end of
+record).
+
+## ENCODE
+
+Encode takes `block!`, `map!` or `object!` and returns `string!` of CSV data.
+
+There are some refinements to modify function behaviour:
+
+* /with delimiter - Use different delimiter. Comma is default.
+
+* /skip size - Treat `block!` as table of records with `size` fields.
+}
 ]
 
 csv: object [
 	; -- state variables
 	ignore-empty?: true ; If line ends with delimiter, do not add empty string
-	align?: false		; Align all records to have same length as longest record
 
 	; -- internal values
 	parsed?: none		; Keep state of parse result (for debugging purposes)
@@ -21,8 +66,6 @@ csv: object [
 
 	; -- parse rules
 	quot: #"^""
-	valchars: charset reduce ['not append copy "^/^M" delimiter]
-	quotchars: charset reduce ['not quot]
 	quoted-value: [
 		(clear value) [
 			quot quot
@@ -86,7 +129,6 @@ csv: object [
 			delimiter
 	] [
 		unless with [delimiter: comma]
-		quot: #"^""
 		value: form value
 		replace/all value form quot {""} ; escape quotes
 		if any [
@@ -130,6 +172,18 @@ csv: object [
 		]
 	]
 
+	get-columns: func [
+		"Return all keywords from maps or objects"
+		data "Data must block of maps or objects"
+		/local columns
+	][
+		columns: words-of data/1
+		foreach value data [
+			append columns difference columns words-of value 
+		]
+		columns
+	]
+
 	encode-map: function [
 		"Make CSV data from map! of columns"
 		data
@@ -155,10 +209,12 @@ csv: object [
 		/header	"Treat first line as header (returns map!)"
 		/map	"Return map! (keys are named by letters A-Z, AA-ZZ, ...)"
 		/block	"Return block of maps (first line is treated as header)"
+		/align	"Align all records to have same length as longest record"
 	] [
 		output: make block! (length? data) / 80
 		out-map: make map! []
 		longest: 0
+		quotchars: charset reduce ['not quot]
 
 		; -- initialization
 		if all [map block][
@@ -184,7 +240,7 @@ csv: object [
 		]
 
 		; -- adjust output when needed
-		if align? [
+		if align [
 			foreach line output [
 				if longest > length? line [
 					append/dup line none longest - length? line
@@ -204,7 +260,6 @@ csv: object [
 		]
 		output
 	]
-
 
 	encode: function [
 		"Make CSV data from input value"
@@ -227,7 +282,7 @@ csv: object [
 		][
 			; this is block of maps/objects
 			columns: get-columns data
-			output: to-csv-line columns
+			output: to-csv-line columns delimiter
 			append output collect/into [
 				foreach value data [
 					; construct block
@@ -236,27 +291,16 @@ csv: object [
 							keep value/:column ; FIXME: this can be problematic when key isn't in object
 						]
 					]
-					keep to-csv-line/with line delimiter
+					keep to-csv-line line delimiter
 				]		
 			] make string! 1000
 		][
 			; this is block of blocks
 			collect/into [
 				foreach line data [
-					keep to-csv-line/with line delimiter
+					keep to-csv-line line delimiter
 				]
 			] make string! 1000
 		]
-	]
-	get-columns: func [
-		"Return all keywords from maps or objects"
-		data "Data must block of maps or objects"
-		/local columns
-	][
-		columns: words-of data/1
-		foreach value data [
-			append columns difference columns words-of value 
-		]
-		columns
 	]
 ]
