@@ -9,13 +9,14 @@ Red [
 csv: object [
 	ignore-empty?: true ; If line ends with delimiter, do not add empty string
 	parsed?: none		; Keep state of parse result (for debugging purposes)
+	; TODO
+	align?: false		; Align all records to have same length as longest record
 	decode: function [
 		data [string! file! url!] "Text CSV data to load"
 		/with
 			delimiter "Delimiter to use (default is comma)"
 		/header	"Treat first line as header (returns map!)"
 		/map	"Return map! (keys are named by letters A-Z, AA-ZZ, ...)"
-		; TODO: support block of maps
 		/block	"Return block of maps (first line is treated as header)"
 	] [
 		; initialization
@@ -61,6 +62,11 @@ csv: object [
 					take/last line
 				]
 				either block [
+					value: make map! length? header
+					repeat index length? header [
+						value/(header/:index): line/:index
+					]
+					append output copy value
 				][
 					append/only output copy line
 				]
