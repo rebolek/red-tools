@@ -170,8 +170,8 @@ csv: object [
 		/header	"Treat first line as header (returns map!)"
 		/map	"Return map! (keys are named by letters A-Z, AA-ZZ, ...)"
 		/block	"Return block of maps (first line is treated as header)"
-		/align	"Align all records to have same length as longest record"
 ;TODO:	/flat	"Return flat block instead of block of blocks"
+		/align	"Align all records to have same length as longest record"
 	] [
 		; -- init local values
 		delimiter: any [delimiter comma]
@@ -204,14 +204,25 @@ csv: object [
 		add-line: [
 			add-value ; add last value on line
 			(
+				; remove last empty element, when required
 				all [
 					ignore-empty?
 					empty? last line
 					take/last line
 				]
+				; append line to output
 				either block [
-					value: make map! length? header
-					repeat index length? header [
+					length: length? header
+					; extend header when needed
+					if longest > length [
+						loop longest - length [
+							append header next-column-name last header
+						]
+						length: longest
+					]
+					; append line to output
+					value: make map! length
+					repeat index length [
 						value/(header/:index): line/:index
 					]
 					append output copy value
@@ -228,7 +239,7 @@ csv: object [
 		if all [map block][
 			return make error! "Cannot use /map and /block refinements together."
 		]
-		if header [map: true]
+		if all [header not block][map: true]
 ;		if block [header: true]
 		unless with [delimiter: #","]
 		if any [file? data url? data] [data: read data]
@@ -242,8 +253,8 @@ csv: object [
 				(clear line)
 			]
 			(
-				if all [not header any [map block]][
-					header: any [header make-header length? first output]
+				if all [block not header][
+					header: make-header 30 ; Will be expanded when necessary
 				]
 			)
 			any line-rule
