@@ -99,31 +99,36 @@ csv: object [
 		value
 	]
 
+	next-column-name: function [
+		"Return name of next column (A->B, Z->AA, ...)"
+		name
+	][
+		length: length? form name
+		repeat index length [
+			position: length - index + 1
+			previous: position - 1
+			either equal? #"Z" name/:position [
+				name/:position: #"A"
+				if position = 1 [
+					insert name #"A"
+				]
+			][
+				name/:position: name/:position + 1
+				break
+			]
+		]
+		name
+	]
+
 	make-header: function [
 		"Return default header (A-Z, AA-ZZ, ...)"
 		length
 	][
 		key: copy "A"
 		collect [
-			loop length [
-				key-length: length? key
-				keep copy key
-				key/:key-length: key/:key-length + 1
-				repeat i key-length [
-					position: key-length - i + 1
-					; last char reached?
-					if equal? #"[" key/:position [
-						either key/1 > #"Y" [
-							key/:position: #"A"
-							key/1: #"A"
-							insert head key #"A"
-						][
-							key/:position: #"A"
-							key/(position - 1): key/(position - 1) + 1
-							i: i + 1
-						]
-					]
-				]
+			keep copy key
+			loop length - 1 [
+				keep copy key: next-column-name key
 			]
 		]
 	]
@@ -166,7 +171,7 @@ csv: object [
 		/map	"Return map! (keys are named by letters A-Z, AA-ZZ, ...)"
 		/block	"Return block of maps (first line is treated as header)"
 		/align	"Align all records to have same length as longest record"
-
+;TODO:	/flat	"Return flat block instead of block of blocks"
 	] [
 		; -- init local values
 		delimiter: any [delimiter comma]
@@ -224,7 +229,7 @@ csv: object [
 			return make error! "Cannot use /map and /block refinements together."
 		]
 		if header [map: true]
-		if block [header: true]
+;		if block [header: true]
 		unless with [delimiter: #","]
 		if any [file? data url? data] [data: read data]
 
@@ -236,6 +241,11 @@ csv: object [
 				(header: copy line)
 				(clear line)
 			]
+			(
+				if all [not header any [map block]][
+					header: any [header make-header length? first output]
+				]
+			)
 			any line-rule
 			(clear line)
 			values single-value add-line
@@ -252,7 +262,6 @@ csv: object [
 		]
 		if map [
 			; TODO: do not use first, but longest line
-			header: any [header make-header length? first output]
 			key-index: 0
 			foreach key header [
 				key-index: key-index + 1
