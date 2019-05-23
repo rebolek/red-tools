@@ -162,11 +162,27 @@ csv: object [
 		output
 	]
 
+	encode-flat: function [
+		data
+		delimiter
+		size
+	][
+		unless zero? (length? data) // size [
+			return make error! "Block is not properly aligned"
+		]
+		collect/into [
+			until [
+				keep to-csv-line copy/part data size delimiter
+				tail? data: skip data size
+			]
+		] make string! 1000
+	]
+
 	; -- main functions
 	decode: function [
 		data [string! file! url!] "Text CSV data to load"
 		/with
-			delimiter "Delimiter to use (default is comma)"
+			delimiter [char! string!] "Delimiter to use (default is comma)"
 		/header	"Treat first line as header (returns map! when not used with /block)"
 		/map	"Return map! (keys are named by letters A-Z, AA-ZZ, ...)"
 		/block	"Return block of maps"
@@ -292,12 +308,15 @@ csv: object [
 
 	encode: function [
 		"Make CSV data from input value"
-		data
+		data [block! map! object!]
 		/with
-			delimiter
+			delimiter [char! string!]
+		/skip	"Treat block as table of records with fixed length"
+			size [integer!]
 	][
 		unless with [delimiter: comma]
 		if any [map? data object? data][return encode-map data delimiter]
+		if skip [return encode-flat data delimiter size]
 		keyval?: any [map? first data object? first data]
 		unless any [
 			block? first data
