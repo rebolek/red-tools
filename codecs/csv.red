@@ -58,54 +58,10 @@ There are some refinements to modify function behaviour:
 csv: object [
 	; -- state variables
 	ignore-empty?: true ; If line ends with delimiter, do not add empty string
+	quot: #"^""
 
 	; -- internal values
 	parsed?: none		; Keep state of parse result (for debugging purposes)
-	line: make block! 20
-	value: make string! 200
-
-	; -- parse rules
-	quot: #"^""
-	quoted-value: [
-		(clear value) [
-			quot quot
-		|	quot
-			some [
-				[
-					set char quotchars
-				|	quot quot (char: #"^"")
-				]
-				(append value char)
-			]
-			quot
-		]
-	]
-	normal-value: [s: any valchars e: (value: copy/part s e)]
-	single-value: [quoted-value | normal-value]
-	values: [some [single-value delimiter add-value]]
-	add-value: [(append line copy value)]
-	add-line: [
-		add-value ; add last value on line
-		(
-			all [
-				ignore-empty?
-				empty? last line
-				take/last line
-			]
-			either block [
-				value: make map! length? header
-				repeat index length? header [
-					value/(header/:index): line/:index
-				]
-				append output copy value
-			][
-				if longest < length? line [longest: length? line]
-				append/only output copy line
-			]
-			clear line
-		)
-	]
-	line-rule: [values single-value newline add-line]
 
 	; -- support functions
 	to-csv-line: function [
@@ -210,11 +166,58 @@ csv: object [
 		/map	"Return map! (keys are named by letters A-Z, AA-ZZ, ...)"
 		/block	"Return block of maps (first line is treated as header)"
 		/align	"Align all records to have same length as longest record"
+
 	] [
+		; -- init local values
+		delimiter: any [delimiter comma]
 		output: make block! (length? data) / 80
 		out-map: make map! []
 		longest: 0
+		line: make block! 20
+		value: make string! 200
+
+		; -- parse rules
 		quotchars: charset reduce ['not quot]
+		valchars: charset reduce ['not append copy "^/^M" delimiter]
+		quoted-value: [
+			(clear value) [
+				quot
+				any [
+					[
+						set char quotchars
+					|	quot quot (char: #"^"")
+					]
+					(append value char)
+				]
+				quot
+			]
+		]
+		normal-value: [s: any valchars e: (value: copy/part s e)]
+		single-value: [quoted-value | normal-value]
+		values: [some [single-value delimiter add-value]]
+		add-value: [(append line copy value)]
+		add-line: [
+			add-value ; add last value on line
+			(
+				all [
+					ignore-empty?
+					empty? last line
+					take/last line
+				]
+				either block [
+					value: make map! length? header
+					repeat index length? header [
+						value/(header/:index): line/:index
+					]
+					append output copy value
+				][
+					if longest < length? line [longest: length? line]
+					append/only output copy line
+				]
+				clear line
+			)
+		]
+		line-rule: [values single-value newline add-line]
 
 		; -- initialization
 		if all [map block][
