@@ -7,7 +7,7 @@ Red [
 	To-Do: [
 		{`decode/map`: if record is longer than header, surplus fields are ignored}
 		{optional error on inconsistent number of fields in record}
-		{/block mode should support /header}
+		{support /flat and /align together}
 	]
 	Documentation: {
 # Introduction
@@ -167,10 +167,10 @@ csv: object [
 		data [string! file! url!] "Text CSV data to load"
 		/with
 			delimiter "Delimiter to use (default is comma)"
-		/header	"Treat first line as header (returns map!)"
+		/header	"Treat first line as header (returns map! when not used with /block)"
 		/map	"Return map! (keys are named by letters A-Z, AA-ZZ, ...)"
-		/block	"Return block of maps (first line is treated as header)"
-;TODO:	/flat	"Return flat block instead of block of blocks"
+		/block	"Return block of maps"
+		/flat	"Return flat block instead of block of blocks"
 		/align	"Align all records to have same length as longest record"
 	] [
 		; -- init local values
@@ -228,7 +228,11 @@ csv: object [
 					append output copy value
 				][
 					if longest < length? line [longest: length? line]
-					append/only output copy line
+					either flat [
+						append output copy line
+					][
+						append/only output copy line
+					]
 				]
 				clear line
 			)
@@ -237,10 +241,12 @@ csv: object [
 
 		; -- initialization
 		if all [map block][
-			return make error! "Cannot use /map and /block refinements together."
+			return make error! "Cannot use /map and /block refinements together"
+		]
+		if all [flat align][
+			return make error! "Cannot use /flat and /align refinements together"
 		]
 		if all [header not block][map: true]
-;		if block [header: true]
 		unless with [delimiter: #","]
 		if any [file? data url? data] [data: read data]
 
