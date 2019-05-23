@@ -79,7 +79,7 @@ csv: object [
 		output
 	]
 
-	escape-value: function [
+	_escape-value: function [
 		value
 		/with
 			delimiter
@@ -93,6 +93,27 @@ csv: object [
 			find value quot 
 			find value delimiter
 		] [
+			insert value quot
+			append value quot
+		]
+		value
+	]
+
+	escape-value: function [
+		value
+		delimiter
+	][
+	; TODO: this replaces " with "", but what if we choose different char
+	;		as string delimiter, like ' ?
+		value: form value
+		parse value [
+			some [
+				change #"^"" {""} (quot?: true)
+			|	[space | quot | delimiter](quot?: true)
+			|	skip
+			]
+		]
+		if quot? [
 			insert value quot
 			append value quot
 		]
