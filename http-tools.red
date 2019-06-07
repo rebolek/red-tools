@@ -141,7 +141,7 @@ make-url: function [
 				set value set-word! (append args rejoin [form value #"="])
 				set value [any-word! | any-string! | number!] (
 					if word? value [value: get :value]
-					append args rejoin [percent/encode form value #"&"]
+					append args rejoin [to-pct-encoded form value #"&"]
 				)
 			]
 		]
@@ -235,44 +235,35 @@ send-request: function [
 	either only [reply/data] [reply]
 ]
 
-www-form: object [
-	encode: function [
-		data
-		/only "Ignore NONE values"
-	] [
-		if any [map? data object? data] [data: body-of data]
-		pattern: [key #"=" value #"&"]
-		output: collect/into [
-			foreach [key value] data [
-				if any [not only all [only value]] [
-					keep rejoin bind pattern 'key
-				] 
-			]
-		] make string! 1000
-		cut-tail/part output either only [length? form last pattern] [2]
-	]
-	_decode: function [
-		string
-	] [
-		if empty? string [return none]
-		data: split string charset "=&"
-		forall data [data/1: percent/decode data/1]
-		make map! data
-	]
-	decode: func [
-		string	[string!]
-		/local result key value
-	][
-		result: make map! []
-		parse string [
-			some [
-				copy key to #"=" skip
-				copy value to [#"&" | end]
-				(put result percent/decode key percent/decode value)
-			]
+to-www-form: function [
+	data
+	/only "Ignore NONE values"
+] [
+	if any [map? data object? data] [data: body-of data]
+	pattern: [key #"=" value #"&"]
+	output: collect/into [
+		foreach [key value] data [
+			if any [not only all [only value]] [
+				keep rejoin bind pattern 'key
+			] 
 		]
-		result
+	] make string! 1000
+	cut-tail/part output either only [length? form last pattern] [2]
+]
+
+load-www-form: func [
+	string	[string!]
+	/local result key value
+][
+	result: make map! []
+	parse string [
+		some [
+			copy key to #"=" skip
+			copy value to [#"&" | end]
+			(put result load-pct-encoded key load-pct-encoded value)
+		]
 	]
+	result
 ]
 
 mime-decoder: function [
@@ -282,7 +273,7 @@ mime-decoder: function [
 	unless string [return string]
 	switch type [
 		"application/json" [load-json string]
-		"application/x-www-form-urlencoded" [www-form/decode string]
+		"application/x-www-form-urlencoded" [load-www-form string]
 	;	"text/html" [www-form/decode string]
 		"text/html" [string]
 	]
@@ -310,11 +301,11 @@ get-unix-timestamp: function [
 ; --- percent encoding -------------------------------------------------------
 
 
-percent: context [
+context [
 	; RFC 3986 characters
 	reserved-chars: union charset "!*'();:@&=+$,/?#[]" charset "%" ; RFCs are stupid
 	unreserved-chars: charset [#"A" - #"Z" #"a" - #"z" #"0" - #"9" "-_.~"]
-	encode: function [
+	set 'to-pct-encoded function [
 		string [any-string!]
 	] [
 		value: none
@@ -330,7 +321,7 @@ percent: context [
 		] ""
 	]
 
-	decode: function [
+	set 'load-pct-encoded function [
 		string [string!]
 	] [
 		to string! collect/into [
