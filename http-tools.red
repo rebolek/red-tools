@@ -4,8 +4,7 @@ Red [
 	Author: "Boleslav Březovský"
 	Description: "Collection of tools to make using HTTP easier"
 	Date: "10-4-2017"
-	Problems: [
-{
+	Problems: [{
 	Rebol system/options/cgi problems:
 
 	1) Capitalized `Content-Type`
@@ -23,31 +22,12 @@ Red [
 	regardless of the request method.
 }
 	]
-	To-Do: [
-{
-	ENCODE and DECODE functions.
-
-	ENCODE data type
-	DECODE data type
-
-	Definition:
-
-	<name> CODEC <definition> ; (infix func ;)
-
-	example:
-
-	'JSON codec [
-		some: vars
-		encode: ...
-		decode: ...
-	]
-
+	To-Do: [{
+`parse-headers` should return raw map or everything converted,
+`other-headers is stupid concept.
 }
 	]
 ]
-
-do https://rebolek.com/redquire
-redquire [json]
 
 ; --- support tools ----------------------------------------------------------
 
@@ -99,7 +79,10 @@ headers!: context [
 	other-headers: none
 ]
 
-parse-headers: func [query] [
+parse-headers: func [
+	query	[string!]
+	/local headers raw key value cgi-key red-key
+][
 	headers: make headers! []
 	raw: make map! 50
 	key: value: none
@@ -268,13 +251,27 @@ www-form: object [
 		] make string! 1000
 		cut-tail/part output either only [length? form last pattern] [2]
 	]
-	decode: function [
+	_decode: function [
 		string
 	] [
 		if empty? string [return none]
 		data: split string charset "=&"
 		forall data [data/1: percent/decode data/1]
 		make map! data
+	]
+	decode: func [
+		string	[string!]
+		/local result key value
+	][
+		result: make map! []
+		parse string [
+			some [
+				copy key to #"=" skip
+				copy value to [#"&" | end]
+				(put result percent/decode key percent/decode value)
+			]
+		]
+		result
 	]
 ]
 
@@ -284,7 +281,7 @@ mime-decoder: function [
 ] [
 	unless string [return string]
 	switch type [
-		"application/json" [json/decode string]
+		"application/json" [load-json string]
 		"application/x-www-form-urlencoded" [www-form/decode string]
 	;	"text/html" [www-form/decode string]
 		"text/html" [string]
