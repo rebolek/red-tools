@@ -256,6 +256,7 @@ load-www-form: func [
 	/local result key value
 ][
 	result: make map! []
+	if equal? #"?" first string [string: next string]
 	parse string [
 		some [
 			copy key to #"=" skip
