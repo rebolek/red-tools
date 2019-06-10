@@ -1,6 +1,6 @@
 Red[]
 
-do %github-v3.red
+do %apis/github-v3.red
 do %github-options.red
 
 get-issues: func [
