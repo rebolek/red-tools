@@ -3,9 +3,8 @@ Red [
 	Author: "Boleslav Březovský"
 ]
 
-do %json.red
-do %graphql.red
-do %http-tools.red
+do %../graphql.red
+do %../http-tools.red
 
 github: context [
 
