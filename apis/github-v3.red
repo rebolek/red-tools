@@ -7,8 +7,7 @@ You must set GITHUB/USER and GITHUB/PASS to your username and password.
 	}
 ]
 
-do %json.red
-do %http-tools.red
+do %../http-tools.red
 
 map-each: function [
 	'word ; NOTE: leaks word
@@ -66,7 +65,7 @@ send: func [
 		insert header [
 			Content-Type: "application/json"
 		]
-		request: json/encode request
+		request: to-json request
 	]
 	response: either verbose? [
 		send-request/verbose/data/with/auth link method request header 'Basic reduce [form user pass]
