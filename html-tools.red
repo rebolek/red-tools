@@ -4,7 +4,7 @@ Red[
 
 ]
 
-do %xml.red
+do %codecs/xml.red
 do %http-tools.red
 
 foreach-node: func [
