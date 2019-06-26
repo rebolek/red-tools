@@ -180,7 +180,7 @@ send-request: function [
 		print ["header:" mold args]
 	]
 	header: copy #() ; NOTE: CLEAR causes crash later!!! 
-	if with [extend header args]
+	if args [extend header args]
 	if auth [
 		if verbose [print [auth-type mold auth-data]]
 		switch auth-type [
