@@ -26,6 +26,7 @@ Red [
 `parse-headers` should return raw map or everything converted,
 `other-headers is stupid concept.
 }
+{/WITH should convert args into query for GET requests}
 	]
 ]
 
