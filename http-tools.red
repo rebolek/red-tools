@@ -249,7 +249,7 @@ to-www-form: function [
 			] 
 		]
 	] make string! 1000
-	cut-tail/part output either only [length? form last pattern] [2]
+	cut-tail/part output either only [length? form last pattern] [1]
 ]
 
 load-www-form: func [
