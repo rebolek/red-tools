@@ -26,6 +26,7 @@ Red [
 `parse-headers` should return raw map or everything converted,
 `other-headers is stupid concept.
 }
+{/WITH should convert args into query for GET requests}
 	]
 ]
 
@@ -180,7 +181,7 @@ send-request: function [
 		print ["header:" mold args]
 	]
 	header: copy #() ; NOTE: CLEAR causes crash later!!! 
-	if with [extend header args]
+	if args [extend header args]
 	if auth [
 		if verbose [print [auth-type mold auth-data]]
 		switch auth-type [
@@ -249,7 +250,7 @@ to-www-form: function [
 			] 
 		]
 	] make string! 1000
-	cut-tail/part output either only [length? form last pattern] [2]
+	cut-tail/part output either only [length? form last pattern] [1]
 ]
 
 load-www-form: func [

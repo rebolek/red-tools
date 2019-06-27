@@ -17,8 +17,7 @@ Red[
 
 base-url: https://api.cloudflare.com/client/v4/
 
-do %json.red
-do %http-tools.red
+do %../http-tools.red
 
 cloudflare!: context [
 	; user settings

@@ -23,7 +23,6 @@ my-mailgun: make mailgun! [
 ;>         -F text='Congratulations Ivan Vrah, you just sent an email with Mailgun!  You are truly awesome!'
 
 do %http-tools.red
-do %json.red
 
 mailgun!: context [
     api: none ; put your API key here
@@ -50,7 +49,7 @@ mailgun!: context [
             ; TODO: Attachment and other headers
         ]
         ret: send-request/auth/data/with link method 'basic reduce ["api" self/api] data headers
-        json/decode ret
+        load-json ret
         ; TODO: Error handling
     ]
 ]
