@@ -313,6 +313,8 @@ context [
 	] [
 		value: none
 		chars: unreserved-chars
+		encode: func [value][head insert enbase/base form value 16 #"%"]
+comment {
 		rejoin head insert parse string [
 			collect [
 				some [
@@ -322,6 +324,18 @@ context [
 				]
 			]
 		] ""
+}
+		result: copy {}
+		parse string [
+			collect into result [
+				some [
+					set value reserved-chars keep (encode value)
+				|	space (print "sp") keep ("%20")
+				|	keep skip
+				]
+			]
+		]
+		result
 	]
 
 	set 'load-pct-encoded function [
