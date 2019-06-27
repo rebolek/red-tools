@@ -216,7 +216,7 @@ send-request: function [
 		]
 	]
 	set 'req reduce [link data]
-	reply: write/binary/info link data
+	reply: probe write/binary/info link data
 	set 'raw-reply copy/deep reply
 	; Red strictly requires UTF-8 data, but we'll be bit more tolerant and allow anything
 	if error? try [reply/3: to string! reply/3][reply/3: load-non-utf reply/3]
@@ -244,6 +244,7 @@ to-www-form: function [
 	output: collect/into [
 		foreach [key value] data [
 			if any [not only all [only value]] [
+				value: to-pct-encoded value
 				keep rejoin bind pattern 'key
 			] 
 		]
