@@ -245,7 +245,7 @@ to-www-form: function [
 	output: collect/into [
 		foreach [key value] data [
 			if any [not only all [only value]] [
-				value: to-pct-encoded value
+				value: to-pct-encoded form value
 				keep rejoin bind pattern 'key
 			] 
 		]
