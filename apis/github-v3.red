@@ -182,7 +182,7 @@ make-gist: func [
 	either update [
 		id
 	][
-		last split response/Location #"/"
+		last split response/data/html_url #"/"
 	]
 ]
 
