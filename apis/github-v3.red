@@ -150,7 +150,7 @@ get-gist: func [
 	link: [%gists id]
 	if revision [append link sha]
 	send link
-	response/files
+	response/data/files
 ]
 
 make-gist: func [
@@ -191,6 +191,16 @@ gist-commits: func ["Get gist commits" id] [send [%gists id %commits]]
 fork-gist: func [id] [send/method [%gists id %forks] 'POST none]
 
 get-git-forks: func [id] [send [%gists id %forks]]
+
+
+save-gist: func [
+	"Save gist to file"
+	gist [map!] "Gist to save"
+][
+	foreach [file data] gist [
+		write to file! data/filename data/content
+	]
+]
 
 ; --- COMMITS ---
 
