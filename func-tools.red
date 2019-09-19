@@ -179,84 +179,113 @@ map-each: func [
 
 ; --- make default value of given type -----------------------------------------
 
+comment {
+	Dialect specs:
+
+		opt RANDOM				;	return random value
+		<datatype>	[word!]		;	value type
+		opt <options>			;
+
+	Supported options:
+
+		integer!				;	set string length
+
+}
+
+type-templates: [
+	datatype! [
+		reduce [
+			datatype! 
+			first random collect [
+				foreach word words-of system/words [
+					if datatype? get/any word [keep word]
+				]
+			]
+		]
+	]
+	unset!      [[<TODO> <TODO>]]
+	none!       [none]
+	logic!      [reduce [true first random [true false]]]
+	block!      [[[foo #bar "baz"] <TODO>]]
+	paren!      [[(foo #bar "baz") <TODO>]]
+	string!     [reduce ["foo" random-string length]]
+	file!       [%foo.bar]
+	url!        [http://foo.bar]
+	char!       [[#"x" random 1FFFFFh]]
+	integer!    [[0 random 2147483647]] ; TODO: also negative integers and switch in dialect for it
+	float!      [[0.0 random 1.797693134862315e308]]
+	word!       ['foo]
+	set-word!   [reduce [quote foo: to set-word! random-string length]]
+	lit-word!   [reduce [quote 'foo to lit-word! random-string length]]
+	get-word!   [reduce [quote :foo to get-word! random-string length]]
+	refinement! [reduce [/foo to refinement! random-string length]]
+	issue!      [reduce [#foo to issue! random-string length]]
+	native!     [<TODO>]
+	action!     [<TODO>]
+	op!         [<TODO>]
+	function!   [<TODO>]
+	path!       [quote foo/bar/baz]
+	lit-path!   [quote 'foo/bar/baz]
+	set-path!   [quote foo/bar/baz:]
+	get-path!   [quote :foo/bar/baz]
+	routine!    [<TODO>]
+	bitset!     [reduce [charset "bar" charset random-string length]]
+	point!      [<TODO>]
+	object!     [<TODO>]
+	typeset!    [<TODO>]
+	error!      [<TODO>]
+	vector!     [make vector! [integer! 8 10]]
+	hash!       [make hash! [foo bar baz]]
+	pair!       [reduce [0x0 random 2147483647x2147483647]]
+	percent!    [reduce [0% random 1.797693134862315e308%]]
+	tuple!      [reduce [0.0.0 random 255.255.255]] ; TODO: support different length
+	map!        [#(foo: bar)]
+	binary!     [#{deadcafe}]
+	time!       [11:22:33]
+	tag!        [<foo>]
+	email!      [foo@bar.baz]
+	handle!     [<TODO>]
+	date!       [27-2-2011]
+]
+
 make-type: func [
-    "Return default value of given type"
-    type    [datatype! block!] "Type of value or (TODO) dialect specs"
-    /local species easy-pick length random-string
+	"Return default value of given type"
+	type	[datatype! block!] "Type of value or dialect specs"
+	/random	"Return random value of given type"
+	/local
+		species length values results
+		easy-pick random-string 
 ][
-    species: 1 ; 1 - default, 2 - random
-    length: 8  ; default length for random strings
-    if block? type [
-        parse type [
-            ['random (species: 2) set type skip]
-            ; TODO: support multiple values and blocks of values
-        ]
-    ]
-    easy-pick: func [block index][
-        either block? block [pick reduce block index][block]
-    ]
-    random-string: func [
-        "Return random string"
-        length
-        ; TODO: support description dialect
-    ][
-        collect/into [loop length [keep #"`" + random 26]] copy {}
-    ]
-    easy-pick switch to word! type [
-        datatype! [
-            reduce [
-                datatype! 
-                first random collect [
-                    foreach word words-of system/words [
-                        if datatype? get/any word [keep word]
-                    ]
-                ]
-            ]
-        ]
-        unset!      [[<TODO> <TODO>]]
-        none!       [none]
-        logic!      [reduce [true first random [true false]]]
-        block!      [[[foo #bar "baz"] <TODO>]]
-        paren!      [[(foo #bar "baz") <TODO>]]
-        string!     [reduce ["foo" random-string length]]
-        file!       [%foo.bar]
-        url!        [http://foo.bar]
-        char!       [[#"x" random 1FFFFFh]]
-        integer!    [[0 random 2147483647]] ; TODO: also negative integers and switch in dialect for it
-        float!      [[0.0 random 1.797693134862315e308]]
-        word!       ['foo]
-        set-word!   [reduce [quote foo: to set-word! random-string length]]
-        lit-word!   [reduce [quote 'foo to lit-word! random-string length]]
-        get-word!   [reduce [quote :foo to get-word! random-string length]]
-        refinement! [reduce [/foo to refinement! random-string length]]
-        issue!      [reduce [#foo to issue! random-string length]]
-        native!     [<TODO>]
-        action!     [<TODO>]
-        op!         [<TODO>]
-        function!   [<TODO>]
-        path!       [quote foo/bar/baz]
-        lit-path!   [quote 'foo/bar/baz]
-        set-path!   [quote foo/bar/baz:]
-        get-path!   [quote :foo/bar/baz]
-        routine!    [<TODO>]
-        bitset!     [reduce [charset "bar" charset random-string length]]
-        point!      [<TODO>]
-        object!     [<TODO>]
-        typeset!    [<TODO>]
-        error!      [<TODO>]
-        vector!     [make vector! [integer! 8 10]]
-        hash!       [make hash! [foo bar baz]]
-        pair!       [reduce [0x0 random 2147483647x2147483647]]
-        percent!    [reduce [0% random 1.797693134862315e308%]]
-        tuple!      [reduce [0.0.0 random 255.255.255]] ; TODO: support different length
-        map!        [#(foo: bar)]
-        binary!     [#{deadcafe}]
-        time!       [11:22:33]
-        tag!        [<foo>]
-        email!      [foo@bar.baz]
-        handle!     [<TODO>]
-        date!       [27-2-2011]
-    ] species
+	if datatype? type [type: reduce [type]]
+	species: 1 ; 1 - default, 2 - random
+	length: 8  ; default length for random strings
+	values: copy []	; internal "dialect": [type random? options]
+	results: copy []
+
+	parse type [
+		some [
+			(species: 1)
+			'random (species: 2) set type skip
+			(repend values [to word! type species none])
+		]
+	]
+
+	easy-pick: func [block index][
+		either block? block [pick reduce block index][block]
+	]
+
+	random-string: func [
+		"Return random string"
+		length
+		; TODO: support description dialect
+	][
+		collect/into [loop length [keep #"`" + random 26]] copy {}
+	]
+
+	foreach [type species opts] values [
+		append results easy-pick switch type type-templates species
+	]
+	results
 ]
 
 ; --- dispatch function --------------------------------------------------------
