@@ -277,16 +277,19 @@ make-type: func [
 		some [
 			(species: repetition: 1)
 			opt [set repetition integer!]
-			'random (species: 2) set type skip
+			opt ['random (species: 2)] 
+			set type skip
 			(loop repetition [repend values [to word! type species none]])
 		]
 	]
 
 	foreach [type species opts] values [
+	; NOTE: This is bit crazy, but when binding length directly,
+	;		code not using length somehow stops working
 		t: select type-templates type
 		t: any [pick t species first t]
-		t: bind t 'length
-		append results do bind t 'length
+		t: func [length] t
+		append results t length
 	]
 	results
 ]
