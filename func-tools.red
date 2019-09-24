@@ -277,7 +277,7 @@ random-map: func [
 			loop size [
 				keep compose [
 					random word!
-					random string! length (random 10)
+					random string! length (random 1000)
 				]
 			]
 		]
