@@ -189,7 +189,12 @@ comment {
 
 	Supported options:
 
-		integer!				;	set string length
+		integer!:
+			NEGATIVE			;	return negative integer
+
+		string!:
+			LENGTH integer!		;	set string length
+		
 
 }
 
@@ -207,7 +212,7 @@ type-templates: [
 	unset!      [[<TODO>] [<TODO>]]
 	none!       [none]
 	logic!      [[true] [first random [true false]]]
-	block!      [[[foo #bar "baz"]] [<TODO>]]
+	block!      [[[foo #bar "baz"]] [collect [loop length [keep random-string length]]]]
 	paren!      [[quote (foo #bar "baz")] [<TODO>]]
 	string!     [["foo"] [random-string length]]
 	file!       [[%foo.bar]]
@@ -215,7 +220,7 @@ type-templates: [
 	char!       [[#"x"] [random 1FFFFFh]]
 	integer!    [[0] [random 2147483647]] ; TODO: also negative integers and switch in dialect for it
 	float!      [[0.0] [random 1.797693134862315e308]]
-	word!       [['foo]]
+	word!       [['foo] [to word! random-string length]]
 	set-word!   [[quote foo:] [to set-word! random-string length]]
 	lit-word!   [[quote 'foo] [to lit-word! random-string length]]
 	get-word!   [[quote :foo] [to get-word! random-string length]]
@@ -258,40 +263,64 @@ random-string: func [
 	collect/into [loop length [keep #"`" + random 26]] copy {}
 ]
 
-make-type: func [
-	"Return default value of given type"
-	type	[datatype! block!] "Type of value or dialect specs"
-	/random	"Return random value of given type"
-	/local
-		species length values results
-		repetition
-][
-	if datatype? type [type: reduce [type]]
-	species: 1 ; 1 - default, 2 - random
-	length: 8  ; default length for random strings
-	repetition: 1
-	values: copy []	; internal "dialect": [type random? options]
-	results: copy []
+context [
+	action: none
+	length: 8
 
-	parse type [
-		some [
-			(species: repetition: 1)
-			opt [set repetition integer!]
-			opt ['random (species: 2)] 
-			set type skip
-			(loop repetition [repend values [to word! type species none]])
+	rules: [
+		float! integer! pair! percent! [['negative (action: [negate value])]]
+		string! word! set-word! get-word! lit-word! [[
+			'length set value integer! (pre-action: compose [length: (value)])
+		]]
+	]
+
+
+	set 'make-type func [
+		"Return default value of given type"
+		type	[datatype! block!] "Type of value or dialect specs"
+		/random	"Return random value of given type"
+		/local
+			species values results
+			repetition
+	][
+		if datatype? type [type: reduce [type]]
+		species: 1 ; 1 - default, 2 - random
+		length: 8  ; default length for random strings
+		repetition: 1
+		values: copy []	; internal "dialect": [type random? options]
+		results: copy []
+
+		parse type [
+			some [
+				(species: repetition: 1)
+				(pre-action: action: none)
+				(length: 8)
+				opt [set repetition integer!]
+				opt ['random (species: 2)] 
+				set type skip
+				(opt-rule: switch to word! type rules)
+				opt opt-rule
+				(
+					loop repetition [
+						repend values [to word! type species pre-action action]
+					]
+				)
+			]
 		]
-	]
 
-	foreach [type species opts] values [
-	; NOTE: This is bit crazy, but when binding length directly,
-	;		code not using length somehow stops working
-		t: select type-templates type
-		t: any [pick t species first t]
-		t: func [length] t
-		append results t length
+		foreach [type species pre-act act] values [
+		; NOTE: This is bit crazy, but when binding length directly,
+		;		code not using length somehow stops working
+			do pre-act
+			value: select type-templates type
+			value: any [pick value species first value]
+			value: func [length] value
+			value: value length
+			if action [value: do action]
+			append results value
+		]
+		results
 	]
-	results
 ]
 
 ; --- dispatch function --------------------------------------------------------
