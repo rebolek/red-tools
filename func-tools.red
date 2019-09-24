@@ -263,6 +263,44 @@ random-string: func [
 	collect/into [loop length [keep #"`" + random 26]] copy {}
 ]
 
+random-map: func [
+	"Return random map"
+	size
+	/depth
+		level
+	/local
+		make-map map maps out key
+][
+;  currently creates random map with words as keys and strings as values.
+	make-map: func [size][
+		to map! make-type collect [
+			loop size [
+				keep compose [
+					random word!
+					random string! length (random 10)
+				]
+			]
+		]
+	]
+	either level [
+		maps: collect [
+			loop level [
+				keep make-map size
+			]
+		]
+		map: out: take maps
+		until [
+			key: to word! random-string 8
+			map/:key: take maps
+			map: map/:key
+			empty? maps
+		]
+		out
+	][
+		make-map size
+	]
+]
+
 context [
 	action: none
 	length: 8
@@ -311,6 +349,7 @@ context [
 		foreach [type species pre-act act] values [
 		; NOTE: This is bit crazy, but when binding length directly,
 		;		code not using length somehow stops working
+			length: 8
 			do pre-act
 			value: select type-templates type
 			value: any [pick value species first value]
