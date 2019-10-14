@@ -132,11 +132,11 @@ get-headers
 ;		set the words (they should of course be marked as local beforehand
 ;		to their values
 url-actions: [
-	set-word	(append args rejoin [form value #"="])
-	set-value	(
+	set-word	[(append args rejoin [form value #"="])]
+	set-value	[(
 		if word? value [value: get :value]
 		append args rejoin [to-pct-encoded form value #"&"]
-	)
+	)]
 ]
 
 json-actions: [
@@ -145,11 +145,28 @@ json-actions: [
 ]
 
 data-rule: [
-	any [
-		set value set-word! set-word
-		set value [any-word! | any-string! | number!] set-value
-	]
+	set value set-word! set-word
+	set value [any-word! | any-string! | number!] set-value
 ]
+
+parse-data: func [
+	data	[block!]
+	rules	[block!]
+	/local 
+		set-word set-value ; ACTION words
+		word value
+		args
+][
+	args: copy {}
+	bind rules 'set-word
+	foreach [word value] rules [
+		set word value
+	]
+	print [mold set-word newline mold set-value]
+	bind data-rule 'set-word
+	parse data data-rule
+]
+
 
 make-url: function [
 	"Make URL from simple dialect"
