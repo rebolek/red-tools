@@ -175,6 +175,7 @@ send-request: function [
 		auth-data
 	/raw 		"Return raw data and do not try to decode them"
 	/verbose    "Print request informations"
+	/debug		"Set debug words (see source for details)"
 ] [
 	if verbose [
 		print ["SEND-REQUEST to" link ", method:" method]
@@ -216,12 +217,12 @@ send-request: function [
 			"Data:" mold data newline
 		]
 	]
-	set 'req reduce [link data]
+	if debug [set 'req reduce [link data]]
 	reply: write/binary/info link data
-	set 'raw-reply copy/deep reply
+	if debug [set 'raw-reply copy/deep reply]
 	; Red strictly requires UTF-8 data, but we'll be bit more tolerant and allow anything
 	if error? try [reply/3: to string! reply/3][reply/3: load-non-utf reply/3]
-	set 'raw-reply  copy/deep reply
+	if debug [set 'loaded-reply  copy/deep reply]
 	if raw [return reply]
 	type: first split reply/2/Content-Type #";"
 	if verbose [
