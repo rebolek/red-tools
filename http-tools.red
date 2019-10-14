@@ -126,6 +126,31 @@ get-headers
 
 ; --- client side tools ------------------------------------------------------
 
+; TODO: move to separate context
+
+; NOTE: because of parse limitations, run this thru a foreach loop,
+;		set the words (they should of course be marked as local beforehand
+;		to their values
+url-actions: [
+	set-word	(append args rejoin [form value #"="])
+	set-value	(
+		if word? value [value: get :value]
+		append args rejoin [to-pct-encoded form value #"&"]
+	)
+]
+
+json-actions: [
+	set-word	(<TODO>)
+	set-value	(<TODO>)
+]
+
+data-rule: [
+	any [
+		set value set-word! set-word
+		set value [any-word! | any-string! | number!] set-value
+	]
+]
+
 make-url: function [
 	"Make URL from simple dialect"
 	data
