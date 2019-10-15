@@ -131,152 +131,179 @@ get-headers
 ; NOTE: because of parse limitations, run this thru a foreach loop,
 ;		set the words (they should of course be marked as local beforehand
 ;		to their values
-url-actions: [
-	set-word	[(append args rejoin [form value #"="])]
-	set-value	[(
-		if word? value [value: get :value]
-		append args rejoin [to-pct-encoded form value #"&"]
-	)]
-]
 
-json-actions: [
-	set-word	(<TODO>)
-	set-value	(<TODO>)
-]
+context [
 
-data-rule: [
-	set value set-word! set-word
-	set value [any-word! | any-string! | number!] set-value
-]
+	args: none
 
-parse-data: func [
-	data	[block!]
-	rules	[block!]
-	/local 
-		set-word set-value ; ACTION words
-		word value
-		args
-][
-	args: copy {}
-	bind rules 'set-word
-	foreach [word value] rules [
-		set word value
-	]
-	print [mold set-word newline mold set-value]
-	bind data-rule 'set-word
-	parse data data-rule
-]
-
-
-make-url: function [
-	"Make URL from simple dialect"
-	data
-] [
-	; this is basically like to-url, with some exceptions:
-	; WORD! - gets value
-	; BLOCK! - treated as key/value storage of after "?" parameters
-	value: none
-	args: clear []
-	link: make url! 80
-	args-rule: [
-		ahead block! into [
-			any [
-				set value set-word! (append args rejoin [form value #"="])
-				set value [any-word! | any-string! | number!] (
-					if word? value [value: get :value]
-					append args rejoin [to-pct-encoded form value #"&"]
-				)
-			]
+	actions: context [
+		url: [
+			set-word	[(append args rejoin [form value #"="])]
+			set-value	[(
+				if word? value [value: get :value]
+				append args rejoin [to-pct-encoded form value #"&"]
+			)]
+		]
+		red: [
+			set-word	(append args <TODO>)
+			set-value	(append args <TODO>)
+		]
+		json: [
+			set-word	()
+			set-value	()
 		]
 	]
-	parse append clear [] data [
-		some [
-			args-rule
-		|	set value [set-word! | any-string! | refinement!] (append link dirize form value)
-		|	set value [word! | path!] (append link dirize form get :value)	
+
+	process: context [
+		url: none
+		red: none
+		json: [
+			to-json args
 		]
 	]
-	unless empty? args [
-		change back tail link #"?"
-		append link args
-	]
-	head remove back tail link	
-]
 
-send-request: function [
-	"Send HTTP request. Useful for REST APIs"
-	link 		[url!] 	"URL link"
-	method 		[word!] "Method type (GET, POST, PUT, DELETE)"
-	/only 		"Return only data without headers"
-	/data 		"Use with POST and other methods"
-		content
-	/with 		"Headers to send with request"
-		args
-	/auth 		"Authentication method and data"
-		auth-type [word!]
-		auth-data
-	/raw 		"Return raw data and do not try to decode them"
-	/verbose    "Print request informations"
-	/debug		"Set debug words (see source for details)"
-] [
-	if verbose [
-		print ["SEND-REQUEST to" link ", method:" method]
-		print ["header:" mold args]
+	prepare:
+
+	data-rule: [
+		(actions: :url-actions)
+		opt [
+			'JSON	(actions: json-actions)
+		|	'Red	(actions: red-actions)
+		]
+		set value set-word! set-word
+		set value [any-word! | any-string! | number!] set-value
 	]
-	header: copy #() ; NOTE: CLEAR causes crash later!!! 
-	if args [extend header args]
-	if auth [
-		if verbose [print [auth-type mold auth-data]]
-		switch auth-type [
-			Basic [
-				extend header compose [
-					Authorization: (rejoin [auth-type space enbase rejoin [first auth-data #":" second auth-data]])
-				]
-			]
-			OAuth [
-				; TODO: OAuth 1 (see Twitter API)
-			]
-			Bearer [
-				; token passing for OAuth 2
-				extend header compose [
-					Authorization: (rejoin [auth-type space auth-data])
+
+	; TODO: temporarily exposed for testing, make internal later
+	set 'parse-data func [
+		data	[block!]
+		type	[word!]
+	;	rules	[block!]
+		/local 
+			set-word set-value ; ACTION words
+			word value
+	][
+		do select prepare type
+		bind rules 'set-word
+		foreach [word value] rules [
+			set word value
+		]
+	;	print [mold set-word newline mold set-value]
+		bind data-rule 'set-word
+		parse data data-rule
+		args
+	]
+
+	set 'make-url function [
+		"Make URL from simple dialect"
+		data
+	] [
+		; this is basically like to-url, with some exceptions:
+		; WORD! - gets value
+		; BLOCK! - treated as key/value storage of after "?" parameters
+		value: none
+		args: clear []
+		link: make url! 80
+		args-rule: [
+			ahead block! into [
+				any [
+					set value set-word! (append args rejoin [form value #"="])
+					set value [any-word! | any-string! | number!] (
+						if word? value [value: get :value]
+						append args rejoin [to-pct-encoded form value #"&"]
+					)
 				]
 			]
 		]
-	]
-	; Make sure all values are strings
-	body: body-of header
-	forall body [body: next body body/1: form body/1]
-	data: reduce [method body]
-	if any [
-		not content
-		method = 'GET
-	] [content: clear ""]
-	append data content
-	if verbose [
-		print [
-			"Link:" link newline
-			"Data:" mold data newline
+		parse append clear [] data [
+			some [
+				args-rule
+			|	set value [set-word! | any-string! | refinement!] (append link dirize form value)
+			|	set value [word! | path!] (append link dirize form get :value)	
+			]
 		]
+		unless empty? args [
+			change back tail link #"?"
+			append link args
+		]
+		head remove back tail link	
 	]
-	if debug [set 'req reduce [link data]]
-	reply: write/binary/info link data
-	if debug [set 'raw-reply copy/deep reply]
-	; Red strictly requires UTF-8 data, but we'll be bit more tolerant and allow anything
-	if error? try [reply/3: to string! reply/3][reply/3: load-non-utf reply/3]
-	if debug [set 'loaded-reply  copy/deep reply]
-	if raw [return reply]
-	type: first split reply/2/Content-Type #";"
-	if verbose [
-		print ["Return type:" type]
+
+	set 'send-request function [
+		"Send HTTP request. Useful for REST APIs"
+		link 		[url!] 	"URL link"
+		method 		[word!] "Method type (GET, POST, PUT, DELETE)"
+		/only 		"Return only data without headers"
+		/data 		"Use with POST and other methods"
+			content
+		/with 		"Headers to send with request"
+			args
+		/auth 		"Authentication method and data"
+			auth-type [word!]
+			auth-data
+		/raw 		"Return raw data and do not try to decode them"
+		/verbose    "Print request informations"
+		/debug		"Set debug words (see source for details)"
+	] [
+		if verbose [
+			print ["SEND-REQUEST to" link ", method:" method]
+			print ["header:" mold args]
+		]
+		header: copy #() ; NOTE: CLEAR causes crash later!!! 
+		if args [extend header args]
+		if auth [
+			if verbose [print [auth-type mold auth-data]]
+			switch auth-type [
+				Basic [
+					extend header compose [
+						Authorization: (rejoin [auth-type space enbase rejoin [first auth-data #":" second auth-data]])
+					]
+				]
+				OAuth [
+					; TODO: OAuth 1 (see Twitter API)
+				]
+				Bearer [
+					; token passing for OAuth 2
+					extend header compose [
+						Authorization: (rejoin [auth-type space auth-data])
+					]
+				]
+			]
+		]
+		; Make sure all values are strings
+		body: body-of header
+		forall body [body: next body body/1: form body/1]
+		data: reduce [method body]
+		if any [
+			not content
+			method = 'GET
+		] [content: clear ""]
+		append data content
+		if verbose [
+			print [
+				"Link:" link newline
+				"Data:" mold data newline
+			]
+		]
+		if debug [set 'req reduce [link data]]
+		reply: write/binary/info link data
+		if debug [set 'raw-reply copy/deep reply]
+		; Red strictly requires UTF-8 data, but we'll be bit more tolerant and allow anything
+		if error? try [reply/3: to string! reply/3][reply/3: load-non-utf reply/3]
+		if debug [set 'loaded-reply  copy/deep reply]
+		if raw [return reply]
+		type: first split reply/2/Content-Type #";"
+		if verbose [
+			print ["Return type:" type]
+		]
+		reply: map-set [
+			code: reply/1
+			headers: reply/2
+			raw: reply/3
+			data: mime-decoder reply/3 type
+		]
+		either only [reply/data] [reply]
 	]
-	reply: map-set [
-		code: reply/1
-		headers: reply/2
-		raw: reply/3
-		data: mime-decoder reply/3 type
-	]
-	either only [reply/data] [reply]
 ]
 
 to-www-form: function [
