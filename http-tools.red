@@ -134,64 +134,32 @@ get-headers
 
 context [
 
-	args: none
+	value: none
+	result: none
+	content-type: none
 
-	actions: context [
-		url: [
-			set-word	[(append args rejoin [form value #"="])]
-			set-value	[(
-				if word? value [value: get :value]
-				append args rejoin [to-pct-encoded form value #"&"]
-			)]
-		]
-		red: [
-			set-word	(append args <TODO>)
-			set-value	(append args <TODO>)
-		]
-		json: [
-			set-word	()
-			set-value	()
-		]
-	]
-
-	process: context [
-		url: none
-		red: none
-		json: [
-			to-json args
-		]
-	]
-
-	prepare:
-
-	data-rule: [
-		(actions: :url-actions)
-		opt [
-			'JSON	(actions: json-actions)
-		|	'Red	(actions: red-actions)
-		]
-		set value set-word! set-word
-		set value [any-word! | any-string! | number!] set-value
+	url-rule: [
+		set value set-word! (append result rejoin [form value #"="])
+		set value [any-word! | any-string! | number!] (
+			if word? value [value: get :value]
+			append result rejoin [to-pct-encoded form value #"&"]
+		)
 	]
 
 	; TODO: temporarily exposed for testing, make internal later
 	set 'parse-data func [
 		data	[block!]
-		type	[word!]
-	;	rules	[block!]
-		/local 
-			set-word set-value ; ACTION words
-			word value
 	][
-		do select prepare type
-		bind rules 'set-word
-		foreach [word value] rules [
-			set word value
+		content-type: "application/x-www-form-urlencoded"
+		parse data [
+			'JSON	copy value to end (
+				content-type: "application/json"
+				result: to-json value
+			)
+		|	'Red	copy value to end (result: mold value)
+		|	(result: copy {}) any url-rule (take/last result)
 		]
-	;	print [mold set-word newline mold set-value]
-		bind data-rule 'set-word
-		parse data data-rule
-		args
+		result
 	]
 
 	set 'make-url function [
@@ -206,6 +174,7 @@ context [
 		link: make url! 80
 		args-rule: [
 			ahead block! into [
+		; TODO: Use `url-rule` here
 				any [
 					set value set-word! (append args rejoin [form value #"="])
 					set value [any-word! | any-string! | number!] (
@@ -270,14 +239,30 @@ context [
 				]
 			]
 		]
+		; Process data
+		case [
+			all [method = 'GET not content][
+				content: clear ""
+			]
+			all [method = 'GET content][
+				link: rejoin [link #"?" parse-data content]
+				content: clear ""
+			]
+			block? content [
+				header/content-type: "application/x-www-form-urlencoded"
+				content: parse-data content
+			]
+			any [map? content object? content][
+				; if you're passing map/object, it's safe to assume it should be send as JSON
+				header/content-type: "application/json"
+				content: to-json content
+			]
+			; TODO: string! Or is there anything needed for it?
+		]
 		; Make sure all values are strings
 		body: body-of header
 		forall body [body: next body body/1: form body/1]
 		data: reduce [method body]
-		if any [
-			not content
-			method = 'GET
-		] [content: clear ""]
 		append data content
 		if verbose [
 			print [
@@ -286,11 +271,13 @@ context [
 			]
 		]
 		if debug [set 'req reduce [link data]]
+
+		; -- send prepared request and process reply
 		reply: write/binary/info link data
 		if debug [set 'raw-reply copy/deep reply]
 		; Red strictly requires UTF-8 data, but we'll be bit more tolerant and allow anything
 		if error? try [reply/3: to string! reply/3][reply/3: load-non-utf reply/3]
-		if debug [set 'loaded-reply  copy/deep reply]
+		if debug [set 'loaded-reply copy/deep reply]
 		if raw [return reply]
 		type: first split reply/2/Content-Type #";"
 		if verbose [
