@@ -207,7 +207,7 @@ context [
 		/with 		"Headers to send with request"
 			args
 		/auth 		"Authentication method and data"
-			auth-type [word!]
+			auth-type [word!] "Basic, Bearer, TODO: Digest"
 			auth-data
 		/raw 		"Return raw data and do not try to decode them"
 		/verbose    "Print request informations"
@@ -235,6 +235,9 @@ context [
 					extend header compose [
 						Authorization: (rejoin [auth-type space auth-data])
 					]
+				]
+				Digest [
+					<TODO>
 				]
 			]
 		]
