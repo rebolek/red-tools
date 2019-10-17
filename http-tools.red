@@ -140,8 +140,7 @@ context [
 
 	url-rule: [
 		set value set-word! (append result rejoin [form value #"="])
-		set value [any-word! | any-string! | number!] (
-			if word? value [value: get :value]
+		set value any-type! (
 			append result rejoin [to-pct-encoded form value #"&"]
 		)
 	]
@@ -387,7 +386,7 @@ comment {
 			collect into result [
 				some [
 					set value reserved-chars keep (encode value)
-				|	space (print "sp") keep ("%20")
+				|	space keep ("%20")
 				|	keep skip
 				]
 			]
