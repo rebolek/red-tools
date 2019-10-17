@@ -281,7 +281,13 @@ context [
 		if error? try [reply/3: to string! reply/3][reply/3: load-non-utf reply/3]
 		if debug [set 'loaded-reply copy/deep reply]
 		if raw [return reply]
-		type: first split reply/2/Content-Type #";"
+		type: any [
+			all [
+				reply/2/Content-Type
+				first split reply/2/Content-Type #";"
+			]
+			""
+		]
 		if verbose [
 			print ["Return type:" type]
 		]
