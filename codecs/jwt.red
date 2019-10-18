@@ -82,13 +82,13 @@ make-header: func [
 		alg: "HS256"
 		typ: "JWT"
 	]
-	base64 to-json header
+	enbase64 to-json header
 ]
 
 make-payload: func [
 	claim [map! object!]
 ][
-	base64 to-json claim
+	enbase64 to-json claim
 ]
 
 sign: func [
