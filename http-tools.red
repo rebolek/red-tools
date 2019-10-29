@@ -26,7 +26,9 @@ Red [
 `parse-headers` should return raw map or everything converted,
 `other-headers is stupid concept.
 }
-{/WITH should convert args into query for GET requests}
+{
+SEND-REQUEST should add at least `Accept-Charset` automatically.
+}
 	]
 ]
 
@@ -202,10 +204,10 @@ context [
 		link 		[url!] 	"URL link"
 		method 		[word!] "Method type (GET, POST, PUT, DELETE)"
 		/only 		"Return only data without headers"
-		/data 		"Use with POST and other methods"
-			content
+		/data 		"Data to send with request (auto-converted to proper encoding)"
+			content [string! block! map! object!]
 		/with 		"Headers to send with request"
-			args
+			args	[block! map!]
 		/auth 		"Authentication method and data"
 			auth-type [word!] "Basic, Bearer, TODO: Digest"
 			auth-data
