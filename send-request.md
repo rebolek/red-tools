@@ -33,7 +33,8 @@ encoding:
 * with other methods, content is treated based on type: `block!` is also 
 	translated to url-encoded string passed as data and `Content-Type`
 	field in the header is set to `application/x-www-form-urlencoded`
-	(with one small exception useful only for a very small niche).
+	(with one small exception: block with first value of `JSON` is treaded as
+	JSON array).
 
 * `map!` is treated as JSON and `Content-Type` is set accordingly. So you
 	don't have to care about sending JSON requests, it's handled
@@ -55,7 +56,7 @@ Supported methods: `basic`, `bearer`.
 * `basic` method expects data to be `block!` with two values, **user** and
 **password**.
 
-* `bearer` method expects sata to be `string!` with token.
+* `bearer` method expects data to be `string!` with token.
 
 #### /raw
 
@@ -103,6 +104,8 @@ GET request with basic authentication:
 GET request with bearer token:
 
 `send-request/auth http://example.org 'GET 'bearer "abcd1234cdef5678"`
+
+#### POST request
 
 POST request with HTTP FORM data:
 
