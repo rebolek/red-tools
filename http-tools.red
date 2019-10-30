@@ -205,7 +205,7 @@ context [
 		method 		[word!] "Method type (GET, POST, PUT, DELETE)"
 		/only 		"Return only data without headers"
 		/data 		"Data to send with request (auto-converted to proper encoding)"
-			content [string! block! map! object!]
+			content [string! block! map! object! none!]
 		/with 		"Headers to send with request"
 			args	[block! map!]
 		/auth 		"Authentication method and data"
