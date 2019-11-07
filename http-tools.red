@@ -283,13 +283,13 @@ context [
 		if error? try [reply/3: to string! reply/3][reply/3: load-non-utf reply/3]
 		if debug [set 'loaded-reply copy/deep reply]
 		if raw [return reply]
-		type: any [
-			all [
-				reply/2/Content-Type
-				first split reply/2/Content-Type #";"
-			]
-			""
-		]
+;		type: any [
+;			all [
+;				reply/2/Content-Type
+;				first split reply/2/Content-Type #";"
+;			]
+;			""
+;		]
 		if verbose [
 			print ["Return type:" type]
 		]
@@ -297,10 +297,39 @@ context [
 			code: reply/1
 			headers: reply/2
 			raw: reply/3
-			data: mime-decoder reply/3 type
+			data: mime-decoder reply/3 reply/2/Content-Type
 		]
 		either only [reply/data] [reply]
 	]
+]
+
+parse-content-type: func [
+	data [string!]
+	/local type subtype parameters tspecials token not-token value
+][
+	tspecials: charset {()<>@,;:\"/[]?=}
+	; NOTE: `not-token` should also include control chars but I don't expect 
+	;		them to be used
+	not-token: union tspecials charset space 
+	token: [
+		#"^"" copy value to #"^""
+	|	copy value some [not not-token skip]
+	]
+
+	parameters: copy #()
+	parse data [
+		copy type to #"/" skip
+		copy subtype to [#";" | end]
+		any [
+			any space ; TODO: is it necessary?
+			#";"
+			any space
+			token (key: value)
+			#"="
+			token (parameters/:key: value)
+		]
+	]
+	reduce [type subtype parameters]
 ]
 
 to-www-form: function [
@@ -341,12 +370,24 @@ mime-decoder: function [
 	type
 ] [
 	unless string [return string]
-	switch type [
-		"application/json" [load-json string]
-		"application/x-www-form-urlencoded" [load-www-form string]
-	;	"text/html" [www-form/decode string]
-		"text/html" [string]
+	type: parse-content-type type
+	case [
+		all [type/1 = "application" type/2 = "json"][load-json string]
+		all [type/1 = "application" type/2 = "x-www-form-urlencoded"][
+			load-www-form string
+		]
+		all [type/1 = "text" type/2 = "html"][string]
+		type/1 = "multipart" [
+			; TODO: process multiple parts
+			;		I need to do some testing how this is represented in Red
+		]
 	]
+;	switch type [
+;		"application/json" [load-json string]
+;		"application/x-www-form-urlencoded" [load-www-form string]
+;	;	"text/html" [www-form/decode string]
+;		"text/html" [string]
+;	]
 ]
 
 make-nonce: function [] [
