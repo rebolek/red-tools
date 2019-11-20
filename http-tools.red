@@ -136,9 +136,12 @@ simple-parse-headers: func [
 	]
 	headers
 ]
-get-headers: func [/local o] [
-	call/wait/output "printenv" o: ""
-	http-headers: simple-parse-headers o
+
+get-headers: func [/local o os cmd][
+    os: os-info
+    cmd: either find/match os/name "windows" ["set"] ["printenv"]
+    call/wait/output cmd o: ""
+    http-headers: parse-headers o
 ]
 
 ; get-headers
