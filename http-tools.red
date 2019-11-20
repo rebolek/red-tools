@@ -58,6 +58,31 @@ cut-tail: function [
 	head remove/part skip tail series negate length length
 ]
 
+split-binary: func [
+	series [binary!]
+	delimiter [string!]
+	/local result value
+][
+	result: copy []
+	delimiter: to binary! delimiter
+print mold series
+print mold to string! series
+	parse series [
+		"--"
+		delimiter
+		some [
+			#{0D0A}
+			copy value to "--"
+			"--"
+			delimiter
+;			#{0D0A}
+			(append result to string! value)
+		]
+		"--"
+	]
+	result
+]
+
 ; --- server side tools ------------------------------------------------------
 
 headers!: context [
@@ -142,6 +167,11 @@ get-headers: func [/local o os cmd][
     cmd: either find/match os/name "windows" ["set"] ["printenv"]
     call/wait/output cmd o: ""
     http-headers: parse-headers o
+
+print "<><><><><><><><><><>"
+	print mold o
+
+	http-headers
 ]
 
 ; get-headers
@@ -388,7 +418,8 @@ load-www-form: func [
 mime-decoder: function [
 	string
 	type
-] [
+][
+print "<<<MIME>>>"
 	unless string [return string]
 	type: parse-content-type type
 	case [
@@ -398,8 +429,14 @@ mime-decoder: function [
 		]
 		all [type/1 = "text" type/2 = "html"][string]
 		type/1 = "multipart" [
-			; TODO: process multiple parts
-			;		I need to do some testing how this is represented in Red
+print ["<<<multipass>>>" mold type]
+
+			boundary: select type/3 "boundary"
+			data: split-binary string boundary
+print mold data
+
+
+			"<<<multipass>>>"
 		]
 	]
 ;	switch type [
