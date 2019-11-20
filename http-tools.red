@@ -119,12 +119,29 @@ parse-headers: func [
 	headers
 ]
 
+simple-parse-headers: func [
+	query	[string!]
+	/local headers raw key value cgi-key red-key
+][
+	headers: copy #()
+	key: value: none
+	parse query [
+		some [
+			copy key to #"=" 
+			skip
+			copy value to newline
+			skip
+			(headers/:key: value)
+		]
+	]
+	headers
+]
 get-headers: func [/local o] [
 	call/wait/output "printenv" o: ""
-	http-headers: parse-headers o	
+	http-headers: simple-parse-headers o
 ]
 
-get-headers
+; get-headers
 
 ; --- client side tools ------------------------------------------------------
 
