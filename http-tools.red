@@ -58,31 +58,6 @@ cut-tail: function [
 	head remove/part skip tail series negate length length
 ]
 
-split-binary: func [
-	series [binary!]
-	delimiter [string!]
-	/local result value
-][
-	result: copy []
-	delimiter: to binary! delimiter
-print mold series
-print mold to string! series
-	parse series [
-		"--"
-		delimiter
-		some [
-			#{0D0A}
-			copy value to "--"
-			"--"
-			delimiter
-;			#{0D0A}
-			(append result to string! value)
-		]
-		"--"
-	]
-	result
-]
-
 ; --- server side tools ------------------------------------------------------
 
 headers!: context [
@@ -354,7 +329,7 @@ context [
 ]
 
 parse-content-type: func [
-	data [string!]
+	data [string! binary!]
 	/local type subtype parameters tspecials token not-token value
 ][
 	tspecials: charset {()<>@,;:\"/[]?=}
@@ -415,6 +390,73 @@ load-www-form: func [
 	result
 ]
 
+split-multipart: func [
+	series [binary!]
+	delimiter [string!]
+	/local result value
+][
+	result: copy []
+	delimiter: to binary! delimiter
+	parse series [
+		"--"
+		delimiter
+		some [
+			#{0D0A}
+			copy value to "--"
+			"--"
+			delimiter
+			(append result value)
+		]
+		"--"
+	]
+	result
+]
+
+parse-part: func [
+	"Parse part of multipart data"
+	part [binary!]
+	/local
+][
+;	return to string! part
+	crlf: #{0D0A}
+	qt: #"^""
+	;  {Content-Disposition: form-data; name="upload"; filename="test"^M^/Content-Type: application/octet-stream...
+print "parse-part---:::::::::::::::::::::::::::::::::::::::::::"
+probe to string! part
+print "------------------------------------"
+	fields: copy []
+	field-rule: [
+		(print ">>>>>>field rule<<<<<<")
+		copy field-name to #":" (prin "FN:" probe field-name: to string! field-name)
+		#":" space
+		[copy field-value to #";" | copy field-value to crlf]
+		(probe field-value: to string! field-value)
+;p: (probe to string! p)
+		any [ ; NOTE: maybe there's always something, so SOME makes bigger sense?
+			#";" space
+			copy attr-name to #"=" #"=" (probe attr-name: to string! attr-name)
+			qt copy attr-value to qt qt (probe attr-value: to string! attr-value)
+			(put attrs to string! attr-name to string! attr-value)
+		]
+		(print ">>>>>>last crlf<<<<<<<")
+		crlf
+	]
+	parse part [
+		some [
+			(attrs: copy #())
+			field-rule
+			(repend fields [field-name field-value attrs])
+		]
+		crlf
+		(print ">>>>>>>>copyu value<><<<<<<<<<<")
+		copy value to end ;crlf crlf
+		(append fields value)
+	]
+	probe fields
+print "cccccccccccccccccccccccccccccc"
+	fields
+]
+
 mime-decoder: function [
 	string
 	type
@@ -432,9 +474,12 @@ print "<<<MIME>>>"
 print ["<<<multipass>>>" mold type]
 
 			boundary: select type/3 "boundary"
-			data: split-binary string boundary
+			data: split-multipart string boundary
 print mold data
-
+print "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+foreach part data [
+	print parse-part part
+]
 
 			"<<<multipass>>>"
 		]
