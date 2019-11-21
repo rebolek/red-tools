@@ -444,12 +444,16 @@ print "------------------------------------"
 	parse part [
 		some [
 			(attrs: copy #())
+			not crlf
 			field-rule
 			(repend fields [field-name field-value attrs])
 		]
 		crlf
 		(print ">>>>>>>>copyu value<><<<<<<<<<<")
+		; NOTE: Instead of coyping to CRLF, I copy to end and remove it
+		;		as CRLF may be part of value, I guess
 		copy value to end ;crlf crlf
+		(take/last/part value 2)
 		(append fields value)
 	]
 	probe fields
