@@ -142,11 +142,6 @@ get-headers: func [/local o os cmd][
     cmd: either find/match os/name "windows" ["set"] ["printenv"]
     call/wait/output cmd o: ""
     http-headers: parse-headers o
-
-print "<><><><><><><><><><>"
-	print mold o
-
-	http-headers
 ]
 
 ; get-headers
@@ -308,16 +303,7 @@ context [
 		if error? try [reply/3: to string! reply/3][reply/3: load-non-utf reply/3]
 		if debug [set 'loaded-reply copy/deep reply]
 		if raw [return reply]
-;		type: any [
-;			all [
-;				reply/2/Content-Type
-;				first split reply/2/Content-Type #";"
-;			]
-;			""
-;		]
-		if verbose [
-			print ["Return type:" type]
-		]
+		if verbose [print ["Return type:" type]]
 		reply: map-set [
 			code: reply/1
 			headers: reply/2
@@ -327,7 +313,10 @@ context [
 		either only [reply/data] [reply]
 	]
 ]
-
+;
+; TODO: merge PARSE-CONTENT-TYPE and PARSE-PART as they basicaly share same
+;		rules. PARSE-CONTENT-TYPE looks more standard compliant
+;
 parse-content-type: func [
 	data [string! binary!]
 	/local type subtype parameters tspecials token not-token value
@@ -415,49 +404,37 @@ split-multipart: func [
 parse-part: func [
 	"Parse part of multipart data"
 	part [binary!]
-	/local
+	/local crlf qt value
+		fields field-rule field-name field-value 
+		attrs attr-name attr-value
 ][
-;	return to string! part
 	crlf: #{0D0A}
 	qt: #"^""
-	;  {Content-Disposition: form-data; name="upload"; filename="test"^M^/Content-Type: application/octet-stream...
-print "parse-part---:::::::::::::::::::::::::::::::::::::::::::"
-probe to string! part
-print "------------------------------------"
 	fields: copy []
 	field-rule: [
-		(print ">>>>>>field rule<<<<<<")
-		copy field-name to #":" (prin "FN:" probe field-name: to string! field-name)
+		(attrs: copy #())
+		not crlf ; make sure we're not in VALUE already
+		copy field-name to #":"
 		#":" space
 		[copy field-value to #";" | copy field-value to crlf]
-		(probe field-value: to string! field-value)
-;p: (probe to string! p)
-		any [ ; NOTE: maybe there's always something, so SOME makes bigger sense?
+		any [
 			#";" space
-			copy attr-name to #"=" #"=" (probe attr-name: to string! attr-name)
-			qt copy attr-value to qt qt (probe attr-value: to string! attr-value)
+			copy attr-name to #"=" #"="
+			qt copy attr-value to qt qt
 			(put attrs to string! attr-name to string! attr-value)
 		]
-		(print ">>>>>>last crlf<<<<<<<")
 		crlf
+		(repend fields [to string! field-name to string! field-value attrs])
 	]
 	parse part [
-		some [
-			(attrs: copy #())
-			not crlf
-			field-rule
-			(repend fields [field-name field-value attrs])
-		]
+		some field-rule
 		crlf
-		(print ">>>>>>>>copyu value<><<<<<<<<<<")
-		; NOTE: Instead of coyping to CRLF, I copy to end and remove it
+		; NOTE: Instead of copying to CRLF, I copy to end and remove it
 		;		as CRLF may be part of value, I guess
-		copy value to end ;crlf crlf
+		copy value to end ; crlf crlf
 		(take/last/part value 2)
 		(append fields value)
 	]
-	probe fields
-print "cccccccccccccccccccccccccccccc"
 	fields
 ]
 
@@ -465,7 +442,6 @@ mime-decoder: function [
 	string
 	type
 ][
-print "<<<MIME>>>"
 	unless string [return string]
 	type: parse-content-type type
 	case [
@@ -475,17 +451,12 @@ print "<<<MIME>>>"
 		]
 		all [type/1 = "text" type/2 = "html"][string]
 		type/1 = "multipart" [
-print ["<<<multipass>>>" mold type]
-
 			boundary: select type/3 "boundary"
-			data: split-multipart string boundary
-print mold data
-print "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-foreach part data [
-	print parse-part part
-]
-
-			"<<<multipass>>>"
+			collect [
+				foreach part split-multipart string boundary [
+					keep parse-part part
+				]
+			]
 		]
 	]
 ;	switch type [
