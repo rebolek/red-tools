@@ -315,9 +315,9 @@ context [
 ;			]
 ;			""
 ;		]
-		if verbose [
-			print ["Return type:" type]
-		]
+;		if verbose [
+;			print ["Return type:" type]
+;		]
 		reply: map-set [
 			code: reply/1
 			headers: reply/2
