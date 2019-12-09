@@ -370,8 +370,9 @@ load-www-form: func [
 	if equal? #"?" first string [string: next string]
 	parse string [
 		some [
+			opt #"&"
 			copy key to #"=" skip
-			copy value to [#"&" | end]
+			copy value to [#"&" | end] 
 			(put result load-pct-encoded key load-pct-encoded value)
 		]
 	]
