@@ -226,6 +226,7 @@ context [
 		/only 		"Return only data without headers"
 		/data 		"Data to send with request (auto-converted to proper encoding)"
 			content [string! block! map! object! none!]
+		/mold		"Do not auto-convert data and send tham as MOLDed Red values"
 		/with 		"Headers to send with request"
 			args	[block! map!]
 		/auth 		"Authentication method and data"
@@ -234,10 +235,12 @@ context [
 		/raw 		"Return raw data and do not try to decode them"
 		/verbose    "Print request informations"
 		/debug		"Set debug words (see source for details)"
-	] [
+	][
+		mold?: mold
+		mold: :system/words/mold
 		if verbose [
 			print ["SEND-REQUEST to" link ", method:" method]
-			print ["header:" mold args]
+			print ["Header:" mold args]
 		]
 		header: copy #() ; NOTE: CLEAR causes crash later!!! 
 		if args [extend header args]
@@ -265,6 +268,7 @@ context [
 		]
 		; Process data
 		case [
+			mold? [content: system/words/mold/all content]
 			all [method = 'GET not content][
 				content: clear ""
 			]
@@ -303,6 +307,9 @@ context [
 		if error? try [reply/3: to string! reply/3][reply/3: load-non-utf reply/3]
 		if debug [set 'loaded-reply copy/deep reply]
 		if raw [return reply]
+		if verbose [
+			print ["Headers:" mold reply/2]
+		]
 		reply: map-set [
 			code: reply/1
 			headers: reply/2
@@ -442,14 +449,14 @@ mime-decoder: function [
 	string
 	type
 ][
-	unless string [return string]
+	if any [not string not type][return string]
 	type: parse-content-type type
 	case [
 		all [type/1 = "application" type/2 = "json"][load-json string]
 		all [type/1 = "application" type/2 = "x-www-form-urlencoded"][
 			load-www-form string
 		]
-		all [type/1 = "text" type/2 = "html"][string]
+		type/1 = "text" [string]
 		type/1 = "multipart" [
 			boundary: select type/3 "boundary"
 			collect [
