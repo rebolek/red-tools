@@ -60,6 +60,10 @@ load-msdos-date: func [
 	]
 ]
 
+global-signature: #{504B0102}
+local-signature: #{504B0304}
+central-signature: #{504B0506}
+
 gp-bitflag: func [][
 	; bit 0 - encryption
 	; bit 1&2 - method: normal, maximum, fast, super fast
@@ -90,7 +94,7 @@ make-entry: func [
 
 	; -- make header
 	local-header: rejoin [
-		#{504B0304}	; signature
+		local-signature
 		#{0000}		; version needed to extract
 		gp-bitflag	; bitflag
 		#{0800}		; compression method - DEFLATE
@@ -106,7 +110,7 @@ make-entry: func [
 	]
 	append local-header data
 	global-header: rejoin [
-    	#{504B0102}	; signature
+    	global-signature
 		#{0000}		; source version
 		#{0000}		; version needed to extract
 		gp-bitflag	; bitflag
@@ -153,7 +157,7 @@ set 'make-zip func [
 	rejoin [
 		archive
 		central-directory
-		#{504B0506}			; signature
+		central-signature
 		#{0000}				; disk number
 		#{0000}				; disk central directory
 		length				; entries
@@ -171,14 +175,11 @@ load-number: func [data][to integer! reverse data]
 set 'unzip func [
 	data	[binary!]
 	/meta	"Include metadata also"
-	/local local-signature global-signature ifiles metadata 
-		start mark header time date
+	/local files metadata start mark header time date comp
 		comp-size orig-size name-size extra-size comment-size
 		offset filename extrafield comment
 
 ][
-	local-signature: #{504B0304}
-	global-signature: #{504B0102}
 	files: copy #()
 	metadata: copy #()
 	parse data [
