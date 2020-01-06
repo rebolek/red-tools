@@ -9,10 +9,17 @@ to-ilong: func [
 ]
 
 to-ishort: func [
-"Converts an integer to a little-endian short"
+	"Converts an integer to a little-endian short"
 	value [integer!] "Value to convert"
 ][
 	reverse skip to binary! value 2
+]
+
+load-ishort: func [
+	"Converts little-endian short to integer"
+	value [binary!] "Value to convert"
+][
+	to integer! reverse value
 ]
 
 to-msdos-date: func [
@@ -27,6 +34,30 @@ to-msdos-time: func [
 	value [time!] "Value to convert"
 ][
 	to-ishort (value/hour * 2048) or (value/minute * 32) or (to integer! value/second / 2)
+]
+
+load-msdos-time: func [
+	"Converts from a msdos time"
+	value [binary!] "Value to convert"
+][
+	value: load-ishort value
+	to time! reduce [
+		63488 and value / 2048
+		2016 and value / 32
+		31 and value * 2
+	]
+]
+
+load-msdos-date: func [
+	"Converts from a msdos date"
+	value [binary!] "Value to convert"
+][
+	value: load-ishort value
+	to date! reduce [
+		65024 and value / 512 + 1980
+		480 and value / 32
+		31 and value
+	]
 ]
 
 gp-bitflag: func [][
@@ -99,39 +130,111 @@ make-entry: func [
 	reduce [local-header global-header]
 ]
 
-	set 'make-zip func [
-		files [block! file!]
-		/local length archive central-directory arc-size entry
-	][
-		files: append clear [] files
-		length: to-ishort length? files
-		archive: copy #{}
-		central-directory: copy #{}
-		arc-size: 0
-		while [not tail? files][
-			entry: make-entry first files
-			; write file offset in archive
-			change skip entry/2 42 to-ilong arc-size
-			; directory entry
-			append central-directory entry/2
-			; compressed file + header
-			append archive entry/1
-			arc-size: arc-size + length? entry/1
-			files: next files
+set 'make-zip func [
+	files [block! file!]
+	/local length archive central-directory arc-size entry
+][
+	files: append clear [] files
+	length: to-ishort length? files
+	archive: copy #{}
+	central-directory: copy #{}
+	arc-size: 0
+	while [not tail? files][
+		entry: make-entry first files
+		; write file offset in archive
+		change skip entry/2 42 to-ilong arc-size
+		; directory entry
+		append central-directory entry/2
+		; compressed file + header
+		append archive entry/1
+		arc-size: arc-size + length? entry/1
+		files: next files
+	]
+	rejoin [
+		archive
+		central-directory
+		#{504B0506}			; signature
+		#{0000}				; disk number
+		#{0000}				; disk central directory
+		length				; entries
+		length				; entries disk
+		to-ilong length? central-directory
+		to-ilong arc-size
+		#{0000}				; comment length
+		#{}					; comment
+	]
+]
+
+
+load-number: func [data][to integer! reverse data]
+
+set 'unzip func [
+	data	[binary!]
+	/meta	"Include metadata also"
+	/local local-signature global-signature ifiles metadata 
+		start mark header time date
+		comp-size orig-size name-size extra-size comment-size
+		offset filename extrafield comment
+
+][
+	local-signature: #{504B0304}
+	global-signature: #{504B0102}
+	files: copy #()
+	metadata: copy #()
+	parse data [
+		start:
+		to local-signature
+		some [
+			mark:
+			to local-signature
 		]
-		rejoin [
-			archive
-			central-directory
-			#{504B0506}			; signature
-			#{0000}				; disk number
-			#{0000}				; disk central directory
-			length				; entries
-			length				; entries disk
-			to-ilong length? central-directory
-			to-ilong arc-size
-			#{0000}				; comment length
-			#{}					; comment
+		to global-signature
+		header:
+		some [
+			global-signature
+			4 skip	; versions
+			2 skip	; flags
+			#{0800}	; DEFLATE method (TODO: support no compression also)
+			copy time 2 skip
+			copy date 2 skip
+			4 skip	; crc
+			copy comp-size 4 skip (comp-size: load-number comp-size)
+			copy orig-size 4 skip (orig-size: load-number orig-size)
+			copy name-size 2 skip (name-size: load-number name-size)
+			copy extra-size 2 skip (extra-size: load-number extra-size)
+			copy comment-size 2 skip (comment-size: load-number comment-size)
+			8 skip	; various attributes
+			copy offset 4 skip (offset: load-number offset)
+			copy filename name-size skip (filename: to string! filename)
+			copy extrafield extra-size skip
+			copy comment comment-size skip
+			mark:
+			(start: skip head start offset)
+			:start
+			local-signature
+			22 skip ; mandatory fields
+			copy name-size 2 skip (name-size: load-number name-size)
+			copy extra-size 2 skip (extra-size: load-number extra-size)
+			name-size skip
+			extra-size skip
+			copy comp comp-size skip
+			(files/:filename: decompress/deflate comp orig-size)
+			(
+				date: load-msdos-date date
+				date/time: load-msdos-time time
+				metadata/:filename: context compose [
+					date: (date)
+				]
+			)
+			:mark
 		]
 	]
+	either meta [
+		reduce [files metadata]
+	][
+		files
+	]
+]
+
 ; -- end of context
 ]
