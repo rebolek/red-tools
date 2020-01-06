@@ -99,7 +99,7 @@ make-entry: func [
 	reduce [local-header global-header]
 ]
 
-	'make-zip func [
+	set 'make-zip func [
 		files [block! file!]
 		/local length archive central-directory arc-size entry
 	][
