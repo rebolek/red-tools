@@ -94,11 +94,18 @@ make-entry: func [
 	/local local-header global-header data crc
 		orig-size comp-size name-size filedate
 ][
-	data:	read/binary filename
-	crc:	to-ilong checksum data 'crc32
-	orig-size:	to-ilong length? data
-	data:	compress/deflate data
-	comp-size:	to-ilong length? data
+	either dir? filename [
+		data: #{}
+		crc:
+		orig-size:
+		comp-size: #{00000000}
+	][
+		data:	read/binary filename
+		crc:	to-ilong checksum data 'crc32
+		orig-size:	to-ilong length? data
+		data:	compress/deflate data
+		comp-size:	to-ilong length? data
+	]
 	name-size:	to-ishort length? filename
 	filedate:	query filename
 
@@ -252,8 +259,25 @@ set 'load-zip func [
 set 'zip func [
 	"Save ZIP archive created from given files or paths"
 	where [file!]	"Where to save"
-	files [file!]	"File(s) and/or path(s) to archive"
+	files [file! block!]	"File(s) and/or path(s) to archive"
+	/local grab-files out
 ][
+	grab-files: func [path /local files][
+		either dir? path [
+			files: read path
+			append out path
+			foreach file files [
+				grab-files rejoin [path file]
+			]
+		][
+			append out path
+		]
+	]
+	
+	files: append copy [] files
+	out: copy []
+	foreach file files [grab-files file]
+	write/binary where make-zip out
 ]
 
 set 'unzip func [
