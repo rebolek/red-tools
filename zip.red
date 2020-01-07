@@ -1,6 +1,12 @@
-Red[]
+Red[
+	Title: "ZIP packer and unpacker"
+	Author: "Boleslav Březovský"
+	
+]
 
 context [
+; -- support functions ------------------------------------------------------------
+
 to-ilong: func [
 "Converts an integer to a little-endian long"
 	value [integer!] "Value to convert"
@@ -21,6 +27,8 @@ load-ishort: func [
 ][
 	to integer! reverse value
 ]
+
+load-number: func [data][to integer! reverse data]
 
 to-msdos-date: func [
 	"Converts to a msdos date"
@@ -63,6 +71,8 @@ load-msdos-date: func [
 global-signature: #{504B0102}
 local-signature: #{504B0304}
 central-signature: #{504B0506}
+
+; -- internal functions -----------------------------------------------------------
 
 gp-bitflag: func [][
 	; bit 0 - encryption
@@ -134,8 +144,11 @@ make-entry: func [
 	reduce [local-header global-header]
 ]
 
+; -- in-Red functions -------------------------------------------------------------
+
 set 'make-zip func [
-	files [block! file!]
+	"Make ZIP archive from file or block of files. Returns binary!"
+	files [block! file!] "File(s) to archive"
 	/local length archive central-directory arc-size entry
 ][
 	files: append clear [] files
@@ -169,13 +182,11 @@ set 'make-zip func [
 	]
 ]
 
-
-load-number: func [data][to integer! reverse data]
-
-set 'unzip func [
-	data	[binary!]
+set 'load-zip func [
+	"Extract ZIP archive to block of Red values"
+	data	[binary!] "ZIP archive data"
 	/meta	"Include metadata also"
-	/local files metadata start mark header time date comp
+	/local files metadata start mark time date comp
 		comp-size orig-size name-size extra-size comment-size
 		offset filename extrafield comment
 
@@ -184,13 +195,8 @@ set 'unzip func [
 	metadata: copy #()
 	parse data [
 		start:
-		to local-signature
-		some [
-			mark:
-			to local-signature
-		]
+		some [to local-signature]
 		to global-signature
-		header:
 		some [
 			global-signature
 			4 skip	; versions
@@ -230,12 +236,11 @@ set 'unzip func [
 			:mark
 		]
 	]
-	either meta [
-		reduce [files metadata]
-	][
-		files
-	]
+	either meta [reduce [files metadata]][files]
 ]
+
+; -- file functions ---------------------------------------------------------------
+
 
 ; -- end of context
 ]
