@@ -201,7 +201,11 @@ set 'load-zip func [
 			global-signature
 			4 skip	; versions
 			2 skip	; flags
-			#{0800}	; DEFLATE method (TODO: support no compression also)
+			copy method 2 skip
+			(
+				method: select [0 store 8 deflate] load-ishort method
+				; TODO: add error handling for unsupported methods
+			)
 			copy time 2 skip
 			copy date 2 skip
 			4 skip	; crc
@@ -212,7 +216,7 @@ set 'load-zip func [
 			copy comment-size 2 skip (comment-size: load-number comment-size)
 			8 skip	; various attributes
 			copy offset 4 skip (offset: load-number offset)
-			copy filename name-size skip (filename: to string! filename)
+			copy filename name-size skip (filename: to file! filename)
 			copy extrafield extra-size skip
 			copy comment comment-size skip
 			mark:
@@ -225,8 +229,12 @@ set 'load-zip func [
 			name-size skip
 			extra-size skip
 			copy comp comp-size skip
-			(files/:filename: decompress/deflate comp orig-size)
 			(
+			;	print [filename method offset comp-size]
+				files/:filename: switch method [
+					store	[comp]
+					deflate	[decompress/deflate comp orig-size]
+				]
 				date: load-msdos-date date
 				date/time: load-msdos-time time
 				metadata/:filename: context compose [
@@ -241,6 +249,28 @@ set 'load-zip func [
 
 ; -- file functions ---------------------------------------------------------------
 
+set 'zip func [
+	"Save ZIP archive created from given files or paths"
+	where [file!]	"Where to save"
+	files [file!]	"File(s) and/or path(s) to archive"
+][
+]
+
+set 'unzip func [
+	"Extract files from ZIP archive"
+	value [file!]	"ZIP archive to extract"
+	/local data file content
+][
+	data: load-zip read/binary value
+	foreach [file content] data [
+		either dir? file [
+			make-dir/deep file
+		][
+			write/binary file content
+		]
+	]
+	true
+]
 
 ; -- end of context
 ]
