@@ -44,12 +44,13 @@ bivi!: context [
 			#"q" (ret: none)
 		|	#"e" count-rule (ret: line + count) ; NEXT lINE ; TODO - check max value
 		|	#"y" count-rule (ret: max 0 line - count) ; PREV LINE
-		|	#"f" count-rule (ret: lines-per-page * count + line ) ; TODO: limit at maximum ; NEXT PAGE - default action
+		|	#"f" count-rule (ret: lines-per-page * count + line) ; TODO: limit at maximum ; NEXT PAGE - default action
 		|	#"b" count-rule (ret: max 0 line - ( * countlines-per-page)) ; PREV PAGE - line was already updated, so subtract it twice
 		|	#"/" copy pattern to end (last-match: none ret: find-pattern) ; FIND <pattern>
 		|	#"n" (ret: find-pattern) ; FIND NEXT
 		|	#"l" copy value some numbers (lines-per-page: to integer! value) ; SET LINES PER PAGE
 		|	#"h" (print-help)
+		|	(ret: lines-per-page * count + line)
 		]
 		parse ask ":" main-rule
 		ret
