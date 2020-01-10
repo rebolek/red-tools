@@ -137,7 +137,9 @@ print "in find"
 		]
 		input
 	]
+	history-mark: none
 	set 'bivi func [file][
+		history-mark: length? system/console/history
 		line: 0
 		data: file
 		if file? data [data: read/binary data] ; TODO: support url! also?
@@ -146,5 +148,7 @@ print "in find"
 		until [
 			none? line: print-page line
 		]
+		remove/part system/console/history (length? system/console/history) - history-mark
+		true
 	]
 ]
