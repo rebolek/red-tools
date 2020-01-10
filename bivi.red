@@ -1,6 +1,9 @@
 Red[
 	Name: "BiVi - binary viewer"
 	Author: "Boleslav Březovský"
+	To-Do: [
+		"Clear internal console history on exit"
+	]
 ]
 
 do https://rebolek.com/redquire
@@ -22,7 +25,6 @@ bivi!: context [
 		line
 		/local value ret count
 	][
-
 		infoline: reduce [
 			'cls
 			'at 1x1 "Data length: " 'bold form length? data 'reset " | Page:" form line / lines-per-page "/" form (length? data) / lines-per-page space
@@ -107,6 +109,7 @@ bivi!: context [
 			last-match: next mark
 			mark-start: index? mark
 			mark-end: -1 + (index? mark) + length? pattern
+print "in find"
 			index: (index? mark) / 16
 			addout: reduce  ['bold pattern 'reset space "found at line" space 'bold form index 'reset]
 		][
@@ -132,6 +135,7 @@ bivi!: context [
 		input
 	]
 	set 'bivi func [file][
+		line: 0
 		data: file
 		if file? data [data: read/binary data] ; TODO: support url! also?
 		pages: (length? data) / lines-per-page
