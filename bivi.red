@@ -20,6 +20,7 @@ bivi!: context [
 	last-match: none
 	pattern: none
 	numbers: charset "1234567890"
+	hex: charset "1234567890abcdef"
 
 	print-page: func [
 		line
@@ -51,6 +52,7 @@ bivi!: context [
 		|	#"/" copy pattern to end (last-match: none ret: find-pattern) ; FIND <pattern>
 		|	#"n" (ret: find-pattern) ; FIND NEXT
 		|	#"l" copy value some numbers (lines-per-page: to integer! value) ; SET LINES PER PAGE
+		|	copy value 4 hex (ret: (to integer! debase/base value 16) / 16)
 		|	#"h" (print-help)
 		|	(ret: lines-per-page * count + line)
 		]
@@ -123,13 +125,14 @@ print "in find"
 			cls
 			at 1x1
 			bold "^-NAVIGATION^/^/" reset
-			"Navigation commands can be followed by numbers to skip more lines/pages.^/"
+			"Navigation commands can be followed by numbers to skip more lines/pages.^/^/"
 			bold "f^-ENTER" reset "^-next page^/"
 			bold "b" reset "^-^-previous page^/"
 			bold "e" reset "^-^-next line^/"
 			bold "y" reset "^-^-previous line^/^/"
 			bold "/" reset "<pattern>" "^-search for <pattern>^/"
-			bold "n" reset "^-^-repeat previous search^/"
+			bold "n" reset "^-^-repeat previous search^/^/"
+			bold "XXXX " reset italic "hex chars" reset "^-go to given offset^/"
 			"^/^/Press ENTER to continue^/"
 		]
 		input
