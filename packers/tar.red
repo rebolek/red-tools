@@ -7,19 +7,35 @@ tar!: context [
 		/local result byte
 	][
 		result: 0
-		data: copy/part data 148
-		append/dup data #" " 8
-		foreach byte data [result: result + to integer! byte]
+		foreach byte data [result: result + byte]
 		result
 	]
 
+	to-octal: func [
+		value [integer!]
+	][
+		octal: copy ""
+		until [
+			digit: value // 8
+			insert octal form digit
+			value: value - digit / 8
+			value < 8
+		]
+		insert octal form value
+		append octal #"^@"
+		insert/dup octal #"0" 12 - length? octal
+		octal
+	]
+
 	load-octal: func [
-		data
+		value [binary! string!]
 		/local result mult digit
 	][
 		mult: 1
 		result: 0
-		foreach digit reverse copy data [
+		replace/all value #"^@" ""
+		replace/all value #" " ""
+		foreach digit reverse copy value [
 			result: result + (mult * to integer! form digit)
 			try [mult: mult * 8]
 		]
@@ -55,7 +71,7 @@ tar!: context [
 			"Group ID: " group-id newline
 			"Filesize: " filesize newline
 			"Mod.date: " modification-date newline
-			"Checksum: " checksum tab computed-checksum tab checksum - computed-checksum newline
+			"Checksum: " chksm tab "computed:" computed-checksum tab "diff:" chksm - computed-checksum newline
 			"Link ind: " link-indicator newline
 			"Linkfile: " linked-filename newline
 			"Owner nm: " owner-name newline
@@ -101,11 +117,11 @@ tar!: context [
 		(modification-date: to date! load-octal load-bin modification-date)
 	]
 	checksum-rule: [
-		copy checksum 8 skip
+		copy chksm 8 skip
 		(
-			checksum: load-bin checksum
-			take/last checksum  ; remove space at end
-			checksum: load-octal checksum
+			chksm: load-bin chksm
+			take/last chksm ; remove space at end
+			chksm: load-octal chksm
 			computed-checksum: make-checksum header-start
 		)
 	]
@@ -114,7 +130,8 @@ tar!: context [
 		(link-indicator: switch/default load-bin link-indicator ["1" ['hard] "2" ['symbolic]]['normal])
 	]
 	ustar-rule: [
-		#{757374617220} ;"ustar "
+		u:
+		#{7573746172} [#"^@" | space] ;"ustar"
 		copy ustar-version 2 skip
 	]
 	owner-name-rule: [
@@ -136,7 +153,6 @@ tar!: context [
 		(filename-prefix: load-bin name)
 	]
 	filedata-rule: [
-	;	(size: probe either zero? filesize [12][filesize])
 		i: (pad: 513 - ((index? i) // 512))
 		pad skip
 		copy content filesize skip x:
@@ -168,23 +184,85 @@ tar!: context [
 		filedata-rule
 	]
 	
-	set 'untar func [
+
+	zeroes: func [count [integer!]][append/dup copy #{} #"^@" count]
+
+	make-entry: func [
+		filename [file!]
+		/local
+			entry empty name data
+	][
+		entry: copy #{}
+		empty: zeroes 8
+		name: zeroes 100
+		data: read/binary filename
+		size: to-octal length? data
+		date: to-octal to integer! query filename
+		username: rejoin [#{} "sony" zeroes 28] ; TODO: replace with real username later
+		insert/dup size #"0" 12 - length? size ; filename
+		change name filename
+		entry: rejoin [
+			#{}
+			name
+			{0000644^@}	; file mode (TODO: replace with real mode)
+			{0001750^@}	; owner's numeric user ID (TODO: replace with real value)
+			{0001750^@}	; group's numeric user ID (TODO: replace with real value)
+			size	; file size
+			date	; file modification date
+			"        "			; checksum
+			entry #{30}	; link type (0 - normal file, 1 - hard, 2 - soft)
+			zeroes 100
+			"ustar "
+			#{2000}	; version
+			username	; TODO: owner's name
+			username	; TODO: owner's group
+			zeroes 8	; TODO: device major number
+			zeroes 8	; TODO: device minor number
+			zeroes 155	; TODO: split filename when needed
+			zeroes 12	; pad entry to be 512 bytes
+		]
+		; fix checksum
+		chksm-pos: 148
+		chksm: skip to-octal make-checksum entry 4
+		change chksm #"^@"
+		change at entry chksm-pos chksm
+		; pad to record size (512 bytes)
+		repend entry [
+			data
+			zeroes 512 - ((length? data) // 512)
+		]
+		entry
+
+	]
+
+	set 'load-tar func [
 		data
+		/verbose
 ;		/local
 	;		filename filemode owner-id group-id filesize
 	][
 		files: #()
-
-
 		parse data [
 			some [
 				2 empty-block to end
-			|	file-rule
+			|	file-rule (if verbose [print-file-info])
 			]
 		]
-
-	;	print-file-info
 		files
+	]
+
+	set 'make-tar func [
+		files [file! block!]
+	][
+		files: append copy [] files
+		out: copy #{}
+		foreach file files [
+			append out make-entry file
+		]
+		append out zeroes 1024 ; two empty records
+		padding: (length? out) // 10240
+		append out zeroes 10240 - padding ; pad to 20 records
+		out
 	]
 
 ]
