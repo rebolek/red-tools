@@ -96,7 +96,7 @@ tar!: context [
 	chksm: computed-checksum:
 	link-indicator: ustar-version:
 	device-major-number: device-minor-number:
-	i: j: pad:
+	i: j: pad: files:
 		none
 
 	name-rule: [
@@ -204,7 +204,7 @@ tar!: context [
 	make-entry: func [
 		filename [file!]
 		/local
-			entry empty name data size date username entry chksm
+			entry empty name data size date username chksm
 	][
 		entry: copy #{}
 		empty: zeroes 8
@@ -251,10 +251,8 @@ tar!: context [
 	set 'load-tar func [
 		data
 		/verbose
-;		/local
-	;		filename filemode owner-id group-id filesize
 	][
-		files: #()
+		files: copy #()
 		parse data [
 			some [
 				2 empty-block to end
