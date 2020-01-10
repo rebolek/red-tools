@@ -3,7 +3,8 @@ Red[]
 tar!: context [
 
 	make-checksum: func [
-		data 
+		"Return TAR header checksum"
+		data [binary!]
 		/local result byte
 	][
 		result: 0
@@ -12,7 +13,9 @@ tar!: context [
 	]
 
 	to-octal: func [
+		"Convert integer to octal value in TAR format"
 		value [integer!]
+		/local octal digit
 	][
 		octal: copy ""
 		until [
@@ -28,6 +31,7 @@ tar!: context [
 	]
 
 	load-octal: func [
+		"Convert octal in TAR format to integer"
 		value [binary! string!]
 		/local result mult digit
 	][
@@ -43,12 +47,16 @@ tar!: context [
 	]
 
 	load-bin: func [binary][
+		"Convert binary text in TAR format to string"
 		binary: to string! binary
 		take/last binary
 		binary
 	]
 
-	get-type: func [type][
+	get-type: func [
+		"Describe TAR file format"
+		type [string!]  
+	][
 		switch/default [
 			"1" ['hard]
 			"2" ['symbolic]
@@ -82,7 +90,14 @@ tar!: context [
 		]
 	]
 
-	filename: none
+	number: name: filename: linked-filename: filesize: filename-prefix:
+	filemode: owner-id: group-id: owner-name: group-name:
+	modification-date:
+	chksm: computed-checksum:
+	link-indicator: ustar-version:
+	device-major-number: device-minor-number:
+	i: j: pad:
+		none
 
 	name-rule: [
 		copy name 100 skip
@@ -130,7 +145,6 @@ tar!: context [
 		(link-indicator: switch/default load-bin link-indicator ["1" ['hard] "2" ['symbolic]]['normal])
 	]
 	ustar-rule: [
-		u:
 		#{7573746172} [#"^@" | space] ;"ustar"
 		copy ustar-version 2 skip
 	]
@@ -155,7 +169,7 @@ tar!: context [
 	filedata-rule: [
 		i: (pad: 513 - ((index? i) // 512))
 		pad skip
-		copy content filesize skip x:
+		copy content filesize skip
 		(files/:filename: content)
 		j: (pad: (513 - ((index? j) // 512) // 512))
 		pad skip
@@ -190,7 +204,7 @@ tar!: context [
 	make-entry: func [
 		filename [file!]
 		/local
-			entry empty name data
+			entry empty name data size date username entry chksm
 	][
 		entry: copy #{}
 		empty: zeroes 8
@@ -222,10 +236,9 @@ tar!: context [
 			zeroes 12	; pad entry to be 512 bytes
 		]
 		; fix checksum
-		chksm-pos: 148
 		chksm: skip to-octal make-checksum entry 4
 		change chksm #"^@"
-		change at entry chksm-pos chksm
+		change at entry 148 chksm ; 148 is checksum position in header
 		; pad to record size (512 bytes)
 		repend entry [
 			data
