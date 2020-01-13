@@ -55,7 +55,7 @@ json: context [
 		parse new rule
 		all [
 			conversion?
-			number? loaded: try [load new]
+			not error? loaded: try [load new]
 			new: loaded
 		]
 		new
