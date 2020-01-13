@@ -4,7 +4,7 @@ Red[
 	Purpose: "Placeholder symmetric cryptography until Red gets real thing"
 ]
 
-.: context [
+ context [
 
 binc: func [
 	"Binary increase"
@@ -30,7 +30,7 @@ make-nonce: func [
 ][
 	length: any [length 256]
 	collect/into [
-		loop length / 8 [keep (random 256) - 1]
+		loop length / 8 [keep (random/secure 256) - 1]
 	] copy #{}
 ]
 
