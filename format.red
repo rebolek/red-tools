@@ -19,7 +19,7 @@ spaces: func [
 	append/dup copy {} space count
 ]
 
-set 'spaces-to-tabs func [
+set 'entab func [
 	"Convert spaces to tabs (modifies)"
 	value [string!] "Script to convert"
 	/count			"Number of spaces in tab /default is 4)"
@@ -35,7 +35,7 @@ set 'spaces-to-tabs func [
 	value
 ]
 
-set 'tabs-to-spaces func [
+set 'detab func [
 	"Convert tabs to spaces (modifies)"
 	value [string!] "Script to convert"
 	/count			"Number of spaces in tab /default is 4)"
