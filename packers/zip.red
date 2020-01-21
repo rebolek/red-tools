@@ -283,17 +283,19 @@ set 'zip func [
 set 'unzip func [
 	"Extract files from ZIP archive"
 	value [file!]	"ZIP archive to extract"
-	/local data file content
+	/local data file content out
 ][
+	out: copy []
 	data: load-zip read/binary value
 	foreach [file content] data [
+		append out file
 		either dir? file [
 			make-dir/deep file
 		][
 			write/binary file content
 		]
 	]
-	true
+	out
 ]
 
 ; -- end of context

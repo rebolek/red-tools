@@ -321,17 +321,19 @@ set 'tar func [
 set 'untar func [
 	"Extract files from TAR archive"
 	value [file!]	"TAR archive to extract"
-	/local data file content
+	/local data file content out
 ][
+	out: copy []
 	data: load-tar read/binary value
 	foreach [file content] data [
+		append out file
 		either dir? file [
 			make-dir/deep file
 		][
 			write/binary file content
 		]
 	]
-	true
+	out
 ]
 ; -- end of context
 ]
