@@ -6,9 +6,8 @@ Red[
 	]
 ]
 
-do https://rebolek.com/redquire
-redquire 'ansi-seq
-
+;do https://rebolek.com/redquire
+;redquire 'ansi-seq
 
 bivi!: context [
 	data: none
@@ -20,15 +19,20 @@ bivi!: context [
 	last-match: none
 	pattern: none
 	numbers: charset "1234567890"
-	hex: charset "1234567890abcdef"
+	hex: charset "1234567890abcdefABCDEF"
+
+	trim-zeroes: func [value][first parse value [collect [some #"0" keep to end]]]
 
 	print-page: func [
 		line
-		/local value ret count
+		/local value ret count infoline length
 	][
+		length: length? data
 		infoline: reduce [
 			'cls
-			'at 1x1 "Data length: " 'bold form length? data 'reset " | Page:" form line / lines-per-page "/" form (length? data) / lines-per-page space
+			'at 1x1 "Data length: "
+			'bold form length " (" trim-zeroes form to-hex length ")" 'reset
+			" | Page: " form line / lines-per-page "/" form length / lines-per-page / 16 - 1 space
 		]
 		append infoline addout
 		append infoline "^/"
@@ -45,10 +49,10 @@ bivi!: context [
 		]
 		main-rule: [
 			#"q" (ret: none)
-		|	#"e" count-rule (ret: line + count) ; NEXT lINE ; TODO - check max value
+		|	#"e" count-rule (ret: line + count) ; NEXT LINE ; TODO - check max value
 		|	#"y" count-rule (ret: max 0 line - count) ; PREV LINE
 		|	#"f" count-rule (ret: lines-per-page * count + line) ; TODO: limit at maximum ; NEXT PAGE - default action
-		|	#"b" count-rule (ret: max 0 line - ( * countlines-per-page)) ; PREV PAGE - line was already updated, so subtract it twice
+		|	#"b" count-rule (ret: max 0 line - (count * lines-per-page)) ; PREV PAGE - line was already updated, so subtract it twice
 		|	#"/" copy pattern to end (last-match: none ret: find-pattern) ; FIND <pattern>
 		|	#"n" (ret: find-pattern) ; FIND NEXT
 		|	#"l" copy value some numbers (lines-per-page: to integer! value) ; SET LINES PER PAGE
@@ -57,6 +61,7 @@ bivi!: context [
 		|	(ret: lines-per-page * count + line)
 		]
 		parse ask ":" main-rule
+		if ret [ret: min ret length / 16 - 8]
 		ret
 	]
 	print-line: func [
