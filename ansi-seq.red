@@ -33,6 +33,8 @@ RESET			- reset all styles
 
 ansi: context [
 
+win?: system/platform = 'Windows
+
 esc-main: "^[["
 clear-screen: append copy esc-main "2J"
 set-position: func [position][
@@ -62,7 +64,9 @@ color-rule: [
 		type: pick [3 4] equal? 'fg type
 		if bright? [type: type + 6]
 		value: -1 + index? find colors value
-		rejoin [esc-main form type value #"m"]
+		either win? [""][
+			rejoin [esc-main form type value #"m"]
+		]
 	)
 ]
 move-rule: [
@@ -74,7 +78,9 @@ move-rule: [
 style-rule: [
 	set type ['bold | 'italic | 'underline | 'inverse]
 	keep (
-		rejoin [esc-main form select [bold 1 italic 3 underline 4 inverse 7] type #"m"]
+		either win? [""][
+			rejoin [esc-main form select [bold 1 italic 3 underline 4 inverse 7] type #"m"]
+		]
 	)
 ]
 clear-rule: [
@@ -114,7 +120,7 @@ trans: func [
 	parse data [
 		collect [
 			some [
-				'reset keep (rejoin [esc-main "0m"])
+				'reset keep (either win? [""][rejoin [esc-main "0m"]])
 			|   'cls keep (clear-screen)
 			|	clear-rule
 			|   style-rule
