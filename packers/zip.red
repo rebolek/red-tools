@@ -163,8 +163,8 @@ set 'make-zip func [
 	archive: copy #{}
 	central-directory: copy #{}
 	arc-size: 0
-	while [not tail? files][
-		entry: make-entry first files
+	foreach file files [
+		entry: make-entry file clean-path/only file
 		; write file offset in archive
 		change skip entry/2 42 to-ilong arc-size
 		; directory entry
@@ -172,7 +172,6 @@ set 'make-zip func [
 		; compressed file + header
 		append archive entry/1
 		arc-size: arc-size + length? entry/1
-		files: next files
 	]
 	rejoin [
 		archive
