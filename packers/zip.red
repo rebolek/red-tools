@@ -289,6 +289,7 @@ set 'zip func [
 	out: copy []
 	foreach file files [grab-files file]
 	write/binary where make-zip out
+	out
 ]
 
 set 'unzip func [

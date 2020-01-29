@@ -316,6 +316,7 @@ set 'tar func [
 	out: make-tar out
 	if gzip [out: compress out]
 	write/binary where out
+	out
 ]
 
 set 'untar func [
