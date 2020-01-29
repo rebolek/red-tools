@@ -176,7 +176,7 @@ set 'make-zip func [
 	central-directory: copy #{}
 	arc-size: 0
 	foreach file files [
-		entry: make-entry file strip-path/only file
+		entry: make-entry strip-path file
 		; write file offset in archive
 		change skip entry/2 42 to-ilong arc-size
 		; directory entry
