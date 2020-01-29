@@ -7,6 +7,18 @@ Red[
 .: context [
 ; -- support functions ------------------------------------------------------------
 
+; FIXME: Remove once proper CLEAN-PATH is implemented in Red
+strip-path: func [
+	"Remove tarting %./ when present"
+	value [file!]
+][
+	value: clean-path/only value
+	if equal? %./ copy/part value 2 [
+		remove/part value 2
+	]
+	value
+]
+
 to-ilong: func [
 "Converts an integer to a little-endian long"
 	value [integer!] "Value to convert"
@@ -218,7 +230,7 @@ set 'make-zip func [
 	central-directory: copy #{}
 	arc-size: 0
 	foreach file files [
-		entry: make-entry file clean-path/only file
+		entry: make-entry file strip-path/only file
 		; write file offset in archive
 		change skip entry/2 42 to-ilong arc-size
 		; directory entry
