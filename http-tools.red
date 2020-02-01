@@ -316,6 +316,7 @@ context [
 			raw: reply/3
 			data: mime-decoder reply/3 reply/2/Content-Type
 		]
+		if debug [set 'parsed-reply reply]
 		either only [reply/data] [reply]
 	]
 ]
