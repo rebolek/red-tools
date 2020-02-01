@@ -52,7 +52,8 @@ send: func [
 		request
 	/full "Return raw data" ; TODO: rename
 	/preview "Support preview features"
-	/local link args-rule header-data header
+		type
+;	/local link args-rule header-data header
 ] [
 	method: either method [req-type] ['GET]
 	link: make-url repend copy [https://api.github.com/] data
@@ -60,7 +61,11 @@ send: func [
 		Accept: "application/vnd.github.v3+json"
 		User-Agent: "Red-GitHub-API-v3"
 	]
-	if preview [header/Accept: "application/vnd.github.mercy-preview+json"]
+	if preview [
+		preview: "application/vnd.github.$type$-preview+json"
+		replace preview "$type$" type
+		header/Accept: preview
+	]
 	unless equal? 'GET method [
 		insert header [
 			Content-Type: "application/json"
@@ -68,12 +73,16 @@ send: func [
 		request: to-json request
 	]
 	response: either verbose? [
-		send-request/verbose/data/with/auth link method request header 'Basic reduce [form user pass]
+		send-request/verbose/debug/data/with/auth link method request header 'Basic reduce [form user pass]
 	][
 		send-request/data/with/auth link method request header 'Basic reduce [form user pass]
 	]
-	response: send-request/data/with/auth link method request header 'Basic reduce [form user pass]
-	unless equal? response/code 200 [do make error! response/data/message]
+	unless all [
+		response/code >= 200
+		response/code < 300
+	][
+		do make error! response/data/message
+	]
 	either full [response] [response/data]
 ]
 
@@ -82,7 +91,7 @@ send: func [
 user: none
 pass: none
 response: none
-verbose?: false
+verbose?: true
 
 login: func [
 	username
@@ -106,13 +115,6 @@ get-repos: function [
 ] [
 	send [%users user %repos]
 ]
-
-comment {
-	USAGE:
-
-	make-gist %my-script.red "Super thing" ; loads %my-script.red
-
-	}
 
 ; --- GIST ---
 
@@ -154,6 +156,13 @@ get-gist: func [
 	send link
 	response/data/files
 ]
+
+comment {
+	USAGE:
+
+	make-gist %my-script.red "Super thing" ; loads %my-script.red
+
+}
 
 make-gist: func [
 	"Make new or update Gist on GitHub. Returns Gists' ID."
@@ -521,6 +530,16 @@ comment {
 		direction 		string 	Can be one of asc or desc. Default: when using full_name: asc; otherwise desc
 
 }
+
+make-repo: function [
+	name [string!] "Name of repository"
+][
+;POST /user/repos
+	header: context reduce [
+		quote name: name
+	]
+	send/method [ %user/repos ] 'POST header
+]
 
 get-repos: function [
 
