@@ -219,6 +219,14 @@ context [
 		head remove back tail link	
 	]
 
+	set 'make-request func [
+		method	[word!]
+		link	[url!]
+		data	[string! block! map! object! none!]
+	][
+		send-request/data link method data
+	]
+
 	set 'send-request function [
 		"Send HTTP request. Useful for REST APIs"
 		link 		[url!] 	"URL link"
@@ -298,18 +306,24 @@ context [
 				"Data:" mold data newline
 			]
 		]
-		if debug [set 'req reduce [link data]]
+		if debug	[set 'req reduce [link data]]
 
 		; -- send prepared request and process reply
 		reply: write/binary/info link data
-		if debug [set 'raw-reply copy/deep reply]
+		if debug	[set 'raw-reply copy/deep reply]
 		; Red strictly requires UTF-8 data, but we'll be bit more tolerant and allow anything
 		if error? try [reply/3: to string! reply/3][reply/3: load-non-utf reply/3]
-		if debug [set 'loaded-reply copy/deep reply]
-		if raw [return reply]
-		if verbose [
-			print ["Headers:" mold reply/2]
+		if debug	[set 'string-reply copy/deep reply]
+		if raw		[return reply]
+		if verbose	[print ["Headers:" mold reply/2]]
+
+; -- FIXME: Workaround for https://github.com/red/red/issues/4236
+		headers: reply/2
+		foreach [key value] headers [
+			if block? value [headers/:key: last value]
 		]
+; -- end of workaround
+
 		reply: map-set [
 			code: reply/1
 			headers: reply/2
