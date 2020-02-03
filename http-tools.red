@@ -161,9 +161,13 @@ context [
 	content-type: none
 
 	url-rule: [
-		set value set-word! (append result rejoin [form value #"="])
+		set value [set-word! | word! | string!] (
+			append result rejoin [form value #"="]
+		)
 		set value any-type! (
-			append result rejoin [to-pct-encoded form value #"&"]
+			append result either value [
+				rejoin [to-pct-encoded form value #"&"]
+			][#"&"]
 		)
 	]
 
@@ -174,7 +178,7 @@ context [
 		content-type: "application/x-www-form-urlencoded"
 		parse data [
 			'JSON	copy value to end (
-				content-type: "application/json"
+;				content-type: "application/json"
 				result: to-json value
 			)
 		|	'Red	copy value to end (result: mold value)
@@ -219,12 +223,64 @@ context [
 		head remove back tail link	
 	]
 
+	set 'parse-cookies func [
+		"Return map! of cookies"
+		cookies [block!]
+		/local result cookie name key value
+	][
+		result: make map! []
+		foreach cookie cookies [
+			parse cookie [
+				copy name to #"=" skip
+				copy value to [#";" | end]
+				(result/:name: make map! compose ["value" (value)])
+				#";" space some [
+					copy key to #"=" skip
+					copy value to [#";" | end]
+					(result/:name/:key: value)
+					[
+						end break
+					|	2 skip
+					]
+				]
+			]
+		]
+		result
+	]
+
+	set 'make-cookies func [
+		"Make cookies block! from map! of cookies"
+		cookies [map!]
+		/local key value
+	][
+		result: copy []
+		foreach [name value] cookies [
+			probe value
+			cookie: form name ; form in case NAME is not string! already
+			append cookie #"="
+			append cookie select value "value"
+			foreach [key value] value [
+				unless "value" = form key [
+					repend cookie ["; " key #"=" value]
+				]
+			]
+			append result cookie
+		]
+		result
+	]
+	
 	set 'make-request func [
 		method	[word!]
 		link	[url!]
 		data	[string! block! map! object! none!]
+		/with
+			args [block! map!]
 	][
-		send-request/data link method data
+		either with [
+			send-request/data/verbose/with link method data args
+		][
+			send-request/data/verbose link method data
+		]
 	]
 
 	set 'send-request function [
@@ -281,6 +337,7 @@ context [
 				content: clear ""
 			]
 			all [method = 'GET content][
+				if map? content [content: body-of content]
 				link: rejoin [link #"?" parse-data content]
 				content: clear ""
 			]
@@ -320,7 +377,15 @@ context [
 ; -- FIXME: Workaround for https://github.com/red/red/issues/4236
 		headers: reply/2
 		foreach [key value] headers [
-			if block? value [headers/:key: last value]
+			if block? value [
+				unless key = "Set-Cookie" [
+					headers/:key: unique value
+					if 1 = length? headers/:key [
+						headers/:key: first headers/:key
+					]
+					if key = "Content-Type" [headers/:key: last headers/:key]
+				]
+			]
 		]
 ; -- end of workaround
 
@@ -331,6 +396,7 @@ context [
 			data: mime-decoder reply/3 reply/2/Content-Type
 		]
 		if debug [set 'parsed-reply reply]
+;		cookies: 
 		either only [reply/data] [reply]
 	]
 ]
