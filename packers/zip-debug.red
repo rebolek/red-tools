@@ -5,6 +5,10 @@ Red[
 ]
 
 .: context [
+
+verbose?: false
+info: func [value][if verbose? [print value]]
+
 ; -- support functions ------------------------------------------------------------
 
 ; FIXME: Remove once proper CLEAN-PATH is implemented in Red
@@ -17,6 +21,13 @@ strip-path: func [
 		remove/part value 2
 	]
 	value
+]
+
+load-dos-path: func [
+	"Convert DOS style path (dir\file) to something normal"
+	value [string!]
+][
+	to file! replace/all value #"\" #"/"
 ]
 
 to-ilong: func [
@@ -84,6 +95,9 @@ global-signature: #{504B0102}
 local-signature: #{504B0304}
 central-signature: #{504B0506}
 
+crc: orig-size: comp-size: name-size: filedate:
+	none
+
 ; -- internal functions -----------------------------------------------------------
 
 gp-bitflag: func [][
@@ -100,29 +114,8 @@ gp-bitflag: func [][
 	to binary! flag
 ]
 
-make-entry: func [
-	"Make Zip archive entry"
-	filename [file!]
-	/local local-header global-header data crc
-		orig-size comp-size name-size filedate
-][
-	either dir? filename [
-		data: #{}
-		crc:
-		orig-size:
-		comp-size: #{00000000}
-	][
-		data:	read/binary filename
-		crc:	to-ilong checksum data 'crc32
-		orig-size:	to-ilong length? data
-		data:	compress/deflate data
-		comp-size:	to-ilong length? data
-	]
-	name-size:	to-ishort length? filename
-	filedate:	query filename
-
-	; -- make header
-	local-header: rejoin [
+make-local-header: func [filename][
+	rejoin [
 		local-signature
 		#{0000}		; version needed to extract
 		gp-bitflag	; bitflag
@@ -137,8 +130,10 @@ make-entry: func [
 		filename
 		#{}			; no extra field
 	]
-	append local-header data
-	global-header: rejoin [
+]
+
+make-global-header: func [filename][
+	rejoin [
     	global-signature
 		#{0000}		; source version
 		#{0000}		; version needed to extract
@@ -160,8 +155,126 @@ make-entry: func [
 		#{}			; extrafield
 		#{}			; comment
 	]
+]
+
+make-entry: func [
+	"Make Zip archive entry"
+	filename [file!]
+	/local local-header global-header data
+][
+	either dir? filename [
+		data: #{}
+		crc:
+		orig-size:
+		comp-size: #{00000000}
+	][
+		data:	read/binary filename
+		crc:	to-ilong checksum data 'crc32
+		orig-size:	to-ilong length? data
+		data:	compress/deflate data
+		comp-size:	to-ilong length? data
+	]
+	name-size:	to-ishort length? filename
+	filedate:	query filename
+
+	; -- make header
+	local-header: make-local-header filename
+	append local-header data
+	global-header: make-global-header filename
 	reduce [local-header global-header]
 ]
+
+comment {
+(UPath) 0x7075        Short       tag for this extra block type ("up")
+TSize         Short       total data size for this block
+Version       1 byte      version of this extra field, currently 1
+NameCRC32     4 bytes     File Name Field CRC32 Checksum
+UnicodeName   Variable    UTF-8 version of the entry File Name
+}
+
+extra-unicode-path: #{7570}
+
+decode-extra-field: func [
+	value
+	/local type size version crc name
+][
+	if empty? value [exit]
+	probe parse value [
+		copy type extra-unicode-path [
+			copy size 2 skip (size: (load-number size) - 5) ; NOTE: total size of version + crc + text
+			copy version skip ; NOTE: should be 1
+			copy crc 4 skip
+			p: (print ["size:" size "real:" length? p])
+			copy name size skip
+		]
+		; TODO: other types
+	]
+	print [
+		"--- Extra ---" newline
+		"Type:" type newline
+		"Size:" size newline
+		"Ver: " version newline
+		"CRC: " crc newline
+		"Name:" to string! name newline
+		"------" newline
+	]
+]
+
+; -- rules --------------------------------------------------------------------
+
+comp-size: orig-size: name-size: extra-size: comment-size:
+comp: zip-files: filename: date: time: extrafield: metadata:
+	none
+
+extra-rule: [
+	(extra-name: none)
+	[
+		if (not zero? extra-size) 
+		; TODO: Support other extra types
+		copy type extra-unicode-path [
+			copy size 2 skip (size: (load-number size) - 5) ; NOTE: total size of version + crc + text
+			copy extra-version skip ; NOTE: should be 1
+			copy extra-crc 4 skip
+			copy extra-name size skip
+			(filename: load-dos-path to string! extra-name)
+		]
+	|	none
+	]
+]
+
+size-rule: [
+	copy comp-size 4 skip (comp-size: load-number comp-size)
+	copy orig-size 4 skip (orig-size: load-number orig-size)
+	copy name-size 2 skip (name-size: load-number name-size)
+	copy extra-size 2 skip (extra-size: load-number extra-size)
+	copy comment-size 2 skip (comment-size: load-number comment-size)
+]
+
+file-action: quote (
+print "123"
+	zip-files/:filename: switch method [
+		store	[comp]
+		deflate	[decompress/deflate comp orig-size]
+	]
+	date: load-msdos-date date
+	date/time: load-msdos-time time
+	metadata/:filename: context compose [
+		date: (date)
+		extra: (extrafield)
+	]
+	info file-info
+)
+
+file-info: [
+	"File:" filename newline
+	"Size:" comp-size #"/" orig-size #"/" to percent! round/to comp-size * 1.0 / orig-size 0.01% newline
+	"Method:" method newline
+	"Date:" date newline
+	"Extra field:" extrafield newline
+	"Comment:" comment newline
+]
+
+; -- support debug functions --------------------------------------------------
 
 set 'parse-central-signature func [
 	value [binary!]
@@ -259,13 +372,12 @@ set 'load-zip func [
 	data	[binary!] "ZIP archive data"
 	/meta	"Include metadata also"
 	/verbose
-	/local files metadata start mark time date comp
-		comp-size orig-size name-size extra-size comment-size
-		offset filename extrafield comment version flags
+	/local start mark
+		offset comment version flags
 
 ][
-	if verbose [verbose: :print]
-	files: copy #()
+	if verbose [verbose?: true]
+	zip-files: copy #()
 	metadata: copy #()
 	parse data [
 		start:
@@ -283,15 +395,15 @@ set 'load-zip func [
 			copy time 2 skip
 			copy date 2 skip
 			4 skip	; crc
-			copy comp-size 4 skip (comp-size: load-number comp-size)
-			copy orig-size 4 skip (orig-size: load-number orig-size)
-			copy name-size 2 skip (name-size: load-number name-size)
-			copy extra-size 2 skip (extra-size: load-number extra-size)
-			copy comment-size 2 skip (comment-size: load-number comment-size)
+			size-rule
+			(print ["GLOB Xsize:" extra-size])
 			8 skip	; various attributes
 			copy offset 4 skip (offset: load-number offset)
 			copy filename name-size skip (filename: to file! filename)
-			copy extrafield extra-size skip
+			(print "bf ex")
+			extra-rule
+			(print "af ex")
+			(print ["----EXTRA:" extra-name])
 			copy comment comment-size skip
 			mark:
 			(start: skip head start offset)
@@ -300,33 +412,15 @@ set 'load-zip func [
 			22 skip ; mandatory fields
 			copy name-size 2 skip (name-size: load-number name-size)
 			copy extra-size 2 skip (extra-size: load-number extra-size)
-			name-size skip
-			extra-size skip
+			copy local-filename name-size skip
+			extra-rule
+			(print ["----EXTRA:" extra-name])
 			copy comp comp-size skip
-			(
-				files/:filename: switch method [
-					store	[comp]
-					deflate	[decompress/deflate comp orig-size]
-				]
-				date: load-msdos-date date
-				date/time: load-msdos-time time
-				metadata/:filename: context compose [
-					date: (date)
-					extra: (extrafield)
-				]
-				verbose [
-"File:" filename newline
-"Size:" comp-size #"/" orig-size #"/" to percent! round/to comp-size * 1.0 / orig-size 0.01% newline
-"Method:" method newline
-"Date:" date newline
-"Extra field:" extrafield newline
-"Comment:" comment newline
-				]
-			)
+			file-action
 			:mark
 		]
 	]
-	either meta [reduce [files metadata]][files]
+	either meta [reduce [zip-files metadata]][zip-files]
 ]
 
 ; -- file functions ---------------------------------------------------------------
