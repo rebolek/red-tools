@@ -263,6 +263,7 @@ set 'load-tar func [
 	data
 	/verbose
 ][
+	if all [data/1 = 31 data/2 = 139][data: decompress data]
 	files: copy #()
 	parse data [
 		some [
@@ -316,7 +317,6 @@ set 'tar func [
 	out: make-tar out
 	if gzip [out: compress out]
 	write/binary where out
-	out
 ]
 
 set 'untar func [
@@ -327,7 +327,7 @@ set 'untar func [
 	out: copy []
 	data: load-tar read/binary value
 	foreach [file content] data [
-		append out file
+		append out file: to file! file
 		either dir? file [
 			make-dir/deep file
 		][
