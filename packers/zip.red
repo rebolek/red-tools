@@ -168,7 +168,7 @@ grab-files: func [path out /local file files][
 		files: read path
 		append out path
 		foreach file files [
-			grab-files rejoin [path file out]
+			grab-files rejoin [path file] out
 		]
 	][
 		append out path
@@ -219,7 +219,6 @@ set 'load-zip func [
 	/local files metadata start mark time date comp
 		comp-size orig-size name-size extra-size comment-size
 		offset filename extrafield comment
-
 ][
 	files: copy #()
 	metadata: copy #()
@@ -285,7 +284,6 @@ set 'zip func [
 	files [file! block!]	"File(s) and/or path(s) to archive"
 	/local out
 ][
-	
 	files: append copy [] files
 	out: copy []
 	foreach file files [grab-files file out]
