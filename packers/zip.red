@@ -118,7 +118,7 @@ make-entry: func [
 		data:	compress/deflate data
 		comp-size:	to-ilong length? data
 	]
-	name-size:	to-ishort length? filename
+	name-size:	to-ishort length? to binary! filename
 	filedate:	query filename
 
 	; -- make header
@@ -161,6 +161,18 @@ make-entry: func [
 		#{}			; comment
 	]
 	reduce [local-header global-header]
+]
+
+grab-files: func [path out /local file files][
+	either dir? path [
+		files: read path
+		append out path
+		foreach file files [
+			grab-files rejoin [path file out]
+		]
+	][
+		append out path
+	]
 ]
 
 ; -- in-Red functions -------------------------------------------------------------
@@ -271,23 +283,12 @@ set 'zip func [
 	"Save ZIP archive created from given files or paths"
 	where [file!]	"Where to save"
 	files [file! block!]	"File(s) and/or path(s) to archive"
-	/local grab-files out
+	/local out
 ][
-	grab-files: func [path /local files][
-		either dir? path [
-			files: read path
-			append out path
-			foreach file files [
-				grab-files rejoin [path file]
-			]
-		][
-			append out path
-		]
-	]
 	
 	files: append copy [] files
 	out: copy []
-	foreach file files [grab-files file]
+	foreach file files [grab-files file out]
 	write/binary where make-zip out
 	out
 ]
