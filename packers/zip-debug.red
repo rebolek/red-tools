@@ -1,7 +1,9 @@
 Red[
 	Title: "ZIP packer and unpacker"
 	Author: "Boleslav Březovský"
-	
+	Links: [
+		https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
+	]
 ]
 
 .: context [
@@ -100,14 +102,18 @@ gp-bitflag: func [][
 	; bit 0 - encryption
 	; bit 1&2 - method: normal, maximum, fast, super fast
 	; bit 3 - are crc&sizes in local header?
-	; bit 4 - enhanced deflating(?)
-	; bit 5 - compressed pached data
+	; bit 4 - enhanced deflation
+	; bit 5 - compressed patched data
 	; bit 6 - strong encryption
-	; bit 7-11 - unused
-	; bit 12 - 15 - reserved
+	; bit 7-10 - unused
+	; bit 11 - language encoding (1 = UTF8)
+	; bit 12 - reserved (for enhanced compression)
+	; bit 13 - mask header values
+	; bit 14 - 15 - reserved
 
-	flag: make bitset! 16
-	to binary! flag
+;	flag: make bitset! 16
+;	to binary! flag
+	#{0008} ; NOTE: This should set UTF8 files
 ]
 
 make-local-header: func [filename][
@@ -164,10 +170,10 @@ make-entry: func [
 		orig-size:
 		comp-size: #{00000000}
 	][
-		data:	read/binary filename
-		crc:	to-ilong checksum data 'crc32
+		data:		read/binary filename
+		crc:		to-ilong checksum data 'crc32
 		orig-size:	to-ilong length? data
-		data:	compress/deflate data
+		data:		compress/deflate data
 		comp-size:	to-ilong length? data
 	]
 	name-size:	to-ishort length? to binary! filename
