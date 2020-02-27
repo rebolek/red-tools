@@ -9,6 +9,8 @@ Red[
 verbose?: false
 info: func [value][if verbose? [print value]]
 
+global-headers: local-headers: none
+
 ; -- support functions ------------------------------------------------------------
 
 ; FIXME: Remove once proper CLEAN-PATH is implemented in Red
@@ -91,12 +93,6 @@ load-msdos-date: func [
 	]
 ]
 
-global-signature: #{504B0102}
-local-signature: #{504B0304}
-central-signature: #{504B0506}
-
-crc: orig-size: comp-size: name-size: filedate:
-	none
 
 ; -- internal functions -----------------------------------------------------------
 
@@ -117,7 +113,7 @@ gp-bitflag: func [][
 make-local-header: func [filename][
 	rejoin [
 		local-signature
-		#{0000}		; version needed to extract
+		#{1400}		; version needed to extract (2.0 -> 20 -> #14)
 		gp-bitflag	; bitflag
 		#{0800}		; compression method - DEFLATE
 		to-msdos-time filedate/time
@@ -135,8 +131,8 @@ make-local-header: func [filename][
 make-global-header: func [filename][
 	rejoin [
     	global-signature
-		#{0000}		; source version
-		#{0000}		; version needed to extract
+		#{1400}		; source version (2.0 -> 20 -> #14)
+		#{1400}		; version needed to extract (2.0 -> 20 -> #14)
 		gp-bitflag	; bitflag
 		#{0800}		; compression method - DEFLATE
 		to-msdos-time filedate/time
@@ -174,7 +170,7 @@ make-entry: func [
 		data:	compress/deflate data
 		comp-size:	to-ilong length? data
 	]
-	name-size:	to-ishort length? filename
+	name-size:	to-ishort length? to binary! filename
 	filedate:	query filename
 
 	; -- make header
@@ -184,7 +180,7 @@ make-entry: func [
 	reduce [local-header global-header]
 ]
 
-comment {
+{
 (UPath) 0x7075        Short       tag for this extra block type ("up")
 TSize         Short       total data size for this block
 Version       1 byte      version of this extra field, currently 1
@@ -199,7 +195,7 @@ decode-extra-field: func [
 	/local type size version crc name
 ][
 	if empty? value [exit]
-	probe parse value [
+	parse value [
 		copy type extra-unicode-path [
 			copy size 2 skip (size: (load-number size) - 5) ; NOTE: total size of version + crc + text
 			copy version skip ; NOTE: should be 1
@@ -221,9 +217,15 @@ decode-extra-field: func [
 ]
 
 ; -- rules --------------------------------------------------------------------
+global-signature: #{504B0102}
+local-signature: #{504B0304}
+central-signature: #{504B0506}
 
-comp-size: orig-size: name-size: extra-size: comment-size:
-comp: zip-files: filename: date: time: extrafield: metadata:
+crc: orig-size: comp-size: name-size: filedate:
+start: mark: offset: comment: version: flags:
+comp-size: orig-size: extra-size: comment-size: comment:
+comp: zip-files: filename: date: time: extrafield: metadata: 
+name-size: local-name-size: filename: raw-filename: local-filename: raw-local-filename:
 	none
 
 extra-rule: [
@@ -247,31 +249,121 @@ size-rule: [
 	copy orig-size 4 skip (orig-size: load-number orig-size)
 	copy name-size 2 skip (name-size: load-number name-size)
 	copy extra-size 2 skip (extra-size: load-number extra-size)
-	copy comment-size 2 skip (comment-size: load-number comment-size)
 ]
 
 file-action: quote (
-print "123"
-	zip-files/:filename: switch method [
+	filename: global-entry/filename
+	zip-files/:filename: switch global-entry/method [
 		store	[comp]
 		deflate	[decompress/deflate comp orig-size]
 	]
-	date: load-msdos-date date
-	date/time: load-msdos-time time
+	date: global-entry/date
+	date/time: global-entry/time
 	metadata/:filename: context compose [
 		date: (date)
 		extra: (extrafield)
 	]
 	info file-info
+	global-headers/:filename: global-entry
+	local-headers/:filename: local-entry
 )
 
 file-info: [
-	"File:" filename newline
-	"Size:" comp-size #"/" orig-size #"/" to percent! round/to comp-size * 1.0 / orig-size 0.01% newline
+	newline
+	"GFile " filename #"(" name-size #"/" length? filename #")" newline
+	"GRaw: " raw-filename newline
+	"LFile:" local-filename #"(" name-size #"/" length? local-filename #")" newline
+	"LRaw: " raw-local-filename newline
+	"Size: " comp-size #"/" orig-size #"/" to percent! round/to comp-size * 1.0 / orig-size 0.01% newline
 	"Method:" method newline
-	"Date:" date newline
-	"Extra field:" extrafield newline
+	"Date: " date newline
+	"Extra:" extrafield newline
 	"Comment:" comment newline
+	"-------------------------" newline
+]
+
+local-header: [
+	local-signature
+	copy version 2 skip ; version
+	copy flags 2 skip ; flags
+	copy method 2 skip ; compression
+	copy time 2 skip ; mod. time
+	copy date 2 skip ; mod- date
+	copy crc 4 skip ; crc32
+	size-rule
+	copy filename name-size skip 
+	extra-rule
+	(
+		print ["LOCL Xsize:" extra-size]
+		print ["-locl-EXTRA:" extra-name]
+		local-entry: context compose [
+			version:	(version)
+			flags:		(flags)
+			method:		(select [0 'store 8 'deflate] load-ishort method)
+			crc:		(crc)
+			time:		(load-msdos-time time)
+			date:		(load-msdos-date date)
+			raw-filename: (filename)
+			filename:	(to file! filename)
+			comp-size:	(comp-size)
+			orig-size:	(orig-size)
+			name-size:	(name-size)
+			extra-size:	(extra-size)
+		]
+	)
+	copy comp comp-size skip
+]
+
+global-header: [
+	global-signature
+	copy version 4 skip	; versions
+	copy flags 2 skip	; flags
+	copy method 2 skip
+	copy time 2 skip
+	copy date 2 skip
+	copy crc 4 skip	; crc
+	size-rule
+(print "aft size")
+	copy comment-size 2 skip (comment-size: load-number comment-size)
+	8 skip	; TODO: various attributes
+	copy offset 4 skip (offset: load-number offset)
+	copy filename name-size skip
+	extra-rule
+	copy comment comment-size skip
+	(
+		print ["GLOB Xsize:" extra-size]
+		print ["-glob-EXTRA:" extra-name]
+		; TODO: add error handling for unsupported methods
+		global-entry: context compose [
+			version:	(version)
+			flags:		(flags)
+			method:		(select [0 'store 8 'deflate] load-ishort method)
+			crc:		(crc)
+			time:		(load-msdos-time time)
+			date:		(load-msdos-date date)
+			raw-filename: (filename)
+			filename:	(to file! filename)
+			comment:	(comment)
+			comp-size:	(comp-size)
+			orig-size:	(orig-size)
+			name-size:	(name-size)
+			extra-size:	(extra-size)
+		]
+	)
+]
+
+entry-rule: [
+	global-header
+	mark:
+	(start: skip head start offset)
+	:start
+	local-header
+	(
+		probe local-entry
+		probe global-entry
+	)
+	file-action
+	:mark
 ]
 
 ; -- support debug functions --------------------------------------------------
@@ -324,7 +416,7 @@ set 'parse-global-signature func [
 		copy comment-size 2 skip (comment-size: load-number comment-size)
 		8 skip	; various attributes
 		copy offset 4 skip (offset: load-number offset)
-		copy filename name-size skip (filename: to file! filename)
+		copy filename name-size skip (filename: to file! raw-filename: filename)
 		copy extrafield extra-size skip
 		copy comment comment-size skip
 	]
@@ -372,53 +464,17 @@ set 'load-zip func [
 	data	[binary!] "ZIP archive data"
 	/meta	"Include metadata also"
 	/verbose
-	/local start mark
-		offset comment version flags
-
 ][
 	if verbose [verbose?: true]
 	zip-files: copy #()
 	metadata: copy #()
+	local-headers: copy #()
+	global-headers: copy #()
 	parse data [
 		start:
 		some [to local-signature]
 		to global-signature
-		some [
-			global-signature
-			copy version 4 skip	; versions
-			copy flags 2 skip	; flags
-			copy method 2 skip
-			(
-				method: select [0 store 8 deflate] load-ishort method
-				; TODO: add error handling for unsupported methods
-			)
-			copy time 2 skip
-			copy date 2 skip
-			4 skip	; crc
-			size-rule
-			(print ["GLOB Xsize:" extra-size])
-			8 skip	; various attributes
-			copy offset 4 skip (offset: load-number offset)
-			copy filename name-size skip (filename: to file! filename)
-			(print "bf ex")
-			extra-rule
-			(print "af ex")
-			(print ["----EXTRA:" extra-name])
-			copy comment comment-size skip
-			mark:
-			(start: skip head start offset)
-			:start
-			local-signature
-			22 skip ; mandatory fields
-			copy name-size 2 skip (name-size: load-number name-size)
-			copy extra-size 2 skip (extra-size: load-number extra-size)
-			copy local-filename name-size skip
-			extra-rule
-			(print ["----EXTRA:" extra-name])
-			copy comp comp-size skip
-			file-action
-			:mark
-		]
+		some entry-rule
 	]
 	either meta [reduce [zip-files metadata]][zip-files]
 ]
