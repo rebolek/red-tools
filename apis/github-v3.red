@@ -3,17 +3,21 @@ Red [
 	Author: "Boleslav Březovský"
 	Date: "5-3-2017"
 	Usage: {
-You must set GITHUB/USER and GITHUB/PASS to your username and password.
+To use basic authenticationmust set GITHUB/USER and GITHUB/PASS to your username
+and password. However basic authentication isgoing to be removed from GitHub API
+during 2020, so you should use Github personal token instead. See: https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line
+how to get one and set it to GITHUB/TOKEN. If token is present, API will
+automatically use it.
 	}
 ]
 
-do %../http-tools.red
+#include %../http-tools.red
 
 map-each: function [
 	'word ; NOTE: leaks word
 	series
 	body
-] [
+][
 	forall series [
 		set word series/1
 		series/1: do bind body word
@@ -25,7 +29,7 @@ export: function [
 	"Export words from object to global context"
 	object
 	words "Words in format: optional: SET-WORD! - new name, WORD! - word to export"
-] [
+][
 	word: name: none
 	parse words [
 		some [
@@ -53,8 +57,8 @@ send: func [
 	/full "Return raw data" ; TODO: rename
 	/preview "Support preview features"
 		type
-;	/local link args-rule header-data header
-] [
+;	/local link args-rule header-data header auth-type auth-data
+][
 	method: either method [req-type] ['GET]
 	link: make-url repend copy [https://api.github.com/] data
 	header: copy [
@@ -72,10 +76,15 @@ send: func [
 		]
 		request: to-json request
 	]
-	response: either verbose? [
-		send-request/verbose/debug/data/with/auth link method request header 'Basic reduce [form user pass]
+	set [auth-type auth-data] reduce either token [
+		['Token token]
 	][
-		send-request/data/with/auth link method request header 'Basic reduce [form user pass]
+		['Basic reduce [form user pass]]
+	]
+	response: either verbose? [
+		send-request/verbose/debug/data/with/auth link method request header auth-type auth-data
+	][
+		send-request/data/with/auth link method request header auth-type auth-data
 	]
 	unless all [
 		response/code >= 200
@@ -90,13 +99,14 @@ send: func [
 
 user: none
 pass: none
+token: none
 response: none
 verbose?: true
 
 login: func [
 	username
 	password
-] [
+][
 	user: username
 	pass: password
 	true ; so we won’t return password
@@ -106,13 +116,13 @@ login: func [
 
 get-user: function [
 	user "User's name"
-] [
-	send [%users name]
+][
+	send [%users user]
 ]
 
 get-repos: function [
 	user
-] [
+][
 	send [%users user %repos]
 ]
 
@@ -140,7 +150,7 @@ comment {
 
 get-gists: func [
 	user
-] [
+][
 	send [%users user %gists]
 ]
 
@@ -150,7 +160,7 @@ get-gist: func [
 		sha
 	/local
 		link
-] [
+][
 	link: [%gists id]
 	if revision [append link sha]
 	send link
@@ -172,7 +182,7 @@ make-gist: func [
 	/update "Update existing gist instead of creating new one"
 		id
 	/local files gist link
-] [
+][
 	unless block? data [data: reduce [data]]
 	files: make map! length? data
 	foreach value data [
@@ -226,7 +236,7 @@ comment {
 get-commit: func [
 	repo [path!] "Repository in format owner/repo"
 	sha
-] [
+][
 	send [%repos repo %git %commits sha]
 ]
 
@@ -242,7 +252,7 @@ make-commit: func [
 	tree
 	parents
 	; TODO: optional args author and committer
-] [
+][
 	unless block? parents [parents: reduce [parents]]
 	send/method [%repos repo %git %commits] 'POST make map! reduce [
 		quote message: message
@@ -255,7 +265,7 @@ get-commits: func [
 	repo [path!] "Repository in format owner/repo"
 	/page "Get different page (first by default)"
 		page-id
-] [
+][
 	link: [%repos repo %commits]
 	if page [
 		append/only link compose [page: (page-id)]
@@ -278,7 +288,7 @@ get-tree: func [
 	sha
 	/deep
 	/local link
-] [
+][
 	link: copy [%repos repo %git %trees sha]
 	if deep [append link [? recursive: 1]]
 	send link
@@ -287,7 +297,7 @@ get-tree: func [
 make-tree: func [
 	repo [path!] "Repository in format owner/repo"
 	tree
-] [
+][
 	; TODO: some checks if tree has necessary fields
 	send/method [%repos repo %git %trees] 'POST tree
 ]
@@ -299,7 +309,7 @@ make-tree: func [
 get-blob: func [
 	repo [path!] "Repository in format owner/repo"
 	sha
-] [
+][
 	send [%repos repo %git %blobs sha]
 ]
 
@@ -310,7 +320,7 @@ make-blob: func [
 	content
 	/encoding 		"Select encoding: base-64 or utf8 (default)"
 		enc-type
-] [
+][
 	unless enc-type [enc-type: 'utf8]
 	send/method [%repos repo %git %blobs] 'POST make map! reduce [
 		quote content: content
@@ -324,7 +334,7 @@ make-reference: function [
 	repo [path!] 	"Repository in format owner/repo"
 	name [path!]	"Reference in format refs/heads/branch"
 	sha
-] [
+][
 	send/method [%repos repo %git %refs] 'POST make map! reduce [
 		quote ref: form name
 		quote sha: sha
@@ -336,7 +346,7 @@ update-reference: function [
 	name [path!]	"Reference in format heads/branch"
 	sha
 	/force
-] [
+][
 ;PATCH /repos/:owner/:repo/git/refs/:ref
 	; FIXME: POST should be PATCH
 	send/method [%repos repo %git %refs name] 'POST make map! reduce [
@@ -350,7 +360,7 @@ get-reference: function [
 	repo [path!] 	"Repository in format owner/repo"
 	name [path!]	"Reference in format heads/branch"
 	/all
-] [
+][
 ;GET /repos/:owner/:repo/git/refs/heads/skunkworkz/featureA
 ; GET /repos/:owner/:repo/git/refs
 	send either all [
@@ -541,22 +551,22 @@ make-repo: function [
 	send/method [ %user/repos ] 'POST header
 ]
 
-get-repos: function [
-
-] [
-
-]
+;get-repos: function [
+;
+;] [
+;
+;]
 
 get-repo: function [
 	repo
-] [
+][
 	send [%repos repo]
 ]
 
 get-repo-content: function [
 	repo
 	path
-] [
+][
 ;GET /repos/:owner/:repo/contents/:path
 	send [%repos repo %contents path]
 ]
@@ -567,7 +577,7 @@ find-file: function [
 	"Find file in tree and return tree object"
 	tree
 	file
-] [
+][
 	print ["Find" mold file]
 	foreach obj tree/tree [
 		all [
@@ -582,7 +592,7 @@ commit: func [
 	repo [path!] 	"Repository in format owner/repo"
 	files
 	message
-] [
+][
 {
     1. get the current commit object
     2. retrieve the tree it points to
@@ -689,7 +699,7 @@ licenses: [
 load-gist: function [
 	"Load Gist as Red file"
 	id
-] [
+][
 	; NOTE: this expects that gist is one file only and does the first file
 	;		should be user-configurable somehow probably
 	if url? id [id: last split id #"/"]
