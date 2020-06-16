@@ -467,6 +467,32 @@ load-www-form: func [
 	result
 ]
 
+make-multipart: func [
+	parts [block! map!]	"Pairs of MIME type and content"
+	/local boundary
+][
+	collect/into [
+		boundary: make-nonce
+		keep rejoin [
+			"Content-Type: multipart/mixed; boundary=" boundary crlf
+			crlf
+		]
+		foreach [type content] parts [
+			keep rejoin [
+				"--" boundary crlf
+				type crlf
+				crlf
+				content
+				crlf
+			]
+		]
+		keep rejoin [
+			"--" boundary "--" crlf
+			crlf
+		]
+	] copy ""
+]
+
 split-multipart: func [
 	series [binary!]
 	delimiter [string!]
