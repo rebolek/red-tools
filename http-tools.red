@@ -177,8 +177,8 @@ context [
 	][
 		content-type: "application/x-www-form-urlencoded"
 		parse data [
-			'JSON	copy value to end (
-;				content-type: "application/json"
+			#JSON	copy value to end (
+				content-type: "application/json"
 				result: to-json value
 			)
 		|	'Red	copy value to end (result: mold value)
@@ -299,6 +299,7 @@ context [
 		/raw 		"Return raw data and do not try to decode them"
 		/verbose    "Print request informations"
 		/debug		"Set debug words (see source for details)"
+		/extern		content-type
 	][
 		mold?: mold
 		mold: :system/words/mold
@@ -342,17 +343,18 @@ context [
 				content: clear ""
 			]
 			block? content [
-				header/content-type: "application/x-www-form-urlencoded"
+				content-type: "application/x-www-form-urlencoded"
 				content: parse-data content
 			]
 			any [map? content object? content][
 				; if you're passing map/object, it's safe to assume it should be send as JSON
-				header/content-type: "application/json"
+				content-type: "application/json"
 				content: to-json content
 			]
 			; TODO: string! Or is there anything needed for it?
 		]
 		; Make sure all values are strings
+		header/content-type: probe content-type
 		body: body-of header
 		forall body [body: next body body/1: form body/1]
 		data: reduce [method body]
