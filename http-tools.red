@@ -26,9 +26,8 @@ Red [
 `parse-headers` should return raw map or everything converted,
 `other-headers is stupid concept.
 }
-{
-SEND-REQUEST should add at least `Accept-Charset` automatically.
-}
+{SEND-REQUEST should add at least `Accept-Charset` automatically.}
+{Multipart should check if boundary is not part of data}
 	]
 ]
 
@@ -171,6 +170,133 @@ context [
 		)
 	]
 
+	multipart: none
+	boundary: none
+
+	stringize: func [
+		"Passes STRING! and rejoins BLOCK!"
+		value [any-string! block!]
+	][
+		if block? value [value: rejoin value]
+		value
+	]
+
+	when: func [
+		"Return value when COND is TRUE, otherwise return empty string"
+		cond [logic!]
+		value [any-type!]
+	][
+		either cond [stringize value][""]
+	]
+
+	keep: func [value][
+		append multipart stringize value
+	]
+
+	keep-boundary: func [
+		/end "Final boundary"
+	][
+		keep ["--" boundary when end "--" crlf]
+	]
+	keep-value: func [
+		name
+		value
+		/type typename
+		/local disps key val
+	][
+		if set-word? name [name: compose [name: (name)]]
+		collect/into [
+			foreach [key val] name [
+				keep rejoin ["; " key {="} val #"^""]
+			]
+		] disps: copy ""
+		keep [
+			"Content-Disposition: "
+			either type ["attachement"]["form-data"]
+
+			disps crlf
+			when type ["Content-Type: " typename crlf]
+			crlf
+			value
+			crlf
+		]
+	]
+
+	make-multipart: func [
+		parts [block! map!]	"Pairs of MIME type and content"
+		; if content is `file!`, content-type is switched to multipart/mixed
+		/local bin?
+	][
+comment {
+	Default Content-Type is `;
+
+DIALECT:
+	set-word! string!	; key: value
+|	file! opt ['text | 'bin | 'binary] ; opt part forces transfer mode, default is auto-detection (slower)
+|	string! path!		; value mime/type
+
+key/value only: multipart/form-data
+anything else:  multipart/mixed
+}
+		name: value: type: mode: filename: none
+		multipart: copy #{}
+		bin?: false
+		boundary: make-nonce
+		content-type: none
+
+		part-key-value: [
+			(type: none)
+			set name set-word! set value string! opt set type path! (
+				keep-boundary
+				either type [
+					keep-value/type name value type
+				][
+					keep-value name value
+				]
+			)
+		]
+		part-file: [
+			(mode: none)
+			set name set-word!
+			set filename file!
+			opt set mode ['text | 'bin | 'binary] (
+				keep-boundary
+				switch/default mode [
+					text [
+						type: "text/plain"
+						value: read filename
+					]
+					bin binary [
+						bin?: true
+						type: "application/octet-stream"
+						value: read/binary filename
+					]
+				][
+					value: read/binary filename
+					type: either error? try [value: to string! value][
+						bin?: true
+						"application/octet-stream"
+					][
+						"text/plain"
+					]
+				]
+				keep-value/type compose [name: (name) filename: (filename)] value type
+			)
+		]
+
+		parse parts [
+			some [
+				part-key-value
+			|	part-file
+			]
+		]
+		unless content-type [
+			content-type: rejoin ["multipart/form-data; boundary=" boundary]
+		]
+		keep-boundary/end
+		either bin? [multipart][to string! multipart] ; TODO: Is the conversion required? Probably not
+	]
+
 	; TODO: temporarily exposed for testing, make internal later
 	set 'parse-data func [
 		data	[block!]
@@ -181,7 +307,8 @@ context [
 				content-type: "application/json"
 				result: to-json value
 			)
-		|	'Red	copy value to end (result: mold value)
+		|	#Red	copy value to end (result: mold value) ; FIXME: needs proper content-type etc
+		|	#multi	copy value to end (result: make-multipart value)
 		|	(result: copy {}) any url-rule (take/last result)
 		]
 		result
@@ -313,8 +440,11 @@ context [
 			if verbose [print [auth-type mold auth-data]]
 			switch auth-type [
 				Basic [
-					extend header compose [
-						Authorization: (rejoin [auth-type space enbase rejoin [first auth-data #":" second auth-data]])
+;					extend header compose [
+;						Authorization: (rejoin [auth-type space enbase rejoin [first auth-data #":" second auth-data]])
+;					]
+					put header 'Authorization rejoin [
+						auth-type space enbase rejoin [first auth-data #":" second auth-data]
 					]
 				]
 				OAuth [
@@ -322,9 +452,10 @@ context [
 				]
 				Bearer [
 					; token passing for OAuth 2
-					extend header compose [
-						Authorization: (rejoin [auth-type space auth-data])
-					]
+;					extend header compose [
+;						Authorization: (rejoin [auth-type space auth-data])
+;					]
+					put header 'Authorization rejoin [auth-type space auth-data]
 				]
 				Digest [
 					<TODO>
@@ -354,7 +485,7 @@ context [
 			; TODO: string! Or is there anything needed for it?
 		]
 		; Make sure all values are strings
-		header/content-type: probe content-type
+		put header 'Content-Type content-type
 		body: body-of header
 		forall body [body: next body body/1: form body/1]
 		data: reduce [method body]
@@ -467,32 +598,6 @@ load-www-form: func [
 		]
 	]
 	result
-]
-
-make-multipart: func [
-	parts [block! map!]	"Pairs of MIME type and content"
-	/local boundary
-][
-	collect/into [
-		boundary: make-nonce
-		keep rejoin [
-			"Content-Type: multipart/mixed; boundary=" boundary crlf
-			crlf
-		]
-		foreach [type content] parts [
-			keep rejoin [
-				"--" boundary crlf
-				type crlf
-				crlf
-				content
-				crlf
-			]
-		]
-		keep rejoin [
-			"--" boundary "--" crlf
-			crlf
-		]
-	] copy ""
 ]
 
 split-multipart: func [

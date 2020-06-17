@@ -33,8 +33,10 @@ encoding:
 * with other methods, content is treated based on type: `block!` is also 
 	translated to url-encoded string passed as data and `Content-Type`
 	field in the header is set to `application/x-www-form-urlencoded`
-	(with one small exception: block with first value of `JSON` is treaded as
-	JSON array).
+	`block!` can be used to send other types of data also:
+	* if first value is `#JSON`, block is treated as JSON array
+	* if first value is `#MULTI`, pairs of MIME type and content are
+		expected and data are send as `multipart/mixed`
 
 * `map!` is treated as JSON and `Content-Type` is set accordingly. So you
 	don't have to care about sending JSON requests, it's handled
