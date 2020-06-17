@@ -35,14 +35,23 @@ encoding:
 	field in the header is set to `application/x-www-form-urlencoded`
 	`block!` can be used to send other types of data also:
 	* if first value is `#JSON`, block is treated as JSON array
-	* if first value is `#MULTI`, pairs of MIME type and content are
-		expected and data are send as `multipart/mixed`
+	* if first value is `#MULTI`, see dialect description below
 
 * `map!` is treated as JSON and `Content-Type` is set accordingly. So you
 	don't have to care about sending JSON requests, it's handled
 	automatically.
 
 * `string!` is passed as is, so you have to set `Content-Type` manually.
+
+##### #multi
+
+If you want to send multiple data as `multipart/form-data`, use `/data`
+in combination with `block!` value, where first value is `#multi`. What follows
+are form data in following format: `set-word!` sets name, followed by either
+`string!` for value, or `file!` if you want to post file. Both text and binary
+files are allowed, for text files, `Content-Type` is set to `text/plain`,
+for binary to `application/octet-stream`. For `string!` value, you can add
+optional type as `path!`, for example `application/json`.
 
 #### /with headers
 

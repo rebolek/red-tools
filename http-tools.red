@@ -175,7 +175,7 @@ context [
 
 	stringize: func [
 		"Passes STRING! and rejoins BLOCK!"
-		value [any-string! block!]
+		value [any-string! binary! block!]
 	][
 		if block? value [value: rejoin value]
 		value
@@ -188,11 +188,7 @@ context [
 	][
 		either cond [stringize value][""]
 	]
-
-	keep: func [value][
-		append multipart stringize value
-	]
-
+	keep: func [value][append multipart stringize value]
 	keep-boundary: func [
 		/end "Final boundary"
 	][
@@ -213,19 +209,18 @@ context [
 		keep [
 			"Content-Disposition: "
 			either type ["attachement"]["form-data"]
-
 			disps crlf
 			when type ["Content-Type: " typename crlf]
 			crlf
-			value
-			crlf
 		]
+		keep value ; NOTE: must be separate, otherwise REJOIN will FORM it, this way we can pass binary!
+		keep crlf
 	]
 
 	make-multipart: func [
 		parts [block! map!]	"Pairs of MIME type and content"
 		; if content is `file!`, content-type is switched to multipart/mixed
-		/local bin?
+		/local bin? name value type mode filename
 	][
 comment {
 	Default Content-Type is `;
@@ -290,9 +285,7 @@ anything else:  multipart/mixed
 			|	part-file
 			]
 		]
-		unless content-type [
-			content-type: rejoin ["multipart/form-data; boundary=" boundary]
-		]
+		content-type: rejoin ["multipart/form-data; boundary=" boundary]
 		keep-boundary/end
 		either bin? [multipart][to string! multipart] ; TODO: Is the conversion required? Probably not
 	]
