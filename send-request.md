@@ -15,6 +15,48 @@ Simplifies sending HTTP requests:
 * `method [word!]` is one of HTTP methods (`GET`, `HEAD`, `POST`, `PUT`,
 	`DELETE`, `CONNECT`, `OPTIONS`, `TRACE`).
 
+## Data handling
+
+With most requests, user wants to send some data. This is handled with
+`/data` refinement which accepts `content` value that can be of multiple
+datatypes:
+
+### string!
+
+The most basic type is `string!` which is passed as is.
+
+```
+send-request/data server 'POST "key1=val1&key2=val2"
+```
+
+### map! and object!
+
+`map!` and `object!` are converted to JSON and `Content-Type` is set to
+`application/json`
+
+```
+send-request/data server 'POST #(key1: "val1" key2: 2)
+
+send-request/data server 'POST context [key1: "val1" key2: 2]
+```
+
+### block!
+
+`block!` can be used as multi-puropse dialect. Simplest variant are pairs
+of `set-word!` keys and values that are represented as `application/x-www-form-urlencoded`:
+
+```
+send-request/data server 'POST [key1: "val1" key2 2]
+```
+
+`block!` can be used with `GET` method also, in that case it's translated to
+URL:
+
+```
+send-request http://www.example.com 'GET [key: "val1" key2 2]
+== http://www.example.com?key1=val1&key2=2
+```
+
 ### Refinements
 
 #### /only
