@@ -220,19 +220,8 @@ context [
 	make-multipart: func [
 		parts [block! map!]	"Pairs of MIME type and content"
 		; if content is `file!`, content-type is switched to multipart/mixed
-		/local bin? name value type mode filename
+		/local bin? name value type mode filename part-key-value part-file
 	][
-comment {
-	Default Content-Type is `;
-
-DIALECT:
-	set-word! string!	; key: value
-|	file! opt ['text | 'bin | 'binary] ; opt part forces transfer mode, default is auto-detection (slower)
-|	string! path!		; value mime/type
-
-key/value only: multipart/form-data
-anything else:  multipart/mixed
-}
 		name: value: type: mode: filename: none
 		multipart: copy #{}
 		bin?: false
@@ -241,7 +230,13 @@ anything else:  multipart/mixed
 
 		part-key-value: [
 			(type: none)
-			set name set-word! set value string! opt set type path! (
+			set name set-word!
+			set value [any-string! number! map!]
+			opt set type path! (
+				if map? value [
+					value: to-json value
+					type: 'application/json
+				]
 				keep-boundary
 				either type [
 					keep-value/type name value type
@@ -300,8 +295,8 @@ anything else:  multipart/mixed
 				content-type: "application/json"
 				result: to-json value
 			)
-		|	#Red	copy value to end (result: mold value) ; FIXME: needs proper content-type etc
 		|	#multi	copy value to end (result: make-multipart value)
+		|	#Red	copy value to end (result: mold value) ; FIXME: needs proper content-type etc
 		|	(result: copy {}) any url-rule (take/last result)
 		]
 		result
