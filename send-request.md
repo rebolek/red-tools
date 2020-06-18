@@ -57,43 +57,53 @@ send-request http://www.example.com 'GET [key: "val1" key2 2]
 == http://www.example.com?key1=val1&key2=2
 ```
 
+It's possible to send JSON array using `block!`. In such case use `#json`
+as first value in block, everything else is treated as values in JSON array:
+
+```
+send-request server 'POST [#JSON this is json array]
+== (...) {["this", "is", "json", "array"]}
+```
+
+`block!` can also be used to send `multipart/form-data`. Use `#multi` as a
+first value to specify that what follows are form data. They use same format
+as plain form, `set-word!` followed by value with two extensions:
+
+1. it's possible to specify `Content-Type` by adding `path!` after value:
+
+```
+send-request server 'POST [
+	key0: "plain text without MIME type"
+	key1: "plain text with MIME type" text/plain
+	key2: {{"jsonkey": "json value"}} application/json
+]
+```
+
+2. you can upload files also by having `file!` value:
+
+```
+send-request server 'POST [upload-file: %some.file]
+```
+
+`send-request` tries to auto-detect wheter file is binary or text, you can
+specify it manually by `text`, `bin` or `binary` postfix:
+
+```
+send-request server 'POST [
+	file1: %text-file.txt text
+	file2: %picture.jpg bin
+	file3: %song.mp3 binary
+]
+```
+
+it's not possible to specify MIME type of file, it's either `text/plain` or
+`application/octet-stream`.
+
 ### Refinements
 
 #### /only
 
 Return reply only without headers.
-
-#### /data content
-
-Data to send with HTTP request. Data are automatically converted to proper
-encoding:
-
-* with `GET` method, content (expected to be `block!`) is translated to
-	url-encoded string and appended to the link, e.g.: 
-	`send-request/data link 'GET [x: 2 y: 2]` results in `link?x=1&y=2`.
-
-* with other methods, content is treated based on type: `block!` is also 
-	translated to url-encoded string passed as data and `Content-Type`
-	field in the header is set to `application/x-www-form-urlencoded`
-	`block!` can be used to send other types of data also:
-	* if first value is `#JSON`, block is treated as JSON array
-	* if first value is `#MULTI`, see dialect description below
-
-* `map!` is treated as JSON and `Content-Type` is set accordingly. So you
-	don't have to care about sending JSON requests, it's handled
-	automatically.
-
-* `string!` is passed as is, so you have to set `Content-Type` manually.
-
-##### #multi
-
-If you want to send multiple data as `multipart/form-data`, use `/data`
-in combination with `block!` value, where first value is `#multi`. What follows
-are form data in following format: `set-word!` sets name, followed by either
-`string!` for value, or `file!` if you want to post file. Both text and binary
-files are allowed, for text files, `Content-Type` is set to `text/plain`,
-for binary to `application/octet-stream`. For `string!` value, you can add
-optional type as `path!`, for example `application/json`.
 
 #### /with headers
 
@@ -166,5 +176,15 @@ POST request with HTTP FORM data:
 
 POST request with JSON data:
 
-`send-request/data http://example.org 'POST #(name: "Alber Einstein" age: 140)`
+`send-request/data http://example.org 'POST #(name: "Albert Einstein" age: 140)`
 
+POSE request with multiple form data:
+
+```
+send-request/data http://example.org 'POST [
+	name: "Albert Einstein"
+	age: 140 text/plain
+	json: #(first-name: "Albert" last-name: "Einstein")
+	image: %albert.jpg
+]
+```
