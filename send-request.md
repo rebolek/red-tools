@@ -53,7 +53,7 @@ send-request/data server 'POST [key1: "val1" key2 2]
 URL:
 
 ```
-send-request http://www.example.com 'GET [key: "val1" key2 2]
+send-request/data http://www.example.com 'GET [key: "val1" key2 2]
 == http://www.example.com?key1=val1&key2=2
 ```
 
@@ -61,7 +61,7 @@ It's possible to send JSON array using `block!`. In such case use `#json`
 as first value in block, everything else is treated as values in JSON array:
 
 ```
-send-request server 'POST [#JSON this is json array]
+send-request/data server 'POST [#JSON this is json array]
 == (...) {["this", "is", "json", "array"]}
 ```
 
@@ -72,7 +72,7 @@ as plain form, `set-word!` followed by value with two extensions:
 1. it's possible to specify `Content-Type` by adding `path!` after value:
 
 ```
-send-request server 'POST [
+send-request/data server 'POST [
 	key0: "plain text without MIME type"
 	key1: "plain text with MIME type" text/plain
 	key2: {{"jsonkey": "json value"}} application/json
@@ -82,14 +82,14 @@ send-request server 'POST [
 2. you can upload files also by having `file!` value:
 
 ```
-send-request server 'POST [upload-file: %some.file]
+send-request/data server 'POST [upload-file: %some.file]
 ```
 
 `send-request` tries to auto-detect wheter file is binary or text, you can
 specify it manually by `text`, `bin` or `binary` postfix:
 
 ```
-send-request server 'POST [
+send-request/data server 'POST [
 	file1: %text-file.txt text
 	file2: %picture.jpg bin
 	file3: %song.mp3 binary
@@ -178,7 +178,7 @@ POST request with JSON data:
 
 `send-request/data http://example.org 'POST #(name: "Albert Einstein" age: 140)`
 
-POSE request with multiple form data:
+POST request with multiple form data:
 
 ```
 send-request/data http://example.org 'POST [
