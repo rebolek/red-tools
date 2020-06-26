@@ -147,17 +147,13 @@ get-headers: func [/local o os cmd][
 
 ; --- client side tools ------------------------------------------------------
 
-; TODO: move to separate context
-
-; NOTE: because of parse limitations, run this thru a foreach loop,
-;		set the words (they should of course be marked as local beforehand
-;		to their values
-
 context [
 
 	value: none
 	result: none
 	content-type: none
+	multipart: none
+	boundary: none
 
 	url-rule: [
 		set value [set-word! | word! | string!] (
@@ -169,9 +165,6 @@ context [
 			][#"&"]
 		)
 	]
-
-	multipart: none
-	boundary: none
 
 	stringize: func [
 		"Passes STRING! and rejoins BLOCK!"
@@ -218,7 +211,7 @@ context [
 	]
 
 	make-multipart: func [
-		parts [block! map!]	"Pairs of MIME type and content"
+		parts [block!]	"Multipart dialect"
 		; if content is `file!`, content-type is switched to multipart/mixed
 		/local bin? name value type mode filename part-key-value part-file
 	][
@@ -231,7 +224,7 @@ context [
 		part-key-value: [
 			(type: none)
 			set name set-word!
-			set value [any-string! number! map!]
+			set value [any-string! | number! | map!]
 			opt set type path! (
 				if map? value [
 					value: to-json value
@@ -276,8 +269,8 @@ context [
 
 		parse parts [
 			some [
-				part-key-value
-			|	part-file
+				part-file
+			|	part-key-value
 			]
 		]
 		content-type: rejoin ["multipart/form-data; boundary=" boundary]
@@ -285,7 +278,8 @@ context [
 		either bin? [multipart][to string! multipart] ; TODO: Is the conversion required? Probably not
 	]
 
-	; TODO: temporarily exposed for testing, make internal later
+	#TODO {temporarily exposed for testing, make internal later}
+	#TODO {is #multi really required?}
 	set 'parse-data func [
 		data	[block!]
 	][
