@@ -73,6 +73,7 @@ as plain form, `set-word!` followed by value with two extensions:
 
 ```
 send-request/data server 'POST [
+	#multi
 	key0: "plain text without MIME type"
 	key1: "plain text with MIME type" text/plain
 	key2: {{"jsonkey": "json value"}} application/json
@@ -82,7 +83,7 @@ send-request/data server 'POST [
 2. you can upload files also by having `file!` value:
 
 ```
-send-request/data server 'POST [upload-file: %some.file]
+send-request/data server 'POST [#multi upload-file: %some.file]
 ```
 
 `send-request` tries to auto-detect wheter file is binary or text, you can
@@ -90,6 +91,7 @@ specify it manually by `text`, `bin` or `binary` postfix:
 
 ```
 send-request/data server 'POST [
+	#multi
 	file1: %text-file.txt text
 	file2: %picture.jpg bin
 	file3: %song.mp3 binary
@@ -182,6 +184,7 @@ POST request with multiple form data:
 
 ```
 send-request/data http://example.org 'POST [
+	#multi
 	name: "Albert Einstein"
 	age: 140 text/plain
 	json: #(first-name: "Albert" last-name: "Einstein")
