@@ -410,6 +410,9 @@ context [
 		/debug		"Set debug words (see source for details)"
 		/extern		content-type
 	][
+		if all [find [POST PUT] method not data][
+			do make error! rejoin [method " method needs data. Use /data refinement."]
+		]
 		mold?: mold
 		mold: :system/words/mold
 		if verbose [
