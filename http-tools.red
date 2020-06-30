@@ -165,11 +165,27 @@ simple-parse-headers: func [
 	headers
 ]
 
-get-headers: func [/local o os cmd][
-    os: os-info
-    cmd: either find/match os/name "windows" ["set"] ["printenv"]
-    call/wait/output cmd o: ""
-    http-headers: simple-parse-headers o
+get-headers: func [
+	"Parse HTTP headers and store them in HTTP-HEADERS map!"
+	/local o os cmd
+][
+	os: os-info
+	cmd: either find/match os/name "windows" ["set"] ["printenv"]
+	call/wait/output cmd o: ""
+	http-headers: simple-parse-headers o
+]
+
+process-input: func [
+	"Return input data regardless of method"
+	/local size result
+][
+	unless value? 'http-headers [get-headers]
+	size: 2'097'152 ; NOTE: 2MiB preallocated for POST requests. Change if you need more
+	switch select http-headers "REQUEST_METHOD" [
+		"GET" [result: select http-headers "QUERY_STRING"]
+		"POST" [read-stdin result: make binary! size size]
+	]
+	result
 ]
 
 ; get-headers
