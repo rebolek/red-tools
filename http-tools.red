@@ -3,7 +3,10 @@ Red [
 	File: %http-tools.red
 	Author: "Boleslav Březovský"
 	Description: "Collection of tools to make using HTTP easier"
-	Date: "10-4-2017"
+	Date: 30-6-2020
+	Resources: [
+		base64url: RFC4648 https://tools.ietf.org/html/rfc4648
+	]
 	Problems: [{
 	Rebol system/options/cgi problems:
 
@@ -55,6 +58,32 @@ cut-tail: function [
 ] [
 	unless part [length: 1]
 	head remove/part skip tail series negate length length
+]
+
+enbase64url: func [
+	"Encode a string into URL variant of BASE-64 encoding"
+	value [string! binary!]
+][
+	value: enbase/base value 64
+	if mark: find value #"=" [value: head clear mark]
+	replace/all value #"/" #"_"
+	replace/all value #"+" #"-"
+	value
+]
+
+debase64url: func [
+	"Decode a string from URL variant of BASE-64 encoding"
+	value [string!]
+	/json "Apply LOAD-JSON to result"
+	/local padding
+][
+	; TODO: Add = when missing
+	unless zero? padding: 4 - (length? value) // 4 [
+		append/dup value #"=" padding
+	]
+	value: to string! debase value
+	if json [value: load-json value]
+	value
 ]
 
 ; --- server side tools ------------------------------------------------------
@@ -140,7 +169,7 @@ get-headers: func [/local o os cmd][
     os: os-info
     cmd: either find/match os/name "windows" ["set"] ["printenv"]
     call/wait/output cmd o: ""
-    http-headers: parse-headers o
+    http-headers: simple-parse-headers o
 ]
 
 ; get-headers
@@ -313,7 +342,8 @@ context [
 					set value set-word! (append args rejoin [form value #"="])
 					set value [any-word! | any-string! | number!] (
 						if word? value [value: get :value]
-						append args rejoin [to-pct-encoded form value #"&"]
+					;	append args rejoin [to-pct-encoded form value #"&"]
+						append args rejoin [form value #"&"]
 					)
 				]
 			]
@@ -417,7 +447,6 @@ context [
 		mold: :system/words/mold
 		if verbose [
 			print ["SEND-REQUEST to" link ", method:" method]
-			print ["Header:" mold args]
 		]
 		header: copy #() ; NOTE: CLEAR causes crash later!!! 
 		if args [extend header args]
@@ -451,6 +480,7 @@ context [
 		case [
 			mold? [content: system/words/mold/all content]
 			all [method = 'GET not content][
+				content-type: none
 				content: clear ""
 			]
 			all [method = 'GET content][
@@ -470,7 +500,7 @@ context [
 			; TODO: string! Or is there anything needed for it?
 		]
 		; Make sure all values are strings
-		put header 'Content-Type content-type
+		if content-type [put header 'Content-Type content-type]
 		body: body-of header
 		forall body [body: next body body/1: form body/1]
 		data: reduce [method body]
@@ -478,6 +508,7 @@ context [
 		if verbose [
 			print [
 				"Link:" link newline
+				"Header:" header newline
 				"Data:" mold data newline
 			]
 		]
