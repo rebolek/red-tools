@@ -246,7 +246,8 @@ context [
 		] disps: copy ""
 		keep [
 			"Content-Disposition: "
-			either type ["attachement"]["form-data"]
+;			either type ["attachement"]["form-data"]
+			"form-data"
 			disps crlf
 			when type ["Content-Type: " typename crlf]
 			crlf
