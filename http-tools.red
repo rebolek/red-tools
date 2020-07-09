@@ -543,13 +543,16 @@ context [
 ; -- FIXME: Workaround for https://github.com/red/red/issues/4236
 		headers: reply/2
 		foreach [key value] headers [
-			if block? value [
-				unless key = "Set-Cookie" [
-					headers/:key: unique value
-					if 1 = length? headers/:key [
-						headers/:key: first headers/:key
-					]
-					if key = "Content-Type" [headers/:key: last headers/:key]
+			if all [
+				block? value
+				not equal? key "Set-Cookie"
+			][
+				headers/:key: unique value
+				if 1 = length? headers/:key [
+					headers/:key: first headers/:key
+				]
+				if find [Content-Type Content-Length] key [
+					headers/:key: last headers/:key
 				]
 			]
 		]
