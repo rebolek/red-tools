@@ -185,9 +185,6 @@ process-input: func [
 	switch select http-headers "REQUEST_METHOD" [
 		"GET" [
 			result: select http-headers "QUERY_STRING"
-			unless only [
-				result: make map! split result charset "=&"
-			]
 		]
 		"POST" [
 			read-stdin result: make binary! size size
@@ -195,6 +192,11 @@ process-input: func [
 				try [result: to string! result]
 			]
 		]
+	]
+	all [
+		not only
+		string? result
+		result: make map! split result charset "=&"
 	]
 	result
 ]
