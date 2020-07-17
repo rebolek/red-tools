@@ -177,13 +177,24 @@ get-headers: func [
 
 process-input: func [
 	"Return input data regardless of method"
+	/only	"Do not convert the result"
 	/local size result
 ][
 	unless value? 'http-headers [get-headers]
 	size: 2'097'152 ; NOTE: 2MiB preallocated for POST requests. Change if you need more
 	switch select http-headers "REQUEST_METHOD" [
-		"GET" [result: select http-headers "QUERY_STRING"]
-		"POST" [read-stdin result: make binary! size size]
+		"GET" [
+			result: select http-headers "QUERY_STRING"
+			unless only [
+				result: make map! split result charset "=&"
+			]
+		]
+		"POST" [
+			read-stdin result: make binary! size size
+			unless only [
+				try [result: to string! result]
+			]
+		]
 	]
 	result
 ]
