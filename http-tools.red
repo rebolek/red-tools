@@ -238,9 +238,9 @@ reply-json: func [value [map! object!]][
 	data: to-json value
 ]
 
-set 'make-reply func [
-	"Make HTTP reply from data or dialect"
-	value	[block! string! map! object!] "Reply string or dialect"
+set 'make-response func [
+	"Make HTTP response from data or dialect"
+	value	[block! string! map! object!] "Response string or dialect"
 ][
 	content-type: "text/plain"
 	switch type?/word value [
@@ -255,9 +255,9 @@ set 'make-reply func [
 	]
 ]
 
-set 'send-reply func [
-	"Make HTTP reply from data or dialect"
-	value	[block! string! map! object!] "Reply string or dialect"
+set 'send-response func [
+	"Send HTTP response  from data or dialect"
+	value	[block! string! map! object!] "Response string or dialect"
 ][
 	print make-reply value
 ]
