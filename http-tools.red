@@ -267,6 +267,7 @@ set 'send-response func [
 	value	[block! string! map! object!] "Response string or dialect"
 ][
 	print make-response value
+	quit
 ]
 
 ; -- end of "reply" context
