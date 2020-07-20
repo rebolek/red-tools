@@ -259,7 +259,7 @@ set 'send-response func [
 	"Send HTTP response  from data or dialect"
 	value	[block! string! map! object!] "Response string or dialect"
 ][
-	print make-reply value
+	print make-response value
 ]
 
 ; -- end of "reply" context
