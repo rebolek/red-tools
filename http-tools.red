@@ -231,7 +231,7 @@ set-type: func [type [word!]][
 ]
 
 reply-block: func [value [block!] /local type][
-	parse value block [
+	parse value [
 		opt [
 			set type word! (set-type type)
 		|	set content-type path!
