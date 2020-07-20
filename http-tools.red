@@ -201,6 +201,72 @@ process-input: func [
 	result
 ]
 
+context [
+
+data: none
+content-type: none
+reply: none
+
+reply-string: func [value [string!]][
+	data: value
+	content-type: switch/default first value [
+		#"<"		[	"text/html"]
+		#"{" #"["	[	"application/json"]		; } (fool VIM parser)
+					][	"text/plain"]
+]
+
+set-type: func [type [word!]][
+	content-type: select [
+		text	"text/plain"
+		html	"text/html"
+		json	"application/json"
+	] type
+]
+
+reply-block: func [value [block!] /local type][
+	parse value block [
+		opt [
+			set type word! (set-type type)
+		|	set content-type path!
+		]
+		set data string!
+	]
+]
+
+reply-json: func [value [map! object!]][
+	content-type: "application/json"
+	data: to-json value
+]
+
+set 'make-reply func [
+	"Make HTTP reply from data or dialect"
+	value	[block! string! map! object!] "Reply string or dialect"
+][
+	content-type: "text/plain"
+	switch type?/word value [
+		string!			[reply-string value]
+		block!			[reply-block value]
+		map! object!	[reply-json value]
+	]
+	reply: rejoin [
+		"Content-Type: " form content-type newline
+		newline
+		data
+	]
+]
+
+set 'send-reply func [
+	"Make HTTP reply from data or dialect"
+	value	[block! string! map! object!] "Reply string or dialect"
+][
+	print make-reply value
+]
+
+; -- end of "reply" context
+
+]
+
+
 ; get-headers
 
 ; --- client side tools ------------------------------------------------------
