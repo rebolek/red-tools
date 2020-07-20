@@ -88,6 +88,9 @@ debase64url: func [
 
 ; --- server side tools ------------------------------------------------------
 
+get?:
+post?: none
+
 headers!: context [
 	server-software: none
 	server-name: none
@@ -173,6 +176,10 @@ get-headers: func [
 	cmd: either find/match os/name "windows" ["set"] ["printenv"]
 	call/wait/output cmd o: ""
 	http-headers: simple-parse-headers o
+	switch select http-headers "REQUEST_METHOD" [
+		"GET" [get?: true]
+		"POST" [post?: true]
+	]
 ]
 
 process-input: func [
