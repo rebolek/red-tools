@@ -210,16 +210,24 @@ process-input: func [
 
 context [
 
+http-version: "HTTP/1.1" ; NOTE: change this based on your server configuration
+
 data: none
 content-type: none
 reply: none
+status: none
+status-msg: none
 
-reply-string: func [value [string!]][
-	data: value
+detect-type: func [][
 	content-type: switch/default first value [
 		#"<"		[	"text/html"]
 		#"{" #"["	[	"application/json"]		; } (fool VIM parser)
 					][	"text/plain"]
+]
+
+reply-string: func [value [string!]][
+	data: value
+	detect-type
 ]
 
 set-type: func [type [word!]][
@@ -227,16 +235,38 @@ set-type: func [type [word!]][
 		text	"text/plain"
 		html	"text/html"
 		json	"application/json"
+		csv		"text/csv"
+		xml		"text/xml"
+
 	] type
+]
+
+match-status: [
+	opt [
+		set status integer!
+		opt [ ; make sure that we are not catching content, but status message
+			ahead [string! not end]
+			set status-msg string!
+		]
+	]
+]
+
+match-content-type: [
+	opt [
+		set type word! (set-type type)
+	|	set content-type path!
+	]
+]
+
+match-data: [
+	set data string! (detect-type)
 ]
 
 reply-block: func [value [block!] /local type][
 	parse value [
-		opt [
-			set type word! (set-type type)
-		|	set content-type path!
-		]
-		set data string!
+		match-status
+		match-content-type
+		match-data
 	]
 ]
 
@@ -245,17 +275,29 @@ reply-json: func [value [map! object!]][
 	data: to-json value
 ]
 
+frm: func ["Form that returns space isntead of NONE" value][
+	either value [value][""]
+]
+
 set 'make-response func [
 	"Make HTTP response from data or dialect"
 	value	[block! string! map! object!] "Response string or dialect"
 ][
-	content-type: "text/plain"
+	status: status-msg: none
+	content-type: none
 	switch type?/word value [
 		string!			[reply-string value]
 		block!			[reply-block value]
 		map! object!	[reply-json value]
 	]
+	status: either status [
+		rejoin [
+			http-version space status
+			either status-msg [rejoin [space status-msg]][""] newline
+		]
+	][""]
 	reply: rejoin [
+		status
 		"Content-Type: " form content-type newline
 		newline
 		data
