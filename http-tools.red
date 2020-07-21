@@ -236,8 +236,9 @@ set-type: func [type [word!]][
 		html	"text/html"
 		json	"application/json"
 		csv		"text/csv"
-		xml		"text/xml"
-
+		xml		"text/xml" ; application/xml ?
+		jpeg	"image/jpeg"
+		png		"image/png"
 	] type
 ]
 
@@ -260,6 +261,10 @@ match-content-type: [
 
 match-data: [
 	set data string! (detect-type)
+|	set data file! (
+		data: read/binary data
+		unless content-type [content-type: "application/octet-stream"]
+	)
 ]
 
 reply-block: func [value [block!] /local type][
