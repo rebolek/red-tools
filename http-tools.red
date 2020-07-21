@@ -219,7 +219,7 @@ status: none
 status-msg: none
 
 detect-type: func [][
-	content-type: switch/default first value [
+	content-type: switch/default first data [
 		#"<"		[	"text/html"]
 		#"{" #"["	[	"application/json"]		; } (fool VIM parser)
 					][	"text/plain"]
