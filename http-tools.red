@@ -880,7 +880,7 @@ get-unix-timestamp: function [
 to-iso-date: func [
 	"Convert date to ISO 8601 format"
 	value [date!]
-	/local sign
+	/local sign char
 ][
 	sign: charset "+-"
 	value: form value
@@ -888,7 +888,7 @@ to-iso-date: func [
 		thru #"-" thru #"-" 4 skip ; skip date part
 		change #"/" #"T"
 		8 skip ; skip time part
-		change [end | sign] #"Z"
+		opt change end #"Z"
 	]
 	value
 
