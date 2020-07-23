@@ -877,6 +877,23 @@ get-unix-timestamp: function [
 	to integer! date
 ]
 
+to-iso-date: func [
+	"Convert date to ISO 8601 format"
+	value [date!]
+	/local sign
+][
+	sign: charset "+-"
+	value: form value
+	parse value [
+		thru #"-" thru #"-" 4 skip ; skip date part
+		change #"/" #"T"
+		8 skip ; skip time part
+		change [end | sign] #"Z"
+	]
+	value
+
+]
+
 ; --- percent encoding -------------------------------------------------------
 
 
