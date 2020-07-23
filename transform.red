@@ -9,8 +9,7 @@ values as arguments.
 }
 	To-Do: [
 		error-handling:
-			"nothing matched"
-			"superfluous keys"
+			"nothing matched when NONE option is not present"
 	]
 ]
 
@@ -50,6 +49,9 @@ transform: func [
 	]
 	sort keys
 
+	all-words: unique parse mapping [collect [some [keep string! | skip]]]
+	remove-each key keys [not find all-words key]
+
 	break?: false
 	rule: [
 		(words: clear [])
@@ -60,13 +62,13 @@ transform: func [
 	parse mapping [
 		some [
 			if (break?) break
-		|	'none set action block! break
+		|	'none set action block! (if empty? keys [break?: true])
 		|	rule
 		]
 	]
-	parse action [
+	parse action: copy action [
 		some [
-			change set value string! (select request value)
+			change set value string! (select probe request probe value)
 		|	skip
 		]
 	]
