@@ -202,8 +202,8 @@ process-input: func [
 	]
 	all [
 		not only
-		string? result
-		result: make map! split result charset "=&"
+		string? result ; TODO: Do the conversion for other types also? (images, ...)
+		result: mime-decoder result select http-headers "CONTENT_TYPE"
 	]
 	result
 ]
