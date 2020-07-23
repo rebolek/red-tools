@@ -10,6 +10,26 @@ values as arguments.
 	To-Do: [
 		error-handling:
 			"nothing matched when NONE option is not present"
+			"check for required fields"
+			[required "user" "pass" ["required fields missing"]]
+			{block is executed and returned, it can be just a string for an 
+			error message, or some function}
+			"this boils down to two options of handling required fields:"
+			#1	[
+					"user" "pass" [login "user" "pass"]
+				]
+				{on fail it returns something like "nothing matched" or NONE}
+
+			#2	[
+					required "user" "pass"	["required fields missing"]
+					"user" "pass"			[login "user" "pass"]
+				]
+
+			"There is also third option, provide optional error message:"
+			#3	[
+					"user" "pass" [login "user" "pass"]["required fields missing"]
+				]
+			}
 	]
 ]
 
