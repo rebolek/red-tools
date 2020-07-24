@@ -77,6 +77,7 @@ transform: func [
 		|	rule
 		]
 	]
+	unless break? [action: none]
 	foreach key keys [replace/all action key request/:key]
 	action
 ]
