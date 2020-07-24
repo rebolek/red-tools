@@ -29,29 +29,25 @@ values as arguments.
 			#3	[
 					"user" "pass" [login "user" "pass"]["required fields missing"]
 				]
-			}
 	]
 ]
 
-#example [
 
 mapping: [
-	none							[list]
-	"state"							[list/only "state"]
-	"location"						[list/codes "location"]
-	"state" "location"				[list/only/codes "state" "location"]
-	"scraper"						[list/with "scraper"]
-	"scraper" "state"				[list/only/with "state" "scraper"]
-	"scraper" "location"			[list/codes/with "location" "scraper"]
-	"scraper" "state" "location"	[list/only/codes/with "state" "location" "scraper"]
+	#none					[list]
+	state					[list/only state]
+	location				[list/codes location]
+	state location			[list/only/codes state location]
+	scraper					[list/with scraper]
+	scraper state			[list/only/with state scraper]
+	scraper location		[list/codes/with location scraper]
+	scraper state location	[list/only/codes/with state location scraper]
 ]
 
 request: #(state: "CA" location: "Los Angeles")
 
-transform mapping request
-
+#call [transform mapping request]
 #result [list/only/codes "CA" "Los" "Angleles"]
-]
 
 transform: func [
 	"Map JSON request to a function call"
@@ -60,22 +56,17 @@ transform: func [
 	/local key keys value break? rule word words action
 ][
 	unless map? request [request: load-json request]
-	keys: clear []
-	request: make map! collect [
-		foreach [key value] request [
-			append keys keep form key
-			keep value
-		]
-	]
-	sort keys
+	keys: sort keys-of request
 
-	all-words: unique parse mapping [collect [some [keep string! | skip]]]
+	all-words: unique parse mapping [
+		collect [some [#none | keep word! | skip]]
+	]
 	remove-each key keys [not find all-words key]
 
 	break?: false
 	rule: [
 		(words: clear [])
-		some [set word string! (append words word)]
+		some [set word word! (append words word)]
 		set action block!
 		(if equal? sort words keys [break?: true])
 	]
@@ -86,11 +77,6 @@ transform: func [
 		|	rule
 		]
 	]
-	parse action: copy action [
-		some [
-			change set value string! (select probe request probe value)
-		|	skip
-		]
-	]
+	foreach key keys [replace/all action key request/:key]
 	action
 ]
