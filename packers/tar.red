@@ -64,7 +64,7 @@ get-type: func [
 	"Describe TAR file format"
 	type [string!]  
 ][
-	switch/default [
+	switch/default type [
 		"1" ['hard]
 		"2" ['symbolic]
 		"3" ['character]
@@ -75,7 +75,7 @@ get-type: func [
 		"g" ['global-ext-header]
 		"x" ['ext-header]
 		; TODO: "A" - "Z"
-	]
+	][none]
 ]
 
 print-file-info: does [
