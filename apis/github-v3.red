@@ -9,6 +9,9 @@ during 2020, so you should use Github personal token instead. See: https://help.
 how to get one and set it to GITHUB/TOKEN. If token is present, API will
 automatically use it.
 	}
+	Fix-Me: [
+		"LIST-COMMITS is missing (is it GET-COMMITS?)"
+	]
 ]
 
 #include %../http-tools.red
