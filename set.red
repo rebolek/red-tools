@@ -28,7 +28,8 @@ sorted-set!: object [
 				if mark: find data new/1 [remove/part mark 2]
 			]
 			if find [inserted appended] action [
-				sort/skip/compare data 2 2
+				sort/skip/compare data 2 1 ; sort lexicographically first
+				sort/skip/compare data 2 2 ; then sort by score
 			]
 		]
 	]
