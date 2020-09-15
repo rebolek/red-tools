@@ -18,18 +18,40 @@ set!: object [
 
 sorted-set!: object [
 	data: []
+	steps: 0
+	internal?: no
 
 	on-deep-change*: func [
 		owner word target action new index part
 		/local mark
 	][
 		if word = 'data [
-			if find [poke insert append] action [
-				if mark: find data new/1 [remove/part mark 2]
-			]
-			if find [inserted appended] action [
-				sort/skip/compare data 2 1 ; sort lexicographically first
-				sort/skip/compare data 2 2 ; then sort by score
+			switch action [
+				poke insert append [
+					if any [
+						not block? new
+						odd? length? new
+					][
+						do make error! "Invalid data"
+					]
+					if mark: find data new/1 [
+						owner/internal?: true
+						remove mark
+					]
+				]
+				inserted appended [
+					sort/skip/compare data 2 1 ; sort lexicographically first
+					sort/skip/compare data 2 2 ; then sort by score
+				]
+				remove [
+					if zero? steps [owner/steps: part * 2]
+				]
+				removed [
+					unless zero? owner/steps [
+						remove data
+						owner/steps: owner/steps - 1
+					]
+				]
 			]
 		]
 	]
