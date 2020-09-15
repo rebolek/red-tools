@@ -3,7 +3,10 @@ Red [
 	File: %http-tools.red
 	Author: "Boleslav Březovský"
 	Description: "Collection of tools to make using HTTP easier"
-	Date: "10-4-2017"
+	Date: 30-6-2020
+	Resources: [
+		base64url: RFC4648 https://tools.ietf.org/html/rfc4648
+	]
 	Problems: [{
 	Rebol system/options/cgi problems:
 
@@ -26,9 +29,8 @@ Red [
 `parse-headers` should return raw map or everything converted,
 `other-headers is stupid concept.
 }
-{
-SEND-REQUEST should add at least `Accept-Charset` automatically.
-}
+{SEND-REQUEST should add at least `Accept-Charset` automatically.}
+{Multipart should check if boundary is not part of data}
 	]
 ]
 
@@ -58,7 +60,36 @@ cut-tail: function [
 	head remove/part skip tail series negate length length
 ]
 
+enbase64url: func [
+	"Encode a string into URL variant of BASE-64 encoding"
+	value [string! binary!]
+][
+	value: enbase/base value 64
+	if mark: find value #"=" [value: head clear mark]
+	replace/all value #"/" #"_"
+	replace/all value #"+" #"-"
+	value
+]
+
+debase64url: func [
+	"Decode a string from URL variant of BASE-64 encoding"
+	value [string!]
+	/json "Apply LOAD-JSON to result"
+	/local padding
+][
+	; TODO: Add = when missing
+	unless zero? padding: 4 - (length? value) // 4 [
+		append/dup value #"=" padding
+	]
+	value: to string! debase value
+	if json [value: load-json value]
+	value
+]
+
 ; --- server side tools ------------------------------------------------------
+
+get?:
+post?: none
 
 headers!: context [
 	server-software: none
@@ -137,28 +168,171 @@ simple-parse-headers: func [
 	headers
 ]
 
-get-headers: func [/local o os cmd][
-    os: os-info
-    cmd: either find/match os/name "windows" ["set"] ["printenv"]
-    call/wait/output cmd o: ""
-    http-headers: parse-headers o
+get-headers: func [
+	"Parse HTTP headers and store them in HTTP-HEADERS map!"
+	/local o os cmd
+][
+	os: os-info
+	cmd: either find/match os/name "windows" ["set"] ["printenv"]
+	call/wait/output cmd o: ""
+	http-headers: simple-parse-headers o
+	switch select http-headers "REQUEST_METHOD" [
+		"GET" [get?: true]
+		"POST" [post?: true]
+	]
 ]
+
+process-input: func [
+	"Return input data regardless of method"
+	/only	"Do not convert the result"
+	/local size result
+][
+	unless value? 'http-headers [get-headers]
+	size: 2'097'152 ; NOTE: 2MiB preallocated for POST requests. Change if you need more
+	switch select http-headers "REQUEST_METHOD" [
+		"GET" [
+			result: select http-headers "QUERY_STRING"
+		]
+		"POST" [
+			read-stdin result: make binary! size size
+			unless only [
+				try [result: to string! result]
+			]
+		]
+	]
+	all [
+		not only
+		string? result ; TODO: Do the conversion for other types also? (images, ...)
+		result: mime-decoder result select http-headers "CONTENT_TYPE"
+	]
+	result
+]
+
+context [
+
+http-version: "HTTP/1.1" ; NOTE: change this based on your server configuration
+
+data: none
+content-type: none
+reply: none
+status: none
+status-msg: none
+
+detect-type: func [][
+	content-type: switch/default first data [
+		#"<"		[	"text/html"]
+		#"{" #"["	[	"application/json"]		; } (fool VIM parser)
+					][	"text/plain"]
+]
+
+reply-string: func [value [string!]][
+	data: value
+	detect-type
+]
+
+set-type: func [type [word!]][
+	content-type: select [
+		text	"text/plain"
+		html	"text/html"
+		json	"application/json"
+		csv		"text/csv"
+		xml		"text/xml" ; application/xml ?
+		jpeg	"image/jpeg"
+		png		"image/png"
+	] type
+]
+
+match-status: [
+	opt [
+		set status integer!
+		opt [ ; make sure that we are not catching content, but status message
+			ahead [string! not end]
+			set status-msg string!
+		]
+	]
+]
+
+match-content-type: [
+	opt [
+		set type word! (set-type type)
+	|	set content-type path!
+	]
+]
+
+match-data: [
+	set data string! (detect-type)
+|	set data file! (
+		data: read/binary data
+		unless content-type [content-type: "application/octet-stream"]
+	)
+]
+
+reply-block: func [value [block!] /local type][
+	parse value [
+		match-status
+		match-content-type
+		match-data
+	]
+]
+
+reply-json: func [value [map! object!]][
+	content-type: "application/json"
+	data: to-json value
+]
+
+frm: func ["Form that returns space isntead of NONE" value][
+	either value [value][""]
+]
+
+set 'make-response func [
+	"Make HTTP response from data or dialect"
+	value	[block! string! map! object!] "Response string or dialect"
+][
+	status: status-msg: none
+	content-type: none
+	switch type?/word value [
+		string!			[reply-string value]
+		block!			[reply-block value]
+		map! object!	[reply-json value]
+	]
+	status: either status [
+		rejoin [
+			http-version space status
+			either status-msg [rejoin [space status-msg]][""] newline
+		]
+	][""]
+	reply: rejoin [
+		status
+		"Content-Type: " form content-type newline
+		newline
+		data
+	]
+]
+
+set 'send-response func [
+	"Send HTTP response  from data or dialect"
+	value	[block! string! map! object!] "Response string or dialect"
+][
+	print make-response value
+	quit
+]
+
+; -- end of "reply" context
+
+]
+
 
 ; get-headers
 
 ; --- client side tools ------------------------------------------------------
-
-; TODO: move to separate context
-
-; NOTE: because of parse limitations, run this thru a foreach loop,
-;		set the words (they should of course be marked as local beforehand
-;		to their values
 
 context [
 
 	value: none
 	result: none
 	content-type: none
+	multipart: none
+	boundary: none
 
 	url-rule: [
 		set value [set-word! | word! | string!] (
@@ -171,17 +345,132 @@ context [
 		)
 	]
 
-	; TODO: temporarily exposed for testing, make internal later
+	stringize: func [
+		"Passes STRING! and rejoins BLOCK!"
+		value [any-string! binary! block!]
+	][
+		if block? value [value: rejoin value]
+		value
+	]
+
+	when: func [
+		"Return value when COND is TRUE, otherwise return empty string"
+		cond [logic!]
+		value [any-type!]
+	][
+		either cond [stringize value][""]
+	]
+	keep: func [value][append multipart stringize value]
+	keep-boundary: func [
+		/end "Final boundary"
+	][
+		keep ["--" boundary when end "--" crlf]
+	]
+	keep-value: func [
+		name
+		value
+		/type typename
+		/local disps key val
+	][
+		if set-word? name [name: compose [name: (name)]]
+		collect/into [
+			foreach [key val] name [
+				keep rejoin ["; " key {="} val #"^""]
+			]
+		] disps: copy ""
+		keep [
+			"Content-Disposition: "
+;			either type ["attachement"]["form-data"]
+			"form-data"
+			disps crlf
+			when type ["Content-Type: " typename crlf]
+			crlf
+		]
+		keep value ; NOTE: must be separate, otherwise REJOIN will FORM it, this way we can pass binary!
+		keep crlf
+	]
+
+	make-multipart: func [
+		parts [block!]	"Multipart dialect"
+		; if content is `file!`, content-type is switched to multipart/mixed
+		/local bin? name value type mode filename part-key-value part-file
+	][
+		name: value: type: mode: filename: none
+		multipart: copy #{}
+		bin?: false
+		boundary: make-nonce
+		content-type: none
+
+		part-key-value: [
+			(type: none)
+			set name set-word!
+			set value [any-string! | number! | map!]
+			opt set type path! (
+				if map? value [
+					value: to-json value
+					type: 'application/json
+				]
+				keep-boundary
+				either type [
+					keep-value/type name value type
+				][
+					keep-value name value
+				]
+			)
+		]
+		part-file: [
+			(mode: none)
+			set name set-word!
+			set filename file!
+			opt set mode ['text | 'bin | 'binary] (
+				keep-boundary
+				switch/default mode [
+					text [
+						type: "text/plain"
+						value: read filename
+					]
+					bin binary [
+						bin?: true
+						type: "application/octet-stream"
+						value: read/binary filename
+					]
+				][
+					value: read/binary filename
+					type: either error? try [value: to string! value][
+						bin?: true
+						"application/octet-stream"
+					][
+						"text/plain"
+					]
+				]
+				keep-value/type compose [name: (name) filename: (filename)] value type
+			)
+		]
+
+		parse parts [
+			some [
+				part-file
+			|	part-key-value
+			]
+		]
+		content-type: rejoin ["multipart/form-data; boundary=" boundary]
+		keep-boundary/end
+		either bin? [multipart][to string! multipart] ; TODO: Is the conversion required? Probably not
+	]
+
+	#TODO {temporarily exposed for testing, make internal later}
+	#TODO {is #multi really required?}
 	set 'parse-data func [
 		data	[block!]
 	][
 		content-type: "application/x-www-form-urlencoded"
 		parse data [
-			'JSON	copy value to end (
-;				content-type: "application/json"
+			#JSON	copy value to end (
+				content-type: "application/json"
 				result: to-json value
 			)
-		|	'Red	copy value to end (result: mold value)
+		|	#multi	copy value to end (result: make-multipart value)
+		|	#Red	copy value to end (result: mold value) ; FIXME: needs proper content-type etc
 		|	(result: copy {}) any url-rule (take/last result)
 		]
 		result
@@ -204,7 +493,8 @@ context [
 					set value set-word! (append args rejoin [form value #"="])
 					set value [any-word! | any-string! | number!] (
 						if word? value [value: get :value]
-						append args rejoin [to-pct-encoded form value #"&"]
+					;	append args rejoin [to-pct-encoded form value #"&"]
+						append args rejoin [form value #"&"]
 					)
 				]
 			]
@@ -299,12 +589,15 @@ context [
 		/raw 		"Return raw data and do not try to decode them"
 		/verbose    "Print request informations"
 		/debug		"Set debug words (see source for details)"
+		/extern		content-type
 	][
+		if all [find [POST PUT] method not data][
+			do make error! rejoin [method " method needs data. Use /data refinement."]
+		]
 		mold?: mold
 		mold: :system/words/mold
 		if verbose [
 			print ["SEND-REQUEST to" link ", method:" method]
-			print ["Header:" mold args]
 		]
 		header: copy #() ; NOTE: CLEAR causes crash later!!! 
 		if args [extend header args]
@@ -312,8 +605,11 @@ context [
 			if verbose [print [auth-type mold auth-data]]
 			switch auth-type [
 				Basic [
-					extend header compose [
-						Authorization: (rejoin [auth-type space enbase rejoin [first auth-data #":" second auth-data]])
+;					extend header compose [
+;						Authorization: (rejoin [auth-type space enbase rejoin [first auth-data #":" second auth-data]])
+;					]
+					put header 'Authorization rejoin [
+						auth-type space enbase rejoin [first auth-data #":" second auth-data]
 					]
 				]
 				OAuth [
@@ -321,9 +617,10 @@ context [
 				]
 				Bearer [
 					; token passing for OAuth 2
-					extend header compose [
-						Authorization: (rejoin [auth-type space auth-data])
-					]
+;					extend header compose [
+;						Authorization: (rejoin [auth-type space auth-data])
+;					]
+					put header 'Authorization rejoin [auth-type space auth-data]
 				]
 				Digest [
 					<TODO>
@@ -334,6 +631,7 @@ context [
 		case [
 			mold? [content: system/words/mold/all content]
 			all [method = 'GET not content][
+				content-type: none
 				content: clear ""
 			]
 			all [method = 'GET content][
@@ -342,17 +640,18 @@ context [
 				content: clear ""
 			]
 			block? content [
-				header/content-type: "application/x-www-form-urlencoded"
+				content-type: "application/x-www-form-urlencoded"
 				content: parse-data content
 			]
 			any [map? content object? content][
 				; if you're passing map/object, it's safe to assume it should be send as JSON
-				header/content-type: "application/json"
+				content-type: "application/json"
 				content: to-json content
 			]
 			; TODO: string! Or is there anything needed for it?
 		]
 		; Make sure all values are strings
+		if content-type [put header 'Content-Type content-type]
 		body: body-of header
 		forall body [body: next body body/1: form body/1]
 		data: reduce [method body]
@@ -360,6 +659,7 @@ context [
 		if verbose [
 			print [
 				"Link:" link newline
+				"Header:" header newline
 				"Data:" mold data newline
 			]
 		]
@@ -377,13 +677,16 @@ context [
 ; -- FIXME: Workaround for https://github.com/red/red/issues/4236
 		headers: reply/2
 		foreach [key value] headers [
-			if block? value [
-				unless key = "Set-Cookie" [
-					headers/:key: unique value
-					if 1 = length? headers/:key [
-						headers/:key: first headers/:key
-					]
-					if key = "Content-Type" [headers/:key: last headers/:key]
+			if all [
+				block? value
+				not equal? key "Set-Cookie"
+			][
+				headers/:key: unique value
+				if 1 = length? headers/:key [
+					headers/:key: first headers/:key
+				]
+				if find [Content-Type Content-Length] key [
+					headers/:key: last headers/:key
 				]
 			]
 		]
@@ -572,6 +875,23 @@ get-unix-timestamp: function [
 		copy date to <small>
 	]
 	to integer! date
+]
+
+to-iso-date: func [
+	"Convert date to ISO 8601 format"
+	value [date!]
+	/local sign char
+][
+	sign: charset "+-"
+	value: form value
+	parse value [
+		thru #"-" thru #"-" 4 skip ; skip date part
+		change #"/" #"T"
+		8 skip ; skip time part
+		opt change end #"Z"
+	]
+	value
+
 ]
 
 ; --- percent encoding -------------------------------------------------------
