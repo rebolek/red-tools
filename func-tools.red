@@ -244,3 +244,44 @@ dfunc: func [
     ]
     func spec body
 ]
+
+fce: func [
+	"The ultimate function constructor" ; right now supports /local only
+	spec [block!]
+	body [block!]
+	/local local-mark locals locs expose? body-rule word length
+][
+	; get local words defined in function specs
+	parse spec [
+		any [
+			ahead /local local-mark: skip
+			copy locals to [refinement! | issue! | end]
+		|	remove #expose (expose?: true)
+		|	skip
+		]
+	]
+	unless locals [locals: copy []]
+	locs: clear []
+	; get local words defined in function body using local
+	parse body body-rule: [
+		some [
+			ahead [/local [set-word! | word!]]
+			remove skip set word skip (append locs to word! word)
+		|	ahead [block! | paren!] into body-rule
+		|	skip
+		]
+	]
+	length: length? locals
+	either expose? [
+		remove/part local-mark 1 + length
+	][
+		append locals locs
+		locals: unique locals
+		either local-mark [
+			change/part next local-mark locals length
+		][
+			append spec head insert locals /local
+		]
+	]
+	func spec body
+]
