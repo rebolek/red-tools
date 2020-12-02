@@ -25,9 +25,10 @@ sorted-set!: object [
 		owner word target action new index part
 		/local mark
 	][
+		probe action
 		if word = 'data [
 			switch action [
-				poke insert append [
+				insert append [
 					if any [
 						not block? new
 						odd? length? new
@@ -52,6 +53,10 @@ sorted-set!: object [
 						owner/steps: owner/steps - 1
 					]
 				]
+				poke [
+			;		do make error! "Action not supported"
+					print [#poke index new]
+				]
 			]
 		]
 	]
@@ -67,3 +72,11 @@ make-sorted-set: func [/local value][
 	value/data
 ]
 
+
+test: [
+	s: make-sorted-set
+	append s [a 5]
+	append s [b 3]
+	append s [c 1]
+	append s [d 4]
+]
