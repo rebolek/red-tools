@@ -267,6 +267,8 @@ fce: func [
 		some [
 			ahead [/local [set-word! | word!]]
 			remove skip set word skip (append locs to word! word)
+		|	['foreach | 'remove-each] set word [word! | block!] (append locs word)
+		|	'repeat set word word! (append locs word)
 		|	ahead [block! | paren!] into body-rule
 		|	skip
 		]
