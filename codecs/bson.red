@@ -19,7 +19,8 @@ bson: context [
 
 	emit: quote (put target name value)
 	; TODO: Is this a proper way to decode date?
-	load-date: func [][value: to date! to integer! copy/part value 4]
+	load-date: func [] [value: to date! to integer! copy/part value 4]
+	load-array: func [] [value: values-of value]
 
 	byte:	[copy value skip]
 	i32:	[copy value 4 skip (value: to integer! reverse value)]
@@ -72,15 +73,15 @@ bson: context [
 		(name: take name-stack)
 		(value: target)
 		(target: take stack)
-		emit
+	;	emit
 	]
 
 	element: [
-		#"^(01)" e_name double emit		; 64bit float
-	|	#"^(02)" e_name string emit		; UTF-8 string
-	|	#"^(03)" sub-doc				; embedded doc
-	|	#"^(04)" sub-doc				; array
-	|	#"^(05)" e_name binary emit		; binary data
+		#"^(01)" e_name double emit						; 64bit float
+	|	#"^(02)" e_name string emit						; UTF-8 string
+	|	#"^(03)" sub-doc emit							; embedded doc
+	|	#"^(04)" sub-doc (load-array) emit				; array
+	|	#"^(05)" e_name binary emit						; binary data
 	; #"^(06)" - deprecated
 	|	#"^(07)" e_name copy value 12 skip emit			; object-id
 	|	#"^(08)" e_name #"^(00)" (value: false) emit	; logic TRUE
@@ -92,15 +93,15 @@ bson: context [
 		c_string (options: value)
 		; TODO: emit
 	; #"^(0C)" - deprecated
-	|	#"^(0D)" e_name string emit		; JS code
+	|	#"^(0D)" e_name string emit						; JS code
 	; #"^(0E)" - deprecated
 	; #"^(0F)" - deprecated
-	|	#"^(10)" e_name i32 emit		; 32bit integer
-	|	#"^(11)" e_name u64 emit		; timestamp
-	|	#"^(12)" e_name i64 emit		; 64bit integer
-	|	#"^(13)" e_name decimal128 emit	; 128bit decimal FP
-	|	#"^(FF)" e_name					; min key - TODO: emit
-	|	#"^(7F)" e_name					; max key - TODO: emit
+	|	#"^(10)" e_name i32 emit						; 32bit integer
+	|	#"^(11)" e_name u64 emit						; timestamp
+	|	#"^(12)" e_name i64 emit						; 64bit integer
+	|	#"^(13)" e_name decimal128 emit					; 128bit decimal FP
+	|	#"^(FF)" e_name									; min key - TODO: emit
+	|	#"^(7F)" e_name									; max key - TODO: emit
 
 	]
 
