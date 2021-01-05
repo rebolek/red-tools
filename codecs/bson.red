@@ -60,7 +60,7 @@ bson: context [
 	document: [
 		i32 (doc-length: value)
 		(print ["DOC LEN:" doc-length])
-		some [t: (probe t) element]
+		any [t: (probe t) element]
 		null
 	]
 
