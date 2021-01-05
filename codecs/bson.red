@@ -12,8 +12,9 @@ bson: context [
 	output: copy #()
 	target: output
 	stack: copy []
+	name-stack: copy []
 
-	name: none
+	name: value: none
 	length: doc-length: 0
 
 	emit: quote (put target name value)
@@ -52,7 +53,8 @@ bson: context [
 	]
 
 	; FIXME: This naive set-word conversion may fail on more complicated keys
-	e_name: [c_string (name: probe to set-word! to string! value)]
+;	e_name: [c_string (name: probe to set-word! to string! value)]
+	e_name: [c_string (name: probe to string! value)]
 
 	document: [
 		i32 (doc-length: value)
@@ -61,11 +63,23 @@ bson: context [
 		null
 	]
 
+	sub-doc: [
+		(insert stack target)
+		(target: copy #())
+		e_name
+		(insert name-stack name)
+		document
+		(name: take name-stack)
+		(value: target)
+		(target: take stack)
+		emit
+	]
+
 	element: [
 		#"^(01)" e_name double emit		; 64bit float
 	|	#"^(02)" e_name string emit		; UTF-8 string
-	|	#"^(03)" e_name document emit	; embedded doc
-	|	#"^(04)" e_name p: document emit	; array
+	|	#"^(03)" sub-doc				; embedded doc
+	|	#"^(04)" sub-doc				; array
 	|	#"^(05)" e_name binary emit		; binary data
 	; #"^(06)" - deprecated
 	|	#"^(07)" e_name copy value 12 skip emit			; object-id
