@@ -43,6 +43,7 @@ xxd: func [value /local index line out text] [
 		index: index + 16
 		empty? value
 	]
+	exit
 ]
 
 
@@ -51,6 +52,7 @@ path: %../libbson/tests/binary/
 
 bson: context [
 
+	doc:
 	output:
 	target: none
 	stack: copy []
@@ -98,7 +100,7 @@ bson: context [
 
 	; FIXME: This naive set-word conversion may fail on more complicated keys
 ;	e_name: [c_string (name: probe to set-word! to string! value)]
-	e_name: [c_string (name: probe to string! value)]
+	e_name: [c_string (name: to string! value)]
 
 	document: [
 		i32 (doc-length: value)
@@ -158,13 +160,12 @@ bson: context [
 	set 'load-bson func [data [binary! file!]] [
 		if file? data [data: read/binary data]
 		init-loader
-		probe parse data document
+		parse data document
 		output
 	]
 
 	init-emitter: does [
 		output: copy #{}
-		emit: :emit-bson
 	]
 
 	emit-bson: func [value] [
@@ -180,7 +181,8 @@ bson: context [
 		append output reverse to binary! value
 	]
 
-	set 'to-bson func [data [map! object!]] [
+	emit-doc: func [data [map! object!]] [
+		insert stack output
 		init-emitter
 		foreach key keys-of data [
 			value: data/:key
@@ -195,16 +197,31 @@ bson: context [
 					emit-string form key
 					emit-number value
 				]
-				string! [
+				string! file! url! tag! email! ref! [
 					emit #{02}
 					emit-string form key
 					emit-string value
+				]
+				map! object! [
+					emit #{03}
+					emit-string form key
+					emit-doc value
 				]
 			]
 		]
 		append output null
 		insert output reverse to binary! 4 + length? output
+		print ["EMIT:" as-bin output]
+		output: append take stack output
 		output
 	]
 
+	set 'to-bson func [data [map! object!]] [
+		emit: :emit-bson
+		doc: copy #{}
+		stack: copy []
+		output: doc
+		emit-doc data
+		output
+	]
 ]
