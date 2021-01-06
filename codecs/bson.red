@@ -13,8 +13,13 @@ Red[
 ]
 
 as-bin: func [value] [lowercase enbase/base value 16]
-char: func [value] [either value > 31 [to char! value] [#"."]]
-
+char: func [value] [
+	case [
+		not value						[""]
+		all [value > 31 value < 128]	[to char! value]
+		'else							[#"."]
+	]
+]
 
 xxd: func [value /local index line out text] [
 	value: copy value
@@ -33,7 +38,6 @@ xxd: func [value /local index line out text] [
 			append out space
 			empty? line
 		]
-		print length? out
 		append/dup out space 51 - length? out
 		print [out text]
 		index: index + 16
@@ -172,7 +176,7 @@ bson: context [
 		append output null
 	]
 
-	emit-int: func [value] [
+	emit-number: func [value] [
 		append output reverse to binary! value
 	]
 
@@ -181,10 +185,20 @@ bson: context [
 		foreach key keys-of data [
 			value: data/:key
 			switch type?/word value [
+				float! [
+					emit #{01}
+					emit-string form key
+					emit-number value
+				]
 				integer! [
 					emit #{10}
 					emit-string form key
-					emit-int value
+					emit-number value
+				]
+				string! [
+					emit #{02}
+					emit-string form key
+					emit-string value
 				]
 			]
 		]
