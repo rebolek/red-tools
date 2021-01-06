@@ -2,25 +2,64 @@ Red[
 	Notes: [
 		"INT64, UINT64 and DEC128 are kept as binary!"
 	]
+	Todo: [
+		"Test #10 - regex"
+		"Test #24 - binary data"
+		"Test #25 (and some others) - 06 - deprecated"
+		"Test #40 (and some others) - error"
+		"Test #52 - empty (shouldn't be)"
+		"Test #55 - Invalid UTF8"
+	]
 ]
+
+as-bin: func [value] [lowercase enbase/base value 16]
+char: func [value] [either value > 31 [to char! value] [#"."]]
+
+
+xxd: func [value /local index line out text] [
+	value: copy value
+	index: 0
+	until [
+		line: take/part value 16
+		out: rejoin [
+			as-bin to binary! index
+			": "
+		]
+		text: clear ""
+		until [
+			append text char line/1
+			append text char line/2
+			append out as-bin take/part line 2
+			append out space
+			empty? line
+		]
+		print length? out
+		append/dup out space 51 - length? out
+		print [out text]
+		index: index + 16
+		empty? value
+	]
+]
+
 
 
 path: %../libbson/tests/binary/
 
 bson: context [
 
-	output: copy #()
-	target: output
+	output:
+	target: none
 	stack: copy []
 	name-stack: copy []
 
 	name: value: none
 	length: doc-length: 0
 
-	emit: quote (put target name value)
+	emit: none
+	emit-red: quote (put target name value)
 	; TODO: Is this a proper way to decode date?
-	load-date: func [] [value: to date! to integer! copy/part value 4]
-	load-array: func [] [value: values-of value]
+	load-date: quote (value: to date! to integer! copy/part value 4)
+	load-array: quote (value: values-of value)
 
 	byte:	[copy value skip]
 	i32:	[copy value 4 skip (value: to integer! reverse value)]
@@ -80,13 +119,13 @@ bson: context [
 		#"^(01)" e_name double emit						; 64bit float
 	|	#"^(02)" e_name string emit						; UTF-8 string
 	|	#"^(03)" sub-doc emit							; embedded doc
-	|	#"^(04)" sub-doc (load-array) emit				; array
+	|	#"^(04)" sub-doc load-array emit				; array
 	|	#"^(05)" e_name binary emit						; binary data
 	; #"^(06)" - deprecated
 	|	#"^(07)" e_name copy value 12 skip emit			; object-id
 	|	#"^(08)" e_name #"^(00)" (value: false) emit	; logic TRUE
 	|	#"^(08)" e_name #"^(01)" (value: true) emit		; logic FALSE
-	|	#"^(09)" e_name i64 (load-date) emit			; UTC datetime
+	|	#"^(09)" e_name i64 load-date emit				; UTC datetime
 	|	#"^(0A)" e_name (value: none) emit				; null value
 	|	#"^(0B)" e_name
 		c_string (pattern: value)
@@ -105,16 +144,52 @@ bson: context [
 
 	]
 
-	init: does [
+	init-loader: does [
 		output: copy #()
 		target: output
 		stack: copy []
+		emit: :emit-red
 	]
 
 	set 'load-bson func [data [binary! file!]] [
 		if file? data [data: read/binary data]
-		init
+		init-loader
 		probe parse data document
+		output
+	]
+
+	init-emitter: does [
+		output: copy #{}
+		emit: :emit-bson
+	]
+
+	emit-bson: func [value] [
+		append output value
+	]
+
+	emit-string: func [value] [
+		append output value
+		append output null
+	]
+
+	emit-int: func [value] [
+		append output reverse to binary! value
+	]
+
+	set 'to-bson func [data [map! object!]] [
+		init-emitter
+		foreach key keys-of data [
+			value: data/:key
+			switch type?/word value [
+				integer! [
+					emit #{10}
+					emit-string form key
+					emit-int value
+				]
+			]
+		]
+		append output null
+		insert output reverse to binary! 4 + length? output
 		output
 	]
 
