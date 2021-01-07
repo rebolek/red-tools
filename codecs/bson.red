@@ -58,7 +58,7 @@ bson: context [
 	stack: copy []
 	name-stack: copy []
 
-	name: value: none
+	name: key: value: none
 	length: doc-length: 0
 
 	emit: none
@@ -160,7 +160,7 @@ bson: context [
 	set 'load-bson func [data [binary! file!]] [
 		if file? data [data: read/binary data]
 		init-loader
-		parse data document
+		parse copy data document
 		output
 	]
 
@@ -181,6 +181,18 @@ bson: context [
 		append output reverse to binary! value
 	]
 
+	emit-key: does [emit-string form key]
+
+	make-array: func [data /local array index value] [
+		array: copy #()
+		index: 0
+		foreach value data [
+			put array index value
+			index: index + 1
+		]
+		array
+	]
+
 	emit-doc: func [data [map! object!]] [
 		insert stack output
 		init-emitter
@@ -192,20 +204,29 @@ bson: context [
 					emit-string form key
 					emit-number value
 				]
-				integer! [
-					emit #{10}
-					emit-string form key
-					emit-number value
-				]
 				string! file! url! tag! email! ref! [
 					emit #{02}
-					emit-string form key
+					emit-key
 					emit-string value
 				]
 				map! object! [
 					emit #{03}
-					emit-string form key
+					emit-key
 					emit-doc value
+				]
+				block! [
+					emit #{04}
+					emit-key
+					; TODO: this is not very efficient as it makes temporary
+					;		MAP! that is thrown away. Adding directly
+					;		would be better but it would need some changes
+					;		in the emitter's architecture.
+					emit-doc make-array value
+				]
+				integer! [
+					emit #{10}
+					emit-key
+					emit-number value
 				]
 			]
 		]
