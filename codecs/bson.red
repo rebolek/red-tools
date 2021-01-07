@@ -160,7 +160,7 @@ bson: context [
 	set 'load-bson func [data [binary! file!]] [
 		if file? data [data: read/binary data]
 		init-loader
-		parse copy data document
+		parse data document
 		output
 	]
 
@@ -222,6 +222,11 @@ bson: context [
 					;		would be better but it would need some changes
 					;		in the emitter's architecture.
 					emit-doc make-array value
+				]
+				binary! [
+					emit #{0500} ; TODO: Be able to select subtype
+					emit-key
+					emit value
 				]
 				integer! [
 					emit #{10}
