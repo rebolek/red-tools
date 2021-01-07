@@ -228,6 +228,11 @@ bson: context [
 					emit-key
 					emit value
 				]
+				logic! [
+					emit #{08}
+					emit-key
+					emit pick #{0100} value
+				]
 				integer! [
 					emit #{10}
 					emit-key
