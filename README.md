@@ -1,6 +1,13 @@
 # red-tools
 Various Red tools, encoders/decoders and APIs
 
+```
+NOTE
+```
+
+If you are looking for a `SEND-REQUEST` function, it moved to [CASTR](https://gitlab.com/rebolek/castr/). The version here is old, unsupported and will be deleted eventually!
+
+
 ## Encoders/decoders
 
 ### CSV
