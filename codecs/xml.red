@@ -4,8 +4,28 @@ Red [
 	Author:         "Boleslav Březovský"
 ]
 
-debug: func [value] [if debug? [print value wait 0.02]]
-debug?: no
+debug: func [
+	value
+	/init
+] [
+	if all [debug? init] [write %debug ""]
+	if debug? [
+		write/append %debug value
+		print value
+		print [
+			"stack:" length? xml/stack
+			"atts-stack:" length? xml/atts-stack
+		]
+		if (length? xml/stack) <> (length? xml/atts-stack) [
+			print "stacks differ"
+			halt
+		]
+		wait 0.02
+;		if "q" = ask "Q to quit:" [halt]
+	]
+]
+debug?: yes
+debug/init
 
 ; ============================================================================
 
@@ -49,8 +69,9 @@ xml: context [
 	]
 	name: [name-start-char any name-char]
 	single-tags: [
-		"area" | "base" | "br" | "col" | "command" | "embed" | "hr" | "img" 
-	|	"input" | "keygen" | "link" | "meta" | "param" | "source" | "track" | "wbr"
+		"area" | "base" | "br" | "col" | "command" | "embed" | "hr" | "img"
+	|	"input" | "keygen" | "link" | "meta" | "param" | "source" | "track"
+	|	"wbr"
 	]
 	open-tag: [
 		ws #"<"
@@ -67,16 +88,25 @@ xml: context [
 	]
 	close-tag: [
 		ws "</"
-		(name=: take/last stack)
-		name=
-		#">"
+		(debug "--close-tag?")
+		(name=: last stack)	; first we test the name
+		name=				; and if it matches, we can remove it
+		(take/last stack)	; this prevents stack corruption
+		#">"				; in case of badly writen HTML (wild close tag)
 		(close=: name=) ; for debug purpose only
 		(name=: none)
 		[if (not reverse?) pop-atts | none]
 	]
+	wild-close-tag: [
+		ws "</" 
+		(name=: last stack)
+		not name=
+		copy name= some name #">"
+	]
 	close-char: #"/"
 	action: none
 	single-tag: [
+		sinpos:
 		(close-char: #"/")
 		ws #"<" opt [#"!" (close-char: "")]
 		(debug "--single-tag?")
@@ -84,7 +114,7 @@ xml: context [
 			single-tags (close-char: [opt #"/"])
 		|	some name
 		]
-		(debug  ["--single-tag" mold name=])
+		(debug ["--single-tag" mold name=])
 		ws atts ws
 		close-char #">"
 		opt ["</" name= #">"]
@@ -151,14 +181,25 @@ xml: context [
 		; TODO: Add some output and better handling
 		"<!DOCTYPE" thru #">"
 	]
+	errors: [
+		wild-close-tag (debug ["|wild|" name=])
+	]
 
 	content: [
-		ahead "</" break
-	|	comment (debug ["cmnt" name=])
-	|	doctype (debug ["dctp"])
-	|	some [open-tag (debug ["open" name=]) collect some content close-tag (debug ["clos" close= "stack:" mold stack])]
-	|	single-tag (debug ["sngl" name=])
-	|	string (debug ["strn" t: copy/part s e length? t])
+		pos:
+		errors (debug ["|errr|" name=]) 	; error has higher priority
+	|	ahead "</" break					; than close tag
+	|	comment (debug ["|cmnt|" name=])
+	|	doctype (debug ["|dctp|"])
+	|	some [
+			open-tag
+			(debug rejoin ["|open| <" name= ">"])
+			collect some content
+			close-tag
+			(debug rejoin ["|clse| <" close= "> stack:" mold stack])
+		]
+	|	single-tag (debug ["|sngl|" name=])
+	|	string (debug ["|strn|" mold t: copy/part s e length? t])
 	]
 
 	atts-stack: []
@@ -211,7 +252,6 @@ xml: context [
 		either data/1 [
 			; tag
 			if reverse? [move next data tail data]
-			probe data
 			either empty? data/2 [
 				; empty tag
 				debug ["single tag" mold data]
@@ -236,6 +276,7 @@ xml: context [
 	encode: function [
 		data
 	] [
+		data: copy data
 		clear output
 		; TODO add proper header: xml/doctype
 		until [
