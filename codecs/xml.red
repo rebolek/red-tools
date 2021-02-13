@@ -97,7 +97,7 @@ xml: context [
 	]
 	close-tag: [
 		(debug "--close-tag?")
-		close-p-tag
+		close-p-tag1
 	|	ws "</"
 		(name=: last stack)	; first we test the name
 		name=				; and if it matches, we can remove it
@@ -114,31 +114,37 @@ xml: context [
 		not name=
 		copy name= some name #">"
 	]
-	close-p-tag: [
+
+	close-p-tag1: [
 ; there are three ways to close <p> tag:
 		if ("p" = last stack)
-		(para?: false)
 		pos:
 		(debug ["|para|" mold stack mold pos])
-		ws "</" [
-	; 1. </p>
-			(name=: last stack)
-			name=
-			(take/last stack)
-			#">"
-	; 2. close parent tag
-		|	(name=: first back back stack)
-			name=
-			(take/last stack)
-			(para?: true)
-			:pos
+		[
+			ws "</" [
+		; 1. </p>
+				(name=: last stack)
+				name=
+				#">"
+		; 2. close parent tag
+			|	(name=: first back back stack)
+				name=
+				:pos	; rewind so CLOSE-TAG for above tag can catch it again
+						; TODO: change to AHEAD, needs rule rewrite
+			]
+		|	if (para?)
 		]
+		(take/last stack)
 		(close=: name=) ; for debug purpose only
 		(name=: none)
 		pop-atts
-		(debug "closed para")
-; 3. open tag from list below
-		; TODO
+		(para?: false)
+		(debug "closed para1")
+	]
+	close-p-tag2: [
+; 3. open tag from END-P-TAG list
+		ahead [#"<" end-p-tag]
+		(para?: true)
 	]
 	end-p-tag: [
 		"address" | "article" | "aside" | "blockquote" | "dir" | "div" | "dl"
@@ -223,6 +229,7 @@ xml: context [
 		pos:
 		errors (debug ["|errr|" name=]) 	; error has higher priority
 	|	ahead "</" break					; than close tag
+	|	if (equal? "p" last stack) close-p-tag2 break
 	|	comment (debug ["|cmnt|" name=])
 	|	doctype (debug ["|dctp|"])
 	|	some [
