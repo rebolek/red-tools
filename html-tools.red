@@ -4,21 +4,7 @@ Red[
 
 ]
 
-do %codecs/xml.red
-do %http-tools.red
-
-foreach-node: func [
-	data
-	code
-] [
-	; FN takes three parameters: [tag content attribute] (or just two? without content)
-	foreach [tag content attributes] data [
-		do bind code 'tag
-		if block? content [
-			foreach-node content code
-		]
-	]
-]
+#include %xml.red
 
 probe-xml: func [
 	data
@@ -28,46 +14,69 @@ probe-xml: func [
 	]
 ]
 
+foreach-node: func [
+	data
+	code
+	/local tag content attributes
+] [
+	z: data
+	; FN takes three parameters: [tag content attribute]
+	foreach [tag content attributes] data [
+		do bind code 'tag
+		if block? content [
+			foreach-node content code
+		]
+	]
+]
+
+
 select-by: func [
 	data
-	value
 	type 		; tag, class, content, attribute name
+	value
 	; TODO: How to support /only ? There some binding problems
+	/local action ret
 ] [
-	action: compose switch/default type [
+	action: probe compose switch/default type [
 		tag     [[equal? tag (to lit-word! value)]]
 		class   [[find select attributes "class" (value)]]
 		content [[all [string? content find content (value)]]]
 	] [[equal? (value) select attributes (type)]]
 	ret: copy []
-	foreach-node data [
-		if do action [
+	foreach-node data compose [
+		if (action) [
 			append ret reduce [tag content attributes]
 		]
 	]
 	ret
 ]
 
-parent: none ; TODO: make a closure
-parent?: func [
-	data
-	value
-] [
-	foreach [tag content attributes] data [
-		if equal? value reduce [tag content attributes] [
-			return parent
+context [
+	parent: none ; TODO: make a closure
+	set 'parent? func [
+		data
+		value
+		/inner
+		/local tag content attributes
+	] [
+		unless inner [parent: none]
+		foreach [tag content attributes] data [
+			if equal? value reduce [tag content attributes] [
+				return parent
+			]
+			if block? content [
+				parent: reduce [tag content attributes]
+				if parent?/inner content value [return parent]
+			]
 		]
-		if block? content [
-			parent: reduce [tag content attributes]
-			if parent? content value [return parent]
-		]
+		none
 	]
-	none
 ]
 
 children?: func [
 	"Return children tag names"
 	data
+	/local tag content attributes
 ] [
 	collect [foreach [tag content attributes] data [keep tag]]
 ]
