@@ -2,30 +2,42 @@ Red [
 	Title:          "XML"
 	Description:    "Encoder and decoder for XML and HTML format"
 	Author:         "Boleslav Březovský"
+	Notes: [
+{
+== UNCLOSED <P> TAG ==
+
+A p element’s end tag may be omitted if the p element is immediately followed
+by an address, article, aside, blockquote, dir, div, dl, fieldset, footer,
+form, h1, h2, h3, h4, h5, h6, header, hr, menu, nav, ol, p, pre, section,
+table, or ul element, or if there is no more content in the parent element
+and the parent element is not an a element.
+}
+	]
 ]
 
 debug: func [
 	value
 	/init
 ] [
-	if all [debug? init] [write %debug ""]
+	if all [debug? init] [write value "" exit]
 	if debug? [
 		write/append %debug value
 		print value
 		print [
 			"stack:" length? xml/stack
 			"atts-stack:" length? xml/atts-stack
+			rejoin [index? xml/pos "/" length? xml/doc]
 		]
 		if (length? xml/stack) <> (length? xml/atts-stack) [
 			print "stacks differ"
 			halt
 		]
-		wait 0.02
+;		wait 0.02
 ;		if "q" = ask "Q to quit:" [halt]
 	]
 ]
-debug?: no
-debug/init
+debug?: yes
+debug/init %debug
 
 ; ============================================================================
 
@@ -36,8 +48,6 @@ xml: context [
 	; === SETTINGS ===========================================================
 
 	empty-value: none   ; used for single tags that have no content
-	reverse?: no        ; normal order is `[tag content attributes]`
-					    ; reversed order is `[tag attributes content]`
 	align-content?: yes ; store `HTML` strings as one or three values:
 						; `string` or  `[NONE string NONE]`  
 						; this required for traversing with `foreach-node`
@@ -84,29 +94,61 @@ xml: context [
 		push-atts
 		(append stack name=)
 		keep (to word! name=)
-		[if (reverse?) pop-atts | none]
 	]
 	close-tag: [
-		ws "</"
 		(debug "--close-tag?")
+		close-p-tag
+	|	ws "</"
 		(name=: last stack)	; first we test the name
 		name=				; and if it matches, we can remove it
 		(take/last stack)	; this prevents stack corruption
 		#">"				; in case of badly writen HTML (wild close tag)
 		(close=: name=) ; for debug purpose only
 		(name=: none)
-		[if (not reverse?) pop-atts | none]
+		pop-atts
 	]
 	wild-close-tag: [
 		ws "</" 
 		(name=: last stack)
+		if (not equal? "p" name=)	; <p> can be unlcosed so it's not error
 		not name=
 		copy name= some name #">"
+	]
+	close-p-tag: [
+; there are three ways to close <p> tag:
+		if ("p" = last stack)
+		(para?: false)
+		pos:
+		(debug ["|para|" mold stack mold pos])
+		ws "</" [
+	; 1. </p>
+			(name=: last stack)
+			name=
+			(take/last stack)
+			#">"
+	; 2. close parent tag
+		|	(name=: first back back stack)
+			name=
+			(take/last stack)
+			(para?: true)
+			:pos
+		]
+		(close=: name=) ; for debug purpose only
+		(name=: none)
+		pop-atts
+		(debug "closed para")
+; 3. open tag from list below
+		; TODO
+	]
+	end-p-tag: [
+		"address" | "article" | "aside" | "blockquote" | "dir" | "div" | "dl"
+	|	"fieldset" | "footer" | "form" | "h1" | "h2" | "h3" | "h4" | "h5"
+	|	"h6" | "header" | "hr" | "menu" | "nav" | "ol" | "p" | "pre"
+	|	"section" | "table" | "ul"
 	]
 	close-char: #"/"
 	action: none
 	single-tag: [
-		sinpos:
 		(close-char: #"/")
 		ws #"<" opt [#"!" (close-char: "")]
 		(debug "--single-tag?")
@@ -120,16 +162,8 @@ xml: context [
 		opt ["</" name= #">"]
 		push-atts
 		keep (to word! name=)
-		[
-			if (reverse?) [
-				pop-atts
-				keep (empty-value) ; empty content
-			]
-		|	if (not reverse?) [
-				keep (empty-value) ; empty content
-				pop-atts
-			]
-		]
+		keep (empty-value) ; empty content
+		pop-atts
 	]
 	;TODO: for HTML attribute names, #":" should be excluded
 	pair-att: [
@@ -208,10 +242,15 @@ xml: context [
 	atts=: #()
 	att-name=:
 	att-value=: none
+	doc: none
+	pos: []
+	para?: false	;	is the tag <p> ? - changes behavior of pop-atts
+					;	must pop two attrs
 
 	decode: func [
 		data
 	] [
+		doc: data
 		parse data [collect document]
 	]
 
@@ -251,7 +290,6 @@ xml: context [
 		output: make string! 1000
 		either data/1 [
 			; tag
-			if reverse? [move next data tail data]
 			either empty? data/2 [
 				; empty tag
 				debug ["single tag" mold data]
