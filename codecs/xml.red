@@ -36,7 +36,7 @@ debug: func [
 ;		if "q" = ask "Q to quit:" [halt]
 	]
 ]
-debug?: yes
+debug?: no
 debug/init %debug
 
 ; ============================================================================
