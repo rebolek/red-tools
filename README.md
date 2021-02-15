@@ -1,12 +1,16 @@
+# IMPORTANT NOTICE
+
+All HTTP and HTML related stuff has been moved to the [CASTR](https://gitlab.com/rebolek/castr/) repository. Go there for updated and fixed version of
+
+* `SEND-REQUEST`
+* `XML/HTML` parser
+* The `HUB` web server
+* codepages handling functions
+
+and other amazing stuff. Versions here will be deleted eventually.
+
 # red-tools
 Various Red tools, encoders/decoders and APIs
-
-```
-NOTE
-```
-
-If you are looking for a `SEND-REQUEST` function, it moved to [CASTR](https://gitlab.com/rebolek/castr/). The version here is old, unsupported and will be deleted eventually!
-
 
 ## Encoders/decoders
 
@@ -17,10 +21,6 @@ Load and save [CSV](https://www.wikiwand.com/en/Comma-separated_values) files.
 ### JSON
 
 Load and save JSON files.
-
-### XML
-
-Load and save XML files.
 
 ### GraphQL
 
