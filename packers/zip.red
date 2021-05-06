@@ -268,6 +268,14 @@ set 'load-zip func [
 				date/time: load-msdos-time time
 				metadata/:filename: context compose [
 					date: (date)
+					size: (orig-size)
+					packed: (comp-size)
+					ratio: (
+						either zero? orig-size [0%] [
+							to percent! comp-size / orig-size
+						]
+					)
+					comment: (comment)
 				]
 			)
 			:mark
