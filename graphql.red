@@ -311,24 +311,26 @@ graphql: context [
 		delimiter: charset "[](){}"
 		string: copy string ; NOTE: copy or not to copy
 		parse string [
-			; TODO: empty line beginnings
-			opt [mark: some ws end: (remove/part mark end)]
+			opt [remove some ws]
 			some [
-			;	change newline space
+				delimiter
 				mark:
+		;		(print ["1." mold mark])
+				some ws
+				end:
+				(remove/part mark end)
+				:mark
+			|	mark:
 				some ws
 				delimiter
 				end:
 				(remove/part mark back end)
 				:mark
-			|	delimiter
-				mark:
+			|	"..." change ws ""
+			|	mark:
 				some ws
 				end:
-				(remove/part mark end)
-				:mark
-			|	"..." change ws ""
-		;	|	mark: change ws space change ws "" :mark
+				(change/part mark space end)
 			|	skip
 			]
 		]
