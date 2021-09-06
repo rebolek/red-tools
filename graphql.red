@@ -152,7 +152,10 @@ graphql: context [
 		]
 	|	selection-set*
 	]
-	operation-type*: [copy op-type= ["query" | "mutation" | "subscription"] keep (to word! op-type=)]
+	operation-type*: [
+		copy op-type= ["query" | "mutation" | "subscription"]
+		keep (to word! op-type=)
+	]
 	selection-set*: [
 		brace-start
 		collect set selection=
@@ -170,7 +173,7 @@ graphql: context [
 		opt alias*
 		s: name* e: keep (to word! copy/part s e)
 		opt [arguments* ws]
-		opt [directives ws]
+		opt [directives* ws]
 		opt selection-set*
 	]
 	; arguments
@@ -442,3 +445,4 @@ graphql: context [
 		minify output
 	]	
 ]
+
