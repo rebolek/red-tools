@@ -313,7 +313,8 @@ graphql: context [
 		parse string [
 			opt [remove some ws]
 			some [
-				delimiter
+				remove [#"#" thru newline]
+			|	delimiter
 				mark:
 		;		(print ["1." mold mark])
 				some ws
