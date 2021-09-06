@@ -1,5 +1,31 @@
 Red [
 	Title: "GraphQL tests"
+	Usage: {
+
+Load tests with `do %graphql-tests.red`
+
+### Validate test
+
+`graphqg/validate tests/<index>`
+
+Where `index` is test id.
+
+Validation will return TRUE if the test unit can be parsed.
+
+### Check test
+
+check-test <index>
+
+It will convert GraphQL test unit to Red format and then back to GraphQL.
+Then it compares minified version of both units to see if the conversion went
+right. Units are minified so the whitespaces don’t matter in the comparison.
+
+}
+]
+
+check-test: func [index /local qgl] [
+	gql: graphql/decode tests/:index
+	equal? graphql/minify tests/:index graphql/encode gql
 ]
 
 tests: [
