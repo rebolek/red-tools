@@ -318,9 +318,10 @@ graphql: context [
 				remove [#"#" thru newline]
 			|	{"""} thru {"""}
 			|	#"^"" thru #"^""
-			|	change #"," #" " opt [remove some ws]
+			|	change comma #" " opt [remove some ws]
 			|	"..." opt [remove some ws]
 			|	delimiter
+				opt [remove comma]
 				mark:
 				some ws
 				end:
