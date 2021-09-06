@@ -1,5 +1,6 @@
 Red [
 	Title: "GraphQL tests"
+	Author: "Boleslav Březovský"
 	Usage: {
 
 Load tests with `do %graphql-tests.red`
@@ -25,11 +26,26 @@ compare-test <index>
 Prints original minified test unit and converted version on separate
 lines.
 }
+	Links: [
+		https://graphql.org/
+		Tests: https://github.com/graphql/graphql-js/tree/main/src/__tests__
+	]
 ]
 
-check-test: func [index /local qgl] [
-	gql: graphql/decode tests/:index
-	equal? graphql/minify tests/:index graphql/encode gql
+check-test: func [index /local qgl results] [
+	results: copy []
+	if integer? index [index: reduce [index]]
+	if equal? true index [
+		index: collect [
+			repeat local length? tests [keep local]
+		]
+	]
+	foreach test index [
+		test: pick tests test
+		gql: graphql/decode test
+		append results equal? graphql/minify test graphql/encode gql
+	]
+	results
 ]
 
 compare-test: func [index] [
@@ -231,7 +247,7 @@ query inlineFragmentNoType($expandedInfo: Boolean) {
   }
 }
 }
-; ---[14] 
+; ---[14]
 {
 {
   entity {
@@ -242,6 +258,24 @@ query inlineFragmentNoType($expandedInfo: Boolean) {
   },
   phoneNumber
 }
+}
+; ---[15]
+{
+
+{
+  "profiles": [
+    {
+      "handle": "zuck",
+      "friends": { "count" : 1234 }
+    },
+    {
+      "handle": "cocacola",
+      "likers": { "count" : 90234512 }
+    }
+  ]
+}
+
+
 }
 ]
 
