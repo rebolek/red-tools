@@ -318,9 +318,9 @@ graphql: context [
 			|	{"""} thru {"""}
 			|	#"^"" thru #"^""
 			|	change #"," #" " opt [remove some ws]
+			|	"..." opt [remove some ws]
 			|	delimiter
 				mark:
-		;		(print ["1." mold mark])
 				some ws
 				end:
 				(remove/part mark end)
@@ -331,11 +331,7 @@ graphql: context [
 				end:
 				(remove/part mark back end)
 				:mark
-			|	"..." change ws ""
-			|	mark:
-				some ws
-				end:
-				(change/part mark space end)
+			|	change [some ws] #" "
 			|	skip
 			]
 		]
