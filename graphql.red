@@ -5,6 +5,7 @@ Red [
 	To-Do: [
 		"List! rule is not recursive"
 		"block-strings are missing"
+		"It should do type conversion but doesn’t"
 	]
 ]
 
@@ -431,7 +432,8 @@ graphql: context [
 			; default value
 			opt set value
 			(keep [#"$" name #":" space])
-			(keep [select graphql-types type space])
+		;	(keep [select graphql-types type space])
+			(keep [type space])
 			(if value [keep [#"=" space value]])
 		]
 		vals-rule: [
