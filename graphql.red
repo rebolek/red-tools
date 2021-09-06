@@ -4,6 +4,7 @@ Red [
 	Link: https://facebook.github.io/graphql/
 	To-Do: [
 		"List! rule is not recursive"
+		"block-strings are missing"
 	]
 ]
 
@@ -314,6 +315,9 @@ graphql: context [
 			opt [remove some ws]
 			some [
 				remove [#"#" thru newline]
+			|	{"""} thru {"""}
+			|	#"^"" thru #"^""
+			|	remove #","
 			|	delimiter
 				mark:
 		;		(print ["1." mold mark])
