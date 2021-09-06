@@ -340,8 +340,13 @@ graphql: context [
 	validate: func [
 		"checks GraphQL validity"
 		data
+		/local valid?
 	] [
-		parse data document*
+		parse data [
+			collect document*
+			(valid?: true)
+		]
+		valid?
 	]
 
 	; === Decoder ============================================================
