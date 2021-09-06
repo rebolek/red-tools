@@ -259,9 +259,11 @@ query inlineFragmentNoType($expandedInfo: Boolean) {
   phoneNumber
 }
 }
+]
+
+more-tests: [
 ; ---[15]
 {
-
 {
   "profiles": [
     {
@@ -274,8 +276,6 @@ query inlineFragmentNoType($expandedInfo: Boolean) {
     }
   ]
 }
-
-
 }
 ]
 
