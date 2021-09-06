@@ -317,7 +317,7 @@ graphql: context [
 				remove [#"#" thru newline]
 			|	{"""} thru {"""}
 			|	#"^"" thru #"^""
-			|	remove #","
+			|	change #"," #" " opt [remove some ws]
 			|	delimiter
 				mark:
 		;		(print ["1." mold mark])
@@ -455,6 +455,7 @@ graphql: context [
 			]
 		]
 		minify output
+	;	output
 	]	
 ]
 
