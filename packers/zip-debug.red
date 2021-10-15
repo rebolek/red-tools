@@ -173,7 +173,7 @@ make-entry: func [
 		data:		read/binary filename
 		crc:		to-ilong checksum data 'crc32
 		orig-size:	to-ilong length? data
-		data:		compress/deflate data
+		data:		compress data 'deflate
 		comp-size:	to-ilong length? data
 	]
 	name-size:	to-ishort length? to binary! filename
@@ -261,7 +261,7 @@ file-action: quote (
 	filename: global-entry/filename
 	zip-files/:filename: switch global-entry/method [
 		store	[comp]
-		deflate	[decompress/deflate comp orig-size]
+		deflate	[decompress/size comp 'deflate orig-size]
 	]
 	date: global-entry/date
 	date/time: global-entry/time
