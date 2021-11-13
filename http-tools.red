@@ -579,7 +579,7 @@ context [
 		method 		[word!] "Method type (GET, POST, PUT, DELETE)"
 		/only 		"Return only data without headers"
 		/data 		"Data to send with request (auto-converted to proper encoding)"
-			content [string! block! map! object! none!]
+			content [string! block! map! object! binary! none!]
 		/mold		"Do not auto-convert data and send tham as MOLDed Red values"
 		/with 		"Headers to send with request"
 			args	[block! map!]
@@ -669,7 +669,7 @@ context [
 		reply: write/binary/info link data
 		if debug	[set 'raw-reply copy/deep reply]
 		; Red strictly requires UTF-8 data, but we'll be bit more tolerant and allow anything
-		if error? try [reply/3: to string! reply/3][reply/3: load-non-utf reply/3]
+		if error? try [reply/3: to string! any [reply/3 ""]][reply/3: load-non-utf reply/3]
 		if debug	[set 'string-reply copy/deep reply]
 		if raw		[return reply]
 		if verbose	[print ["Headers:" mold reply/2]]
