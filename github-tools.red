@@ -1,8 +1,10 @@
 Red[]
 
-do %apis/github-v3.red
-do %github-options.red
-do %qobom.red
+#include %apis/github-v3.red
+;#include %github-options.red
+#include %qobom.red
+#include %packers/zip.red
+#include %../castr/http-scheme.red
 
 ; --- support
 
@@ -130,4 +132,25 @@ get-aoiltf: func [
 		]
 	]
 	authors
+]
+
+clone: func [
+	repo	[path!]
+	/branch
+		name
+	/local data file content
+] [
+	name: any [name "master"]
+	; download ZIP archive
+	repo: rejoin [https://codeload.github.com/ repo %/zip/refs/heads/ name]
+	data: load-zip read/binary repo
+	; save files
+	foreach [file content] data [
+		append out file
+		either dir? file [
+			make-dir/deep file
+		][
+			write/binary file content
+		]
+	]
 ]
