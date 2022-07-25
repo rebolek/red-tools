@@ -21,7 +21,7 @@ do %../http-tools.red
 
 cloudflare!: context [
 	; user settings
-	api-key: none
+	token: none
 	email: none
 
 	; support
@@ -38,16 +38,12 @@ cloudflare!: context [
 		link: rejoin [base-url link]
 		method: any [method 'GET]
 		header: make map! compose [
-			X-Auth-Key: (form self/api-key)
-			X-Auth-Email: (form self/email)
 			Content-Type: "application/json"
-			; TODO: X-Auth-User-Service-Key
 		]
-		self/reply: either equal? method 'get [
-			send-request/with link method header
+		reply: either equal? method 'get [
+			send-request/with/auth link method header 'Bearer token
 		] [
-			header/Content-Type: "application/json"
-			send-request/with/data link method header data
+			send-request/with/data/auth link method header data 'Bearer token
 		]
 		; TODO: error handling
 		either reply/code = 200 [
@@ -73,11 +69,11 @@ cloudflare!: context [
 	get-zone-id: func [
 		name
 	][
-		either self/id? probe name [
+		either id? name [
 			return name
 		][
-			if empty? self/zone-cache [self/get-zones]
-			foreach zone self/zone-cache [
+			if empty? zone-cache [get-zones]
+			foreach zone zone-cache [
 				if equal? name zone/name [return zone/id]
 			]
 		]
@@ -85,7 +81,7 @@ cloudflare!: context [
 	]
 
 	get-zone-name: func [zone-id][
-		foreach zone self/zone-cache [
+		foreach zone zone-cache [
 			if equal? zone-id zone/id [return zone/name]
 		]
 	]
@@ -96,13 +92,13 @@ cloudflare!: context [
 		/local zone-name records
 	][
 		; prepare caches
-		zone: self/get-zone-id zone
-		zone-name: self/get-zone-name zone
-		if empty? words-of self/dns-cache [self/list-dns-records zone]
+		zone: get-zone-id zone
+		zone-name: get-zone-name zone
+		if empty? words-of dns-cache [list-dns-records zone]
 		;  make sure that name contains zone name
 		unless find name zone-name [name: rejoin [name dot zone-name]]
 		; find record ID
-		records: select self/dns-cache zone
+		records: select dns-cache zone
 		foreach record records [
 			if equal? name record/name [return record/id]
 		]
@@ -111,18 +107,23 @@ cloudflare!: context [
 
 	; --- API implementation
 
+	verify: func [] [
+		send %user/tokens/verify
+		copy reply/data/result
+	]
+
 	get-zones: func [][
 		; TODO: Pagination
-		self/send %zones
-		self/zone-cache: copy self/reply/data/result
+		send %zones
+		zone-cache: copy reply/data/result
 	]
 
 	list-dns-records: func [
 		zone
 	][
-		zone: self/get-zone-id zone
-		self/send rejoin [%zones/ zone "/dns_records"]
-		self/dns-cache/:zone: self/reply/data/result
+		zone: get-zone-id zone
+		send rejoin [%zones/ zone "/dns_records"]
+		dns-cache/:zone: reply/data/result
 	]
 
 	make-dns-record: func [
@@ -132,8 +133,8 @@ cloudflare!: context [
 		content
 		; TODO: optional args
 	][
-		zone: self/get-zone-id zone
-		self/send/with rejoin [%zones/ zone "/dns_records"] 'POST json/encode make map! compose [
+		zone: get-zone-id zone
+		send/with rejoin [%zones/ zone "/dns_records"] 'POST json/encode make map! compose [
 			type: (type)
 			name: (name)
 			content: (content)
@@ -148,9 +149,9 @@ cloudflare!: context [
 		; TODO: optional args
 		/local id
 	][
-		id: self/get-dns-record-id zone name
-		zone: self/get-zone-id zone
-		self/send/with rejoin [%zones/ zone "/dns_records/" :id] 'PUT json/encode make map! compose [
+		id: get-dns-record-id zone name
+		zone: get-zone-id zone
+		send/with rejoin [%zones/ zone "/dns_records/" :id] 'PUT json/encode make map! compose [
 			type: (type)
 			name: (name)
 			content: (content)
@@ -161,7 +162,10 @@ cloudflare!: context [
 		zone
 		name
 	][
-		; TODO: DELETE method is missing currently
+;		DELETE zones/:zone_identifier/dns_records/:identifier
+		id: get-dns-record-id zone name
+		zone: get-zone-id zone
+		send/with rejoin [%zones/ zone "/dns_records/" :id] 'DELETE []
 	]
 ]
 
